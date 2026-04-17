@@ -10,8 +10,11 @@ import {
 } from 'fumadocs-ui/layouts/notebook/page'
 import type { Root as PageTreeRoot } from 'fumadocs-core/page-tree'
 import type { TOCItemType } from 'fumadocs-core/toc'
-import type { ReactNode } from 'react'
-import { Markdown } from 'fumadocs-core/content/md'
+import type { ReactNode, FC } from 'react'
+import { Markdown as MarkdownAsync } from 'fumadocs-core/content/md'
+
+// fumadocs Markdown is an async server component — cast via unknown to satisfy React 19 JSX constraint
+const Markdown = MarkdownAsync as unknown as FC<{ children: string }>
 
 type DocsSlug = '' | 'getting-started' | 'preview' | 'rendering' | 'cli' | 'templates' | 'prompt' | 'playground'
 
