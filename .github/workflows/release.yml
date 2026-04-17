@@ -32,7 +32,9 @@ jobs:
       - run: pnpm install
 
       - name: Build packages
-        run: pnpm --filter @velox-video/core build
+        run: |
+          pnpm --filter @velox-video/core build
+          pnpm --filter velox-video build
 
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@v1
