@@ -51,7 +51,7 @@ function drawRect(
 ): void {
   ctx.globalAlpha = opacity
   if (shape.gradient) {
-    ctx.fillStyle = makeGradient(ctx, shape.gradient as any, x, y, w, h)
+    ctx.fillStyle = makeGradient(ctx, shape.gradient, x, y, w, h)
   } else {
     ctx.fillStyle = shape.color ?? '#6C63FF'
   }

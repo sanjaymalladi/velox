@@ -115,15 +115,25 @@ export interface ChartDataPoint {
   color?: string
 }
 
+export interface ShapeShadow {
+  color?: string
+  blur?: number
+  offsetX?: number
+  offsetY?: number
+}
+
 export interface ShapeConfig {
   shapeType:
     | 'rect' | 'circle' | 'line' | 'particles' | 'noise'
-    | 'barChart' | 'progressBar'
+    | 'barChart' | 'progressBar' | 'growUp'
   color?: VeloxColor
   width?: number
   height?: number
   borderRadius?: number
   thickness?: number
+  // gradient & shadow
+  gradient?: VeloxGradient
+  shadow?: ShapeShadow
   // particles / noise
   count?: number
   speed?: number
