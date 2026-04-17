@@ -1,0 +1,242 @@
+---
+title: Rendering
+description: Export MP4, WebM, or GIF output from the CLI with advanced options.
+---
+
+# Rendering
+
+Rendering walks the timeline frame by frame and writes the resulting animation to disk in your chosen format.
+
+## Output Formats
+
+Velox supports multiple output formats to suit different use cases:
+
+| Format | Best For | File Extension |
+|--------|----------|----------------|
+| `mp4` | High quality video, web, social media | `.mp4` |
+| `webm` | Smaller file size, web applications | `.webm` |
+| `gif` | Simple animations, compatibility | `.gif` |
+
+## Quality Settings
+
+### CRF (Constant Rate Factor)
+
+Use the `--quality` flag to control output quality:
+
+- **`low`** (CRF 23-25): Smaller file size, lower quality
+- **`medium`** (CRF 20-22): Balanced quality and file size
+- **`high`** (CRF 18-19): High quality, larger file size
+
+```bash
+# High quality MP4 render
+velox-video render animation.ts --quality high --output animation.mp4
+
+# Medium quality WebM render
+velox-video render animation.ts --quality medium --format webm --output animation.webm
+```
+
+## Interactive Rendering Examples
+
+Try these interactive examples to understand rendering options:
+
+**Example 1: Format Comparison**
+```typescript
+// Test different output formats
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 3.0,
+  children: [
+    rect({
+      width: 300,
+      height: 200,
+      fill: color('purple'),
+      x: animate({ from: 0, to: 500, duration: 2.0 }),
+    }),
+  ],
+})
+```
+
+**Example 2: Quality Settings Impact**
+```typescript
+// Compare quality settings
+import { canvas, circle, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1280,
+  height: 720,
+  duration: 2.0,
+  children: [
+    circle({
+      radius: 100,
+      fill: color('orange'),
+      x: animate({ from: 100, to: 600, duration: 1.5 }),
+    }),
+  ],
+})
+```
+
+## Advanced Rendering Options
+
+### Frame Rate Control
+
+Override the project's default FPS:
+
+```bash
+velox-video render animation.ts --fps 60
+```
+
+### Resolution
+
+Set custom output dimensions:
+
+```bash
+velox-video render animation.ts --width 1280 --height 720
+```
+
+### Looping
+
+Repeat the animation multiple times:
+
+```bash
+# Loop 3 times
+velox-video render animation.ts --loop --count 3
+```
+
+### Preset Options
+
+Choose encoding preset for speed vs compression tradeoff:
+
+```bash
+# Fast encoding (larger file)
+velox-video render animation.ts --preset fast
+
+# Slow encoding (smaller file)
+velox-video render animation.ts --preset slow
+```
+
+### Interactive Parameter Tuning
+
+Experiment with different combinations:
+
+**Test Different Resolutions**
+```bash
+# Test 720p
+velox-video render animation.ts --width 1280 --height 720 --output test-720p.mp4
+
+# Test 1080p  
+velox-video render animation.ts --width 1920 --height 1080 --output test-1080p.mp4
+
+# Test 4K
+velox-video render animation.ts --width 3840 --height 2160 --output test-4k.mp4
+```
+
+**Test Quality Settings**
+```bash
+# Low quality for quick tests
+velox-video render animation.ts --quality low --output test-low.mp4
+
+# Medium quality for review
+velox-video render animation.ts --quality medium --output test-medium.mp4
+
+# High quality for final
+velox-video render animation.ts --quality high --output test-high.mp4
+```
+
+## Code Playground for Rendering
+
+Create and test rendering configurations interactively:
+
+**Basic Render Test**
+```typescript
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 5.0,
+  background: '#1a1a2e',
+  children: [
+    rect({
+      width: 400,
+      height: 300,
+      fill: color('#16213e'),
+      x: animate({ from: 0, to: 1500, duration: 3.0, easing: 'easeInOut' }),
+    }),
+  ],
+})
+```
+
+**Render Settings Test**
+```typescript
+// Test different render configurations
+import { canvas, circle, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1280,
+  height: 720,
+  duration: 2.0,
+  children: [
+    circle({
+      radius: 80,
+      fill: color('cyan'),
+      x: animate({ from: 0, to: 1000, duration: 2.0 }),
+    }),
+  ],
+})
+```
+
+## Performance Tips
+
+1. **Use `--quality medium`** for faster renders with good quality
+2. **Lower resolution** when testing to save time
+3. **Use `--preset fast`** during development, `--preset slow` for final output
+4. **Enable parallel processing** if supported by your system
+5. **Close unnecessary applications** to free up memory for rendering
+6. **Test with low quality first**, then re-render with high quality
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Out of memory | Reduce resolution or quality setting |
+| Slow render | Check if WebAssembly is properly compiled, use `--preset fast` |
+| Corrupted output | Verify source animation doesn't have errors |
+| Wasm compilation error | Ensure WASM support is enabled in browser/node |
+| Black output | Check animation timing and visibility |
+| Format not working | Ensure ffmpeg/lib dependencies are installed |
+
+## Expected Render Times
+
+| Resolution | Quality | Estimated Time (3s animation) |
+|------------|---------|-------------------------------|
+| 720p | Low | 5-10 seconds |
+| 720p | Medium | 15-30 seconds |
+| 720p | High | 45-60 seconds |
+| 1080p | Medium | 30-60 seconds |
+| 1080p | High | 1-2 minutes |
+
+## Interactive Debugging
+
+When testing renders interactively:
+
+1. Start with low quality for quick iteration
+2. Test different parameters one at a time
+3. Compare outputs side by side
+4. Document settings that work well
+
+```bash
+# Quick test cycle
+velox-video render anim.ts --quality low --output quick-test.mp4
+# Review, then improve
+velox-video render anim.ts --quality high --output final.mp4
+```
+
+## Next Steps
+
+- Explore [Preview Studio features](./docs/preview)
+- Learn about [configuration options](./docs/cli)
+- Check out [example projects](./examples/animations)
+- Read the [Core API documentation](./app/core)

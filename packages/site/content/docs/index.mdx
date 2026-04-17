@@ -1,0 +1,182 @@
+---
+title: Overview
+description: The fastest way to build motion graphics with code.
+---
+
+# Velox Docs
+
+Velox is a code-first motion graphics engine for projects that need fast previewing, native rendering, and a lightweight workflow. It enables developers to create complex 2D animations, charts, text effects, and particle systems using TypeScript, and export them directly to H.264 MP4, WebM, or GIF formats without requiring heavy dependencies like Chrome, Puppeteer, or FFmpeg.
+
+## What Velox Does
+
+Velox provides a comprehensive solution for creating motion graphics programmatically:
+
+### Core Capabilities
+- **Programmatic Animation**: Define scenes entirely in TypeScript with precise control over timing, transformations, and effects
+- **Multiple Output Formats**: Export to MP4, WebM, and GIF with configurable quality settings
+- **Fast Preview**: Built-in Hot Module Replacement (HMR) studio for rapid iteration
+- **Zero Dependencies**: Uses pre-compiled Rust Skia canvas and WASM H.264 encoder
+- **Cross-Platform**: Runs locally, on Vercel, or AWS Lambda
+
+### Use Cases
+- Complex data visualizations and charts
+- Animated infographics and explainer videos
+- Text animations and kinetic typography
+- Particle systems and generative art
+- UI animations and micro-interactions
+
+## Documentation
+
+### Getting Started
+[Learn how to install and create your first project →](./docs/getting-started)
+
+### Preview Studio
+[Interactive development with HMR →](./docs/preview)
+
+### Rendering
+[Export to MP4, WebM, and GIF →](./docs/rendering)
+
+### CLI Commands
+[Complete command reference →](./docs/cli)
+
+## Templates
+
+Pre-made templates to get you started quickly:
+
+| Template | Description | Use Case |
+|----------|-------------|----------|
+| `intro-video` | Animated title sequence | Opening intros, product reveals |
+| `data-story` | Chart and data visualization | Infographics, analytics reports |
+| `text-kinetic` | Kinetic typography animation | Explainer videos, quotes |
+| `particle-system` | Generative particle effects | Backgrounds, ambient animations |
+| `product-showcase` | Product feature highlight | Marketing content, demos |
+
+### Using Templates
+
+```bash
+# Create from template
+npx velox-video new my-project --template intro-video
+
+# Or copy and modify
+cp templates/intro-video.ts src/index.ts
+```
+
+## Prompt (System Instructions for LLM)
+
+Complete system prompt for generating Velox code:
+
+```
+You are a TypeScript expert specializing in the Velox motion graphics engine.
+Follow these guidelines when generating code:
+
+1. Always import from '@velox-video/core' for core functionality
+2. Use proper TypeScript types and interfaces
+3. Follow the declarative animation patterns shown in examples
+4. Include error handling for production code
+5. Optimize for performance - avoid unnecessary re-renders
+6. Use the animation API correctly: animate(), group(), stack()
+7. Export the root canvas configuration
+
+Example structure:
+```typescript
+import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  fps: 30,
+  duration: 5.0,
+  background: '#0f0f0f',
+  children: [
+    group({
+      children: [
+        // Your animated elements here
+      ],
+    }),
+  ],
+})
+```
+
+Key patterns to follow:
+- Use `animate()` for time-based changes (position, scale, opacity, etc.)
+- Leverage `color()` for consistent color management
+- Structure complex scenes with `group()` and `stack()`
+- Use `text()` for typographic elements
+- Always include proper error handling
+```
+
+## Playground
+
+Interactive code playground where you can paste code and see outputs:
+
+### Pre-defined Examples
+
+**Example 1: Basic Animation**
+```typescript
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  fps: 30,
+  duration: 5.0,
+  background: '#0f0f0f',
+  children: [
+    rect({
+      width: 200,
+      height: 200,
+      fill: color('red'),
+      x: animate({ from: 0, to: 100, duration: 2.0 }),
+      y: animate({ from: 0, to: 100, duration: 2.0, delay: 1.0 }),
+    }),
+  ],
+})
+```
+
+**Example 2: Multiple Elements**
+```typescript
+import { canvas, circle, color, animate, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  children: [
+    group({
+      children: [
+        circle({
+          radius: 50,
+          fill: color('blue'),
+          x: animate({ from: 100, to: 500, duration: 3.0 }),
+        }),
+        circle({
+          radius: 30,
+          fill: color('yellow'),
+          x: animate({ from: 100, to: 500, duration: 3.0, delay: 1.0 }),
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+### Try It Yourself
+
+```typescript
+// Modify this code and see the output:
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1280,
+  height: 720,
+  children: [
+    rect({
+      width: 150,
+      height: 150,
+      fill: color('purple'),
+      x: animate({ from: 0, to: 400, duration: 2.0 }),
+    }),
+  ],
+})
+```
+
+**Expected output:** A purple square animating from left to right over 2 seconds.

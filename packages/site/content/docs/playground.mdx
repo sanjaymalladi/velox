@@ -1,0 +1,326 @@
+---
+title: Playground
+description: Interactive code playground to experiment with Velox animations.
+---
+
+# Playground
+
+Welcome to the Velox Playground! This is an interactive environment where you can write, test, and see the results of Velox code in real-time. Paste code, modify examples, and instantly preview your animations.
+
+## How to Use the Playground
+
+### 1. Write Your Code
+
+Paste or type your Velox code in the code editor:
+
+```typescript
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  fps: 30,
+  duration: 5.0,
+  background: '#0f0f0f',
+  children: [
+    rect({
+      width: 200,
+      height: 200,
+      fill: color('red'),
+      x: animate({ from: 0, to: 100, duration: 2.0 }),
+    }),
+  ],
+})
+```
+
+### 2. Preview Output
+
+The animation will render in real-time as you type (if HMR is available) or you can manually refresh to see changes.
+
+### 3. Experiment
+
+Try different variations:
+- Change colors: `color('blue')` → `color('cyan')`
+- Modify timing: `duration: 2.0` → `duration: 1.0`
+- Add elements: Copy/paste rect blocks
+- Adjust properties: Change `width`, `height`, positions
+
+## Pre-defined Examples
+
+### Example 1: Basic Movement
+
+```typescript
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 4.0,
+  children: [
+    rect({
+      width: 150,
+      height: 150,
+      fill: color('blue'),
+      x: animate({ from: 0, to: 500, duration: 3.0 }),
+      y: animate({ from: 0, to: 200, duration: 2.0 }),
+    }),
+  ],
+})
+```
+
+**What it does:** A blue square moves diagonally across the canvas.
+
+**Try modifying:**
+- Change `to: 500` to larger/smaller values
+- Add `opacity: animate({ from: 0, to: 1, duration: 1.0 })`
+- Change fill color
+
+---
+
+### Example 2: Multiple Elements with Staggered Timing
+
+```typescript
+import { canvas, circle, color, animate, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  children: [
+    group({
+      children: [
+        circle({
+          radius: 50,
+          fill: color('red'),
+          x: animate({ from: 100, to: 800, duration: 3.0 }),
+        }),
+        circle({
+          radius: 50,
+          fill: color('green'),
+          x: animate({ from: 100, to: 800, duration: 3.0, delay: 0.5 }),
+        }),
+        circle({
+          radius: 50,
+          fill: color('blue'),
+          x: animate({ from: 100, to: 800, duration: 3.0, delay: 1.0 }),
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+**What it does:** Three circles move in sequence with delays.
+
+**Try modifying:**
+- Change colors to create a gradient effect
+- Adjust delays to `0.3`, `0.6`, `0.9`
+- Add vertical motion: `y: animate({...})`
+- Increase number of circles
+
+---
+
+### Example 3: Opacity Fade
+
+```typescript
+import { canvas, rect, color, animate, text } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  background: '#0f0f0f',
+  duration: 4.0,
+  children: [
+    rect({
+      width: 400,
+      height: 200,
+      fill: color('cyan'),
+      opacity: animate({ from: 0, to: 1, duration: 2.0, delay: 0.5 }),
+      x: animate({ from: 0, to: 760, duration: 4.0 }),
+    }),
+    text({
+      content: 'Welcome to Velox',
+      font: 'bold 60px sans-serif',
+      fill: color('white'),
+      x: 960,
+      y: 540,
+      opacity: animate({ from: 0, to: 1, duration: 1.0, delay: 2.0 }),
+    }),
+  ],
+})
+```
+
+**What it does:** A rectangle fades in and slides, text appears after delay.
+
+**Try modifying:**
+- Change text content
+- Adjust fade timing
+- Add more elements with different fade schedules
+
+---
+
+### Example 4: Easing Functions
+
+```typescript
+import { canvas, rect, color, animate } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 6.0,
+  children: [
+    rect({
+      width: 100,
+      height: 100,
+      fill: color('magenta'),
+      x: animate({ from: 0, to: 1820, duration: 3.0, easing: 'easeInOut' }),
+      y: 500,
+    }),
+  ],
+})
+```
+
+**Easing options:** `linear`, `easeIn`, `easeOut`, `easeInOut`, `bounce`, `elastic`
+
+**Try modifying:**
+- Change easing to `'bounce'` or `'elastic'`
+- Try `easeIn` vs `easeOut`
+- Combine with y animation
+
+---
+
+### Example 5: Text Animation
+
+```typescript
+import { canvas, text, color, animate, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  background: '#1a1a2e',
+  children: [
+    group({
+      children: [
+        text({
+          content: 'VELOX',
+          font: 'bold 180px sans-serif',
+          fill: color('cyan'),
+          x: animate({ from: -1000, to: 960, duration: 2.0, easing: 'easeOut' }),
+          y: 400,
+        }),
+        text({
+          content: 'Motion Graphics Engine',
+          font: '48px sans-serif',
+          fill: color('white'),
+          x: animate({ from: 3000, to: 960, duration: 2.0, delay: 0.5, easing: 'easeOut' }),
+          y: 550,
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+**What it does:** Large title text slides in from both sides.
+
+**Try modifying:**
+- Change font sizes
+- Add third text line
+- Modify slide directions (from top, from bottom)
+- Add opacity animations
+
+## Interactive Challenges
+
+Try to create these animations by modifying the examples above:
+
+### Challenge 1: Loading Spinner
+Create a rotating loading indicator using circles or rectangles arranged in a circle, rotating continuously.
+
+### Challenge 2: Progress Bar
+Animate a filled rectangle width from 0 to 100% over 5 seconds.
+
+### Challenge 3: Bouncing Ball
+Make a ball bounce with gravity effect (fast down, slow up).
+
+### Challenge 4: Counter Animation
+Display numbers counting from 0 to 100 over 3 seconds (hint: use text with animated opacity to reveal digits).
+
+## Code Playground Tips
+
+### Keyboard Shortcuts (if available)
+- `Ctrl+Enter`: Run code
+- `Ctrl+S`: Save example
+- `Ctrl+Z`: Undo
+- `Ctrl+/`: Comment/uncomment
+
+### Best Practices
+1. **Start Simple**: Begin with 1-2 elements and add gradually
+2. **Test Often**: Preview after each change
+3. **Use Comments**: Document your code for future reference
+4. **Save Versions**: Keep a backup of working versions
+5. **Copy & Modify**: Duplicate examples and customize
+
+### Debugging in Playground
+
+If your animation doesn't work:
+
+1. **Check imports**: Ensure all Velox functions are imported
+2. **Validate structure**: Must export `default canvas({...})`
+3. **Check syntax**: Missing commas, brackets, braces
+4. **Verify properties**: Valid animate parameters
+5. **Test incrementally**: Build up from simplest working example
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "animate is not defined" | Missing import | `import { animate } from '@velox-video/core'` |
+| "canvas is not a function" | Wrong import | Use `import { canvas }` |
+| Animation doesn't move | Missing animate wrapper | Wrap property in `animate({...})` |
+| Nothing renders | No children in canvas | Add `children: [...]` array |
+
+### Performance Considerations
+
+- Limit number of simultaneous animations (keep under 50 elements)
+- Use `group()` to organize but avoid deep nesting (> 5 levels)
+- Avoid heavy computations inside render loop
+- Keep canvas dimensions appropriate for target output
+
+## Code Snippets Library
+
+Copy and paste these useful snippets:
+
+### Fade In Effect
+```typescript
+opacity: animate({ from: 0, to: 1, duration: 1.0 })
+```
+
+### Slide From Left
+```typescript
+x: animate({ from: -500, to: 100, duration: 2.0, easing: 'easeOut' })
+```
+
+### Scale Up
+```typescript
+width: animate({ from: 0, to: 200, duration: 1.0 }),
+height: animate({ from: 0, to: 200, duration: 1.0 })
+```
+
+### Color Change
+```typescript
+fill: animate({ from: color('red'), to: color('blue'), duration: 2.0 })
+```
+
+### Bounce Effect
+```typescript
+y: animate({ from: 0, to: 100, duration: 1.0, easing: 'bounce' })
+```
+
+## Exporting Your Work
+
+Once you've created an animation you like:
+
+1. **Save your code** to a file: `src/my-animation.ts`
+2. **Render it**:
+   ```bash
+   npx velox-video render src/my-animation.ts --output my-video.mp4
+   ```

@@ -1,0 +1,36 @@
+{
+  "name": "velox-monorepo",
+  "private": true,
+  "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sanjaymalladi/velox.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "site:dev": "pnpm --filter @velox-video/site dev",
+    "site:build": "pnpm --filter @velox-video/site build",
+    "velox": "node packages/velox-cli/dist/index.js"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.30.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.97",
+    "gif-encoder-2": "^1.0.5",
+    "h264-mp4-encoder": "^1.0.12"
+  }
+}

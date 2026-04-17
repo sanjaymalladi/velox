@@ -1,0 +1,15 @@
+{
+  "title": "Docs",
+  "description": "Guides and references for building with Velox.",
+  "root": true,
+  "pages": [
+    "index",
+    "getting-started",
+    "preview",
+    "rendering",
+    "cli",
+    "templates",
+    "prompt",
+    "playground"
+  ]
+}

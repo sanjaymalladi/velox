@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Velox Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --surface2:  #1a1a24;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #e8e8f0;
+      --muted:     #6b6b85;
+      --accent:    #6C63FF;
+      --accent2:   #a78bfa;
+      --success:   #34d399;
+      --danger:    #f87171;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* ── Top Bar ──────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 22px; height: 22px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+
+    .topbar-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    .btn-export:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-export:active { transform: translateY(0); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Main Canvas Area ─────────────────────────────────────── */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050508;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 24px 80px rgba(0,0,0,0.7);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    #preview-canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* ── Status bar ───────────────────────────────────────────── */
+    .statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 28px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .time-display {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-info {
+      display: flex; gap: 16px;
+      font-size: 11px; color: var(--muted);
+    }
+
+    /* ── Timeline ─────────────────────────────────────────────── */
+    .timeline-area {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .timeline-track {
+      position: relative;
+      height: 36px;
+      margin: 0 16px;
+      cursor: pointer;
+    }
+
+    .timeline-bg {
+      position: absolute;
+      inset: 8px 0;
+      border-radius: 4px;
+      background: var(--surface2);
+      overflow: hidden;
+    }
+
+    .scene-block {
+      position: absolute;
+      top: 0; bottom: 0;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      overflow: hidden;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.8);
+      cursor: pointer;
+      transition: filter 0.1s;
+    }
+    .scene-block:hover { filter: brightness(1.2); }
+
+    .playhead {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: #fff;
+      border-radius: 1px;
+      box-shadow: 0 0 6px rgba(255,255,255,0.5);
+      pointer-events: none;
+      transition: left 0.016s linear;
+    }
+
+    /* ── Controls ─────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ctrl-btn {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.1s;
+    }
+    .ctrl-btn:hover { background: var(--surface2); color: var(--text); }
+    .ctrl-btn.active { color: var(--text); }
+
+    .play-btn {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .play-btn:hover { background: var(--accent2); transform: scale(1.05); }
+
+    .ctrl-right {
+      display: flex; gap: 8px; align-items: center;
+    }
+
+    .loop-btn { font-size: 11px; padding: 4px 10px; }
+    .loop-btn.active { background: var(--surface2); color: var(--accent); border-color: var(--accent); }
+
+    /* ── Export Progress ──────────────────────────────────────── */
+    .export-overlay {
+      position: fixed; inset: 0;
+      background: rgba(5, 5, 8, 0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      display: none;
+    }
+
+    .export-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 36px;
+      min-width: 320px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .export-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .export-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+
+    .progress-bar {
+      height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .progress-text { font-size: 13px; color: var(--muted); }
+
+    /* ── HMR Indicator ────────────────────────────────────────── */
+    .hmr-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted);
+      display: inline-block; margin-right: 4px;
+      transition: background 0.3s;
+    }
+    .hmr-dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .hmr-dot.error  { background: var(--danger); }
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    VELOX STUDIO
+  </div>
+  <div class="topbar-info">
+    <span><span class="hmr-dot" id="hmr-dot"></span><span id="hmr-status">Watching...</span></span>
+    <span class="badge" id="info-resolution">—</span>
+    <span class="badge" id="info-fps">—</span>
+    <span class="badge" id="info-duration">—</span>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-outline" onclick="exportVideo('gif')">Export GIF</button>
+    <button class="btn btn-export" onclick="exportVideo('mp4')">⬇ Export MP4</button>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-area" id="canvas-area">
+  <div class="canvas-wrapper" id="canvas-wrapper">
+    <canvas id="preview-canvas"></canvas>
+  </div>
+  <div class="canvas-overlay" id="overlay">
+    <span class="loading-text">Loading video...</span>
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar">
+  <div class="time-display" id="time-display">0:00.00 / 0:00.00</div>
+  <div class="status-info">
+    <span id="frame-display">Frame 0 / 0</span>
+    <span id="scene-display">Scene 1</span>
+  </div>
+</div>
+
+<!-- Timeline -->
+<div class="timeline-area">
+  <div class="timeline-track" id="timeline-track">
+    <div class="timeline-bg" id="timeline-bg">
+      <!-- scene blocks injected by JS -->
+    </div>
+    <div class="playhead" id="playhead"></div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="playback-controls">
+    <button class="ctrl-btn" onclick="seekFrame(-1)" title="Prev frame">⏮</button>
+    <button class="ctrl-btn" onclick="seekFrame(-10)" title="-10 frames">◄◄</button>
+    <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()" title="Play/Pause [Space]">▶</button>
+    <button class="ctrl-btn" onclick="seekFrame(10)" title="+10 frames">▶▶</button>
+    <button class="ctrl-btn" onclick="seekFrame(1)" title="Next frame">⏭</button>
+  </div>
+  <div class="ctrl-right">
+    <button class="btn btn-outline loop-btn" id="loop-btn" onclick="toggleLoop()">⟳ Loop</button>
+    <button class="btn btn-outline" onclick="goToStart()" style="font-size:11px;padding:4px 10px">⏫ Start</button>
+  </div>
+</div>
+
+<!-- Export overlay -->
+<div class="export-overlay" id="export-overlay">
+  <div class="export-modal">
+    <div class="export-title">Rendering...</div>
+    <div class="export-sub" id="export-sub">Preparing encoder</div>
+    <div class="progress-bar"><div class="progress-fill" id="export-progress"></div></div>
+    <div class="progress-text" id="export-pct">0%</div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let config = null
+let totalFrames = 0
+let currentFrame = 0
+let isPlaying = false
+let loopEnabled = true
+let rafId = null
+let lastTimestamp = null
+let frameAccum = 0
+let drawFrameFn = null  // injected by server
+let ws = null
+
+const canvas = document.getElementById('preview-canvas')
+const ctx = canvas.getContext('2d')
+const overlay = document.getElementById('overlay')
+const playBtn = document.getElementById('play-btn')
+const loopBtn = document.getElementById('loop-btn')
+const playhead = document.getElementById('playhead')
+const timeDisplay = document.getElementById('time-display')
+const frameDisplay = document.getElementById('frame-display')
+const sceneDisplay = document.getElementById('scene-display')
+const hmrDot = document.getElementById('hmr-dot')
+const hmrStatus = document.getElementById('hmr-status')
+
+// ── WebSocket HMR ──────────────────────────────────────────────────────────
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}`)
+  ws.onopen = () => {
+    hmrDot.className = 'hmr-dot active'
+    hmrStatus.textContent = 'Live'
+  }
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data)
+    if (msg.type === 'config') {
+      initVideo(msg.config)
+      hmrDot.className = 'hmr-dot active'
+      hmrStatus.textContent = 'Updated'
+      setTimeout(() => { hmrStatus.textContent = 'Live' }, 1500)
+    } else if (msg.type === 'export-progress') {
+      document.getElementById('export-progress').style.width = (msg.progress * 100) + '%'
+      document.getElementById('export-pct').textContent = Math.round(msg.progress * 100) + '%'
+      document.getElementById('export-sub').textContent = `Frame ${msg.frame} / ${msg.total}`
+    } else if (msg.type === 'export-done') {
+      document.getElementById('export-overlay').style.display = 'none'
+    }
+  }
+  ws.onclose = () => {
+    hmrDot.className = 'hmr-dot'
+    hmrStatus.textContent = 'Disconnected'
+    setTimeout(connectWS, 2000)
+  }
+  ws.onerror = () => { hmrDot.className = 'hmr-dot error' }
+}
+
+// ── Init Video ─────────────────────────────────────────────────────────────
+function initVideo(cfg) {
+  config = cfg
+  const [w, h] = cfg.size
+  totalFrames = cfg.scenes.reduce((acc, s) => {
+    const frames = Math.round(s.duration * cfg.fps)
+    const trans = s.transition ? Math.round(s.transition.duration * cfg.fps) : 0
+    return acc + frames - trans
+  }, 0)
+
+  // Size canvas
+  canvas.width = w
+  canvas.height = h
+  fitCanvas()
+
+  // Update badges
+  document.getElementById('info-resolution').textContent = `${w}×${h}`
+  document.getElementById('info-fps').textContent = `${cfg.fps}fps`
+  document.getElementById('info-duration').textContent = `${(totalFrames / cfg.fps).toFixed(1)}s`
+
+  // Build timeline
+  buildTimeline()
+  overlay.style.display = 'none'
+  currentFrame = 0
+  renderFrame(0)
+}
+
+// ── Fit Canvas ─────────────────────────────────────────────────────────────
+function fitCanvas() {
+  if (!config) return
+  const area = document.getElementById('canvas-area')
+  const areaW = area.clientWidth - 48
+  const areaH = area.clientHeight - 48
+  const [w, h] = config.size
+  const scale = Math.min(areaW / w, areaH / h, 1)
+  canvas.style.width = Math.round(w * scale) + 'px'
+  canvas.style.height = Math.round(h * scale) + 'px'
+}
+
+window.addEventListener('resize', fitCanvas)
+
+// ── Timeline Builder ───────────────────────────────────────────────────────
+const SCENE_COLORS = [
+  '#6C63FF','#a78bfa','#06b6d4','#10b981','#f59e0b','#f43f5e','#ec4899','#8b5cf6'
+]
+
+function buildTimeline() {
+  const bg = document.getElementById('timeline-bg')
+  bg.innerHTML = ''
+  let cursor = 0
+  config.scenes.forEach((s, i) => {
+    const frames = Math.round(s.duration * config.fps)
+    const trans = s.transition ? Math.round(s.transition.duration * config.fps) : 0
+    const pct = (cursor / totalFrames) * 100
+    const widthPct = (frames / totalFrames) * 100
+
+    const block = document.createElement('div')
+    block.className = 'scene-block'
+    block.style.left = pct + '%'
+    block.style.width = widthPct + '%'
+    block.style.background = SCENE_COLORS[i % SCENE_COLORS.length] + '55'
+    block.style.borderLeft = `2px solid ${SCENE_COLORS[i % SCENE_COLORS.length]}`
+    block.textContent = `S${i + 1}${s.id ? ': ' + s.id : ''}`
+    block.title = `Scene ${i+1} (${s.duration}s)`
+    block.addEventListener('click', (e) => {
+      e.stopPropagation()
+      seekTo(cursor)
+    })
+    bg.appendChild(block)
+    cursor += frames - trans
+  })
+}
+
+// ── Timeline Click Seek ────────────────────────────────────────────────────
+document.getElementById('timeline-track').addEventListener('click', (e) => {
+  const rect = e.currentTarget.getBoundingClientRect()
+  const pct = (e.clientX - rect.left) / rect.width
+  seekTo(Math.round(pct * totalFrames))
+})
+
+function seekTo(frame) {
+  currentFrame = Math.max(0, Math.min(frame, totalFrames - 1))
+  renderFrame(currentFrame)
+}
+
+// ── Playback ───────────────────────────────────────────────────────────────
+function togglePlay() {
+  isPlaying ? pause() : play()
+}
+
+function play() {
+  if (!config) return
+  isPlaying = true
+  playBtn.textContent = '⏸'
+  lastTimestamp = null
+  frameAccum = 0
+  rafId = requestAnimationFrame(tick)
+}
+
+function pause() {
+  isPlaying = false
+  playBtn.textContent = '▶'
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+}
+
+function tick(ts) {
+  if (!lastTimestamp) lastTimestamp = ts
+  const delta = ts - lastTimestamp
+  lastTimestamp = ts
+  frameAccum += delta * config.fps / 1000
+
+  while (frameAccum >= 1) {
+    currentFrame++
+    frameAccum -= 1
+    if (currentFrame >= totalFrames) {
+      if (loopEnabled) { currentFrame = 0 }
+      else { currentFrame = totalFrames - 1; pause(); return }
+    }
+  }
+  renderFrame(currentFrame)
+  rafId = requestAnimationFrame(tick)
+}
+
+function seekFrame(delta) {
+  pause()
+  seekTo(currentFrame + delta)
+}
+
+function goToStart() { pause(); seekTo(0) }
+
+function toggleLoop() {
+  loopEnabled = !loopEnabled
+  loopBtn.classList.toggle('active', loopEnabled)
+}
+
+// ── Render Frame ───────────────────────────────────────────────────────────
+function renderFrame(frame) {
+  if (!config || !drawFrameFn) return
+  drawFrameFn(ctx, config, frame, config.size[0], config.size[1])
+  updateUI(frame)
+}
+
+function updateUI(frame) {
+  const fps = config?.fps ?? 30
+  const t = frame / fps
+  const total = totalFrames / fps
+  timeDisplay.textContent = `${formatTime(t)} / ${formatTime(total)}`
+  frameDisplay.textContent = `Frame ${frame} / ${totalFrames}`
+  playhead.style.left = `${(frame / totalFrames) * 100}%`
+
+  // Current scene
+  let cfr = 0
+  config.scenes.forEach((s, i) => {
+    const sf = Math.round(s.duration * fps)
+    const tr = s.transition ? Math.round(s.transition.duration * fps) : 0
+    if (frame >= cfr && frame < cfr + sf) {
+      sceneDisplay.textContent = `Scene ${i+1}`
+    }
+    cfr += sf - tr
+  })
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  const ms = Math.floor((s % 1) * 100)
+  return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+function exportVideo(format) {
+  document.getElementById('export-overlay').style.display = 'flex'
+  document.getElementById('export-progress').style.width = '0%'
+  document.getElementById('export-pct').textContent = '0%'
+  document.getElementById('export-sub').textContent = 'Initializing...'
+  ws.send(JSON.stringify({ type: 'export', format }))
+}
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case ' ': e.preventDefault(); togglePlay(); break
+    case 'ArrowRight': seekFrame(e.shiftKey ? 10 : 1); break
+    case 'ArrowLeft':  seekFrame(e.shiftKey ? -10 : -1); break
+    case '0': case 'Home': goToStart(); break
+    case 'l': case 'L': toggleLoop(); break
+    case 'e': case 'E': exportVideo('mp4'); break
+  }
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key) - 1
+    if (config && idx < config.scenes.length) {
+      let cfr = 0
+      config.scenes.forEach((s, i) => {
+        const sf = Math.round(s.duration * config.fps)
+        const tr = s.transition ? Math.round(s.transition.duration * config.fps) : 0
+        if (i === idx) seekTo(cfr)
+        cfr += sf - tr
+      })
+    }
+  }
+})
+
+// ── Startup ────────────────────────────────────────────────────────────────
+// drawFrameFn is injected via the config script tag from the server
+window.addEventListener('velox-ready', (e) => {
+  drawFrameFn = e.detail.drawFrame
+  initVideo(e.detail.config)
+})
+
+connectWS()
+</script>
+</body>
+</html>

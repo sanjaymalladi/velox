@@ -1,0 +1,297 @@
+---
+title: Templates
+description: Pre-made templates to jumpstart your Velox projects.
+---
+
+# Templates
+
+Velox includes a library of pre-made templates that you can use to get started quickly. These templates demonstrate common patterns and best practices for creating motion graphics.
+
+## Available Templates
+
+### 1. Intro Video (`intro-video`)
+
+Animated title sequence perfect for opening intros and product reveals.
+
+**Features:**
+- Animated title and subtitle
+- Background effects
+- Smooth transitions
+- Configurable colors and timing
+
+**Use Cases:**
+- YouTube video intros
+- Product launch videos
+- Presentation openings
+
+**Template Code:**
+```typescript
+import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 5.0,
+  children: [
+    group({
+      children: [
+        rect({
+          width: 1920,
+          height: 1080,
+          fill: color('#0f0f0f'),
+        }),
+        text({
+          content: 'Your Title Here',
+          font: 'bold 120px sans-serif',
+          fill: color('white'),
+          x: animate({ from: 1920, to: 960, duration: 1.0, delay: 0.5 }),
+          y: animate({ from: 540, to: 540, duration: 1.0 }),
+          opacity: animate({ from: 0, to: 1, duration: 0.5 }),
+        }),
+        text({
+          content: 'Your Subtitle',
+          font: 'bold 48px sans-serif',
+          fill: color('white'),
+          x: animate({ from: -500, to: 960, duration: 1.0, delay: 1.0 }),
+          y: animate({ from: 700, to: 700, duration: 1.0 }),
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+### 2. Data Story (`data-story`)
+
+Chart and data visualization template for infographics and analytics reports.
+
+**Features:**
+- Animated bars and charts
+- Progress indicators
+- Number counters
+- Stat displays
+
+**Use Cases:**
+- Business analytics videos
+- Data presentations
+- Infographics
+
+**Template Code:**
+```typescript
+import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 10.0,
+  children: [
+    group({
+      children: [
+        rect({ width: 100, height: 200, fill: color('blue'), x: 200, y: 880 }),
+        rect({
+          width: 100,
+          height: animate({ from: 200, to: 600, duration: 2.0 }),
+          fill: color('blue'),
+          x: 350,
+          y: animate({ from: 880, to: 280, duration: 2.0 }),
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+### 3. Kinetic Typography (`text-kinetic`)
+
+Dynamic text animations for explainer videos and quotes.
+
+**Features:**
+- Word-by-word animations
+- Character-level effects
+- Position and scale transitions
+
+**Use Cases:**
+- Quote animations
+- Explainer video text
+- Social media text posts
+
+**Template Code:**
+```typescript
+import { canvas, text, color, animate, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 8.0,
+  children: [
+    group({
+      children: [
+        text({
+          content: 'Kinetic',
+          font: 'bold 150px sans-serif',
+          fill: color('cyan'),
+          x: animate({ from: -500, to: 960, duration: 1.0 }),
+          y: 540,
+        }),
+        text({
+          content: 'Typography',
+          font: 'bold 150px sans-serif',
+          fill: color('magenta'),
+          x: animate({ from: 2420, to: 960, duration: 1.0 }),
+          y: 720,
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+### 4. Particle System (`particle-system`)
+
+Generative particle effects for backgrounds and ambient animations.
+
+**Features:**
+- Floating particles
+- Color gradients
+- Size variations
+- Movement patterns
+
+**Use Cases:**
+- Video backgrounds
+- Ambient effects
+- Loading screens
+
+**Template Code:**
+```typescript
+import { canvas, circle, color, animate, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 10.0,
+  children: [
+    group({
+      children: Array.from({ length: 50 }, (_, i) =>
+        circle({
+          radius: Math.random() * 5 + 2,
+          fill: color(['cyan', 'magenta', 'yellow', 'lime'][i % 4]),
+          x: animate({
+            from: Math.random() * 1920,
+            to: Math.random() * 1920,
+            duration: Math.random() * 5 + 2,
+          }),
+          y: animate({
+            from: Math.random() * 1080,
+            to: Math.random() * 1080,
+            duration: Math.random() * 5 + 2,
+          }),
+          opacity: animate({
+            from: 0,
+            to: 1,
+            duration: 1.0,
+          }),
+        })
+      ),
+    }),
+  ],
+})
+```
+
+### 5. Product Showcase (`product-showcase`)
+
+Product feature highlight for marketing content and demos.
+
+**Features:**
+- Product spotlight
+- Feature callouts
+- Rotating showcase
+- Text overlays
+
+**Use Cases:**
+- Product launch videos
+- Feature demonstrations
+- Marketing content
+
+**Template Code:**
+```typescript
+import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  duration: 15.0,
+  children: [
+    group({
+      children: [
+        rect({
+          width: 600,
+          height: 600,
+          fill: color('#1a1a2e'),
+          x: 660,
+          y: 240,
+          rx: 20,
+          ry: 20,
+        }),
+        text({
+          content: 'Your Product',
+          font: 'bold 60px sans-serif',
+          fill: color('white'),
+        }),
+        text({
+          content: 'Feature 1',
+          font: 'bold 36px sans-serif',
+          fill: color('cyan'),
+          x: 200,
+          y: 300,
+        }),
+        text({
+          content: 'Feature 2',
+          font: 'bold 36px sans-serif',
+          fill: color('magenta'),
+          x: 1720,
+          y: 780,
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+## Using Templates
+
+### Create from Template
+
+```bash
+npx velox-video new my-project --template intro-video
+cd my-project
+npx velox-video preview src/index.ts
+```
+
+### Copy Template Manually
+
+```bash
+cp node_modules/@velox-video/cli/templates/intro-video.ts src/index.ts
+code src/index.ts
+```
+
+## Customizing Templates
+
+- **Change Colors**: Use `color('red')` for brand colors
+- **Adjust Timing**: Modify `duration` values
+- **Add Elements**: Add to `children` array
+- **Resize Canvas**: Change `width` and `height`
+
+## Template Best Practices
+
+1. Start with basic templates, add complexity gradually
+2. Change one thing at a time
+3. Test frequently with `velox-video preview`
+4. Keep original as reference
+5. Combine elements from different templates
+
+## Next Steps
+
+- Try the [Playground](./playground) to experiment
+- Learn [CLI commands](./cli) for running templates
+- Explore the [Prompt](./prompt) for LLM customization
+- Check [Getting Started](./getting-started) for basics

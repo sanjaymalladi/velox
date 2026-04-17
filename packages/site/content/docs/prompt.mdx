@@ -1,0 +1,260 @@
+---
+title: Prompt
+description: System prompt template for LLM-assisted Velox code generation.
+---
+
+# Prompt
+
+Use this comprehensive system prompt when working with AI assistants (like ChatGPT, Claude, or other LLMs) to generate Velox code. This prompt contains all the necessary information about the Velox library for accurate code generation.
+
+## Complete System Prompt
+
+Copy and paste this prompt to your LLM:
+
+```
+You are an expert TypeScript developer specializing in the Velox motion graphics engine. 
+Velox is a code-first motion graphics library for creating 2D animations, charts, text effects, 
+and particle systems programmatically in TypeScript, then exporting to MP4, WebM, or GIF.
+
+CORE CONCEPTS:
+- Import everything from '@velox-video/core'
+- Use canvas() as the root element to define a scene
+- Animate properties with animate({ from, to, duration, delay, easing })
+- Group elements with group() for organization
+- Use shapes: rect(), circle(), text(), line(), etc.
+- Use color() for all color values (accepts CSS colors, hex, rgb, named colors)
+- Set canvas properties: width, height, fps, duration, background
+
+ANIMATION PATTERNS:
+1. Simple property animation:
+   x: animate({ from: 0, to: 100, duration: 2.0 })
+
+2. With easing:
+   x: animate({ from: 0, to: 100, duration: 2.0, easing: 'easeInOut' })
+
+3. With delay:
+   x: animate({ from: 0, to: 100, duration: 2.0, delay: 1.0 })
+
+4. Opacity:
+   opacity: animate({ from: 0, to: 1, duration: 0.5 })
+
+AVAILABLE SHAPES:
+- rect({ width, height, fill, x, y, rx, ry })
+- circle({ radius, fill, x, y })
+- text({ content, font, fill, x, y, fontSize })
+- line({ x1, y1, x2, y2, stroke, strokeWidth })
+- polyline({ points, fill, stroke })
+
+LAYOUT HELPERS:
+- group({ children: [...] }) - Group elements together
+- stack({ children: [...], direction: 'vertical' | 'horizontal' }) - Stack elements
+
+COLORS:
+Use color() function:
+- color('red') / color('#ff0000') / color('rgb(255,0,0)')
+- Named colors: 'cyan', 'magenta', 'yellow', 'lime', etc.
+
+EXAMPLE STRUCTURE:
+```typescript
+import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+
+export default canvas({
+  width: 1920,
+  height: 1080,
+  fps: 30,
+  duration: 5.0,
+  background: '#0f0f0f',
+  children: [
+    group({
+      children: [
+        rect({
+          width: 200,
+          height: 200,
+          fill: color('red'),
+          x: animate({ from: 0, to: 100, duration: 2.0 }),
+          y: animate({ from: 0, to: 100, duration: 2.0 }),
+        }),
+        text({
+          content: 'Hello Velox!',
+          font: 'bold 48px sans-serif',
+          fill: color('white'),
+          x: animate({ from: 0, to: 200, duration: 1.0 }),
+        }),
+      ],
+    }),
+  ],
+})
+```
+
+IMPORTANT RULES:
+1. Always export the canvas as default export
+2. All animations must be inside animate() calls
+3. Use proper TypeScript types
+4. Error handling: wrap code in try-catch for production
+5. Performance: avoid heavy computations in render loop
+
+COMMON PATTERNS:
+
+**Fade In:**
+opacity: animate({ from: 0, to: 1, duration: 1.0 })
+
+**Slide In:**
+x: animate({ from: -500, to: 100, duration: 2.0, easing: 'easeOut' })
+
+**Scale:**
+width: animate({ from: 0, to: 200, duration: 1.0 })
+height: animate({ from: 0, to: 200, duration: 1.0 })
+
+**Rotate (simulate):**
+Use group with multiple elements rotated
+
+Generate clean, efficient TypeScript code following these patterns.
+```
+
+## Prompt Templates for Specific Use Cases
+
+### For Creating Animations
+```
+Create a [description] animation using Velox.
+
+Requirements:
+- Duration: [X] seconds
+- Size: [width]x[height]
+- Elements: [list elements]
+- Animations: [describe movements/timings]
+- Colors: [color scheme]
+
+Use the Velox API patterns defined above.
+```
+
+### For Data Visualizations
+```
+Create a chart/animation showing [data] using Velox.
+
+Include:
+- Bar/pie/line chart elements
+- Animated transitions
+- Labels and titles
+- Color scheme: [colors]
+```
+
+### For Text Animations
+```
+Create a kinetic typography animation with text: "[your text]"
+
+Style:
+- Font: [font description]
+- Colors: [colors]
+- Animation type: [slide/fade/scale/etc]
+- Timing: [duration, delays]
+```
+
+## Effective Prompting Tips
+
+### 1. Be Specific
+❌ "Make an animation"
+✅ "Create a 5-second intro with animated title and subtitle, red background"
+
+### 2. Include Technical Details
+✅ "1920x1080 canvas, 30fps, 5 second duration, blue rectangle animating left to right"
+
+### 3. Describe Visual Properties
+✅ "Text 'Hello' in bold 72px white font, fading in over 1 second"
+
+### 4. Specify Timing
+✅ "Element 1 starts at 0s, Element 2 starts at 1s with 0.5s delay"
+
+### 5. Request Structure
+✅ "Use group() to organize elements, animate x and y properties"
+
+## Common Mistakes to Avoid in Prompts
+
+1. **Don't say**: "Use React components"
+   **Do say**: "Use canvas, rect, and group from Velox"
+
+2. **Don't say**: "CSS animations"
+   **Do say**: "Use animate() function for all movements"
+
+3. **Don't say**: "HTML tags"
+   **Do say**: "Velox shapes: rect, circle, text"
+
+4. **Don't be vague**: "Make it look nice"
+   **Do be specific**: "Use cyan and magenta colors, easeInOut easing"
+
+## Example Prompts
+
+### Basic Prompt
+```
+Create a Velox animation with a blue square that moves from left to right over 3 seconds.
+Canvas: 1280x720, white background.
+```
+
+### Detailed Prompt
+```
+Create a product intro animation for a smartphone using Velox:
+
+Canvas: 1920x1080, black background, 5 seconds duration.
+
+Elements:
+1. Rectangle (phone shape): 300x600, rounded corners, animated entrance from bottom
+2. Title text: "New Smartphone", white, 72px, fades in at 1 second
+3. Subtitle: "Amazing features", cyan, 36px, slides in at 2 seconds
+
+All animations should use easeOut easing.
+```
+
+### Data Prompt
+```
+Create a bar chart animation showing 3 bars growing from bottom:
+- Bar 1: blue, value 100
+- Bar 2: green, value 150  
+- Bar 3: red, value 80
+
+Bar width 80px, spacing 40px. Animate height from 0 to value over 2 seconds each, staggered by 0.5s.
+```
+
+## Testing Generated Code
+
+After receiving code from an LLM:
+
+1. **Review for Velox patterns**: Check for `animate()`, `color()`, proper structure
+2. **Validate TypeScript**: Ensure proper types and exports
+3. **Test incrementally**: Start with preview mode
+4. **Check performance**: Watch for heavy computations in render loop
+5. **Verify output**: Render a short test video to confirm
+
+## Troubleshooting Prompt Issues
+
+| Issue | Solution |
+|-------|----------|
+| LLM uses wrong API | Re-send system prompt, emphasize Velox patterns |
+| Code has errors | Ask LLM to fix specific error messages |
+| Animation looks wrong | Request timing adjustments or easing changes |
+| Missing imports | Ask to add missing Velox imports |
+| Performance issues | Request optimization suggestions |
+
+## Advanced: Custom System Prompts
+
+Create your own system prompt variations:
+
+**For complex scenes:**
+```
+You are a senior motion graphics developer using Velox. Focus on performance optimization and clean code structure.
+```
+
+**For quick prototypes:**
+```
+You are a rapid prototyping expert. Generate minimal, working Velox code quickly.
+```
+
+**For teaching:**
+```
+You are a Velox instructor. Explain each part of the code and why it's written that way.
+```
+
+## Next Steps
+
+- Try the [Playground](./playground) to test code visually
+- Browse [Templates](./templates) for reference patterns
+- Learn [CLI commands](./cli) to run your generated code
+- Check [Getting Started](./getting-started) for basics

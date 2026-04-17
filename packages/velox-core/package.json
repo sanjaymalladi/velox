@@ -1,0 +1,36 @@
+{
+  "name": "@velox-video/core",
+  "version": "1.0.0",
+  "description": "Zero-dependency motion graphics pure mathematical rendering engine",
+  "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sanjaymalladi/velox.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.97",
+    "tsup": "^8.3.0",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.0"
+  },
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "animation",
+    "llm",
+    "ai"
+  ],
+  "license": "MIT"
+}
