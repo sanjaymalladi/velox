@@ -24,7 +24,10 @@ jobs:
 
       - run: pnpm install
 
+      - name: Build velox-core (required for CLI type resolution)
+        run: pnpm --filter @velox-video/core build
+
       - name: Lint and Build
         run: |
           pnpm run lint
-          pnpm run build
+          pnpm --filter @velox-video/core build

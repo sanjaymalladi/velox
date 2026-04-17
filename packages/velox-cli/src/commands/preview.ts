@@ -48,7 +48,7 @@ export async function previewCommand(inputFile: string) {
     // 3. WebSocket for HMR + export
     const wss = new WebSocketServer({ server })
 
-    wss.on('connection', (ws) => {
+    wss.on('connection', (ws: import('ws').WebSocket) => {
       clients.add(ws)
       // Send current config on connect
       ws.send(JSON.stringify({ type: 'config', config: serializableConfig(config) }))
@@ -112,7 +112,7 @@ export async function previewCommand(inputFile: string) {
 // ── Export handler (runs render in background, streams progress) ───────────
 
 async function handleExport(config: VeloxVideoConfig, format: string, ws: any): Promise<void> {
-  const { nativeRender } = await import('../render/nativeRender')
+  const { nativeRender } = await import('../render/nativeRender.js')
   const [w, h] = resolveSize(config.size)
   const outPath = path.join(process.cwd(), `output.${format === 'gif' ? 'gif' : 'mp4'}`)
 
@@ -120,7 +120,7 @@ async function handleExport(config: VeloxVideoConfig, format: string, ws: any): 
     await nativeRender(config, {
       outputPath: outPath,
       format: format as any,
-      onProgress: (progress, frame, total) => {
+      onProgress: (progress: number, frame: number, total: number) => {
         if (ws.readyState === 1) {
           ws.send(JSON.stringify({ type: 'export-progress', progress, frame, total }))
         }
