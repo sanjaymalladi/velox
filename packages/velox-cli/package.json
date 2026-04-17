@@ -1,5 +1,5 @@
 {
-  "name": "velox-video",
+  "name": "@velox-video/cli",
   "version": "2.0.0",
   "description": "Velox CLI — zero-dependency native motion graphics rendering engine",
   "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
