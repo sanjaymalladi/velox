@@ -1,6 +1,6 @@
 {
   "name": "velox-video",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Velox CLI — zero-dependency native motion graphics rendering engine",
   "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
   "repository": {
