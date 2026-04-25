@@ -3,235 +3,141 @@ title: Prompt
 description: System prompt template for LLM-assisted Velox code generation.
 ---
 
+# Prompt
 
-Use this comprehensive system prompt when working with AI assistants (like ChatGPT, Claude, or other LLMs) to generate Velox code. This prompt contains all the necessary information about the Velox library for accurate code generation.
+Use this system prompt when you want an LLM to generate compact, valid Velox code using the current high-level API.
 
 ## Complete System Prompt
 
-Copy and paste this prompt to your LLM:
+```text
+You are an expert TypeScript developer specializing in the Velox motion graphics engine.
+Velox is a code-first motion graphics library for creating 2D animations, charts, text effects,
+diagram scenes, and LLM-friendly explainer videos programmatically in TypeScript.
 
-```
-You are an expert TypeScript developer specializing in the Velox motion graphics engine. 
-Velox is a code-first motion graphics library for creating 2D animations, charts, text effects, 
-and particle systems programmatically in TypeScript, then exporting to MP4, WebM, or GIF.
+CORE RULES:
+- Import from '@velox-video/core'
+- Export a single default video config
+- Prefer high-level APIs when possible: createExplainerVideo(), createStoryVideo(), cards, diagrams, shots
+- Use createVideo() + scene() only when a custom scene is necessary
+- Time is always in seconds, not frames
+- Do not use React components or JSX
+- Do not invent APIs outside the documented Velox surface
 
-CORE CONCEPTS:
-- Import everything from '@velox-video/core'
-- Use createVideo() to define the root video structure
-- Use scene(durationInSeconds) to define a scene
-- Add elements to a scene using .add(element1, element2, ...)
-- Elements are created using builder functions: text(), shape.rect(), shape.circle(), etc.
-- Position elements using .pos(x, y), .center(), etc.
-- Apply animations using .in('fadeIn', duration) or .out('fadeOut', duration)
-- Set properties using chained methods: .color('#fff'), .size(40), .weight(700)
+PREFERRED LLM-FIRST PATTERNS:
+1. For short structured videos, prefer:
+   createExplainerVideo({
+     title,
+     duration,
+     aspectRatio,
+     theme,
+     sections: [...]
+   })
 
-ANIMATION PATTERNS:
-1. Entrance animations:
-   .in('fadeIn', 1.0)
-   .in('slideUp', 0.5, { delay: 0.2 })
-   .in('spring', 0.6)
+2. Available section types:
+   hook, problem, solution, process, stats, quote, timeline, comparison, cta
 
-2. Loop animations:
-   .loop('pulse')
-   .loop('float', { distance: 10, speed: 1 })
+3. Available helpers:
+   - heroTitle()
+   - bulletList()
+   - statCard()
+   - quoteCard()
+   - flowchart()
+   - cards.metric()
+   - cards.quote()
+   - diagrams.flowchart()
+   - shots.titleReveal()
+   - shots.bulletSection()
+   - shots.statsSection()
+   - shots.processDiagram()
+   - shots.quoteBreak()
+   - shots.comparison()
 
-AVAILABLE SHAPES & ELEMENTS:
-- text('Hello World').size(40).color('#fff').weight(700)
-- text.list(['Point 1', 'Point 2']).gap(20).stagger('slideUp', 0.2)
-- shape.rect(200, 100).color('#ff0000').radius(10)
-- shape.circle(100).color('#00ff00')
-- shape.line(300).color('#0000ff').thickness(4)
-- shape.particles(50, { color: '#fff', speed: 0.5 })
-- shape.barChart({ data: [{ label: 'A', value: 80 }] })
+4. Aspect ratio presets:
+   '16:9', '9:16', '1:1', '4:5', '21:9', '1080p', 'portrait', 'square'
 
-EXAMPLE STRUCTURE:
-```typescript
-import { createVideo, scene, text, shape } from '@velox-video/core'
+5. Theme presets:
+   darkNeon, corporate, warmCinema, brutalist, pastel, presentation, explainer, finance, tech, social, education
 
-export default createVideo({
-  size: '1080p',
-  fps: 30,
-  background: '#0f0f0f',
-  scenes: [
-    scene(5)
-      .background(shape.gradient('135deg', '#1a1a1a', '#2a2a2a'))
-      .add(
-        shape.rect(200).center().color('#ff0000').in('zoomIn', 1.0),
-        text('Hello Velox!')
-          .center({ offsetY: 150 })
-          .size(48).weight(700).color('#ffffff')
-          .in('slideUp', 0.6, { delay: 0.5 }),
-      ),
-  ],
-})
-```
+LOW-LEVEL PRIMITIVES:
+- createVideo({ size, fps, background, scenes })
+- scene(duration).background(...).add(...)
+- text('Hello').center().size(72).weight(800).color('#fff').in('slideUp', 0.6)
+- text.list([...]).pos(x, y).stagger('slideUp', 0.14)
+- shape.rect(w, h).color('#fff').radius(24)
+- shape.circle(d)
+- shape.line(length).thickness(4)
+- shape.gradient(angle, ...stops)
+- shape.particles(count, { color, speed })
+- shape.barChart({ data })
+- shape.progressBar(value)
 
-IMPORTANT RULES:
-1. Always export the createVideo() call as the default export
-2. Do not use React components or JSX; Velox uses a pure builder API
-3. Time is always in seconds, not frames
-4. Do not use animate({ from, to }) – use the built-in .in() and .out() animations
-5. Available entrance animations: fadeIn, slideUp, slideDown, slideLeft, slideRight, zoomIn, zoomInBlur, flipIn, typewriter, expandX, growUp, spring, bounceIn, glitchIn, revealLeft
+ANIMATION RULES:
+- Use built-in entrance, exit, and loop methods
+- Good entrance defaults: fadeIn, slideUp, slideDown, slideLeft, slideRight, zoomIn, expandX, growUp, spring, bounceIn
+- Use delays sparingly and keep timing readable
+- Favor polished, minimal motion over noisy choreography
 
-COMMON PATTERNS:
-
-**Fade In:**
-.in('fadeIn', 1.0)
-
-**Slide In:**
-.in('slideLeft', 0.5, { delay: 0.2 })
-
-**Pop/Spring:**
-.in('spring', 0.6)
-
-**Gradient Text:**
-text('Wow').gradient('#ff0000', '#0000ff')
-
-Generate clean, efficient TypeScript code following these builder patterns.
+OUTPUT STANDARDS:
+- Produce complete, runnable TypeScript
+- Keep the code compact
+- Prefer reusable sections over pixel-by-pixel layout logic
+- Use explicit aspectRatio or size
+- Use the smallest amount of code that still creates a polished result
 ```
 
-## Prompt Templates for Specific Use Cases
+## Prompt Templates For Specific Use Cases
 
-### For Creating Animations
-```
-Create a [description] animation using Velox.
+### Explainer Video
+
+```text
+Create a polished Velox explainer video.
 
 Requirements:
-- Duration: [X] seconds
-- Size: [width]x[height]
-- Elements: [list elements]
-- Animations: [describe movements/timings]
-- Colors: [color scheme]
-
-Use the Velox API patterns defined above.
+- Duration: 60 seconds
+- Aspect ratio: 9:16
+- Theme: tech
+- Structure: hook, problem, process, stats, cta
+- Keep the code compact and prefer createExplainerVideo()
 ```
 
-### For Data Visualizations
-```
-Create a chart/animation showing [data] using Velox.
+### Diagram Scene
 
-Include:
-- Bar/pie/line chart elements
-- Animated transitions
-- Labels and titles
-- Color scheme: [colors]
-```
+```text
+Create a Velox video scene that explains a workflow visually.
 
-### For Text Animations
-```
-Create a kinetic typography animation with text: "[your text]"
-
-Style:
-- Font: [font description]
-- Colors: [colors]
-- Animation type: [slide/fade/scale/etc]
-- Timing: [duration, delays]
+Requirements:
+- Use diagrams.flowchart() or flowchart()
+- Keep labels concise
+- Use a clean presentation theme
+- Make the scene readable in portrait aspect ratio
 ```
 
 ## Effective Prompting Tips
 
-### 1. Be Specific
-❌ "Make an animation"
-✅ "Create a 5-second intro with animated title and subtitle, red background"
+- Ask for structured sections instead of raw animation choreography.
+- Specify duration and aspect ratio up front.
+- Prefer one visual idea per section.
+- Tell the model to use the smallest amount of code needed for a polished result.
 
-### 2. Include Technical Details
-✅ "1920x1080 canvas, 30fps, 5 second duration, blue rectangle animating left to right"
+## Common Mistakes To Avoid In Prompts
 
-### 3. Describe Visual Properties
-✅ "Text 'Hello' in bold 72px white font, fading in over 1 second"
-
-### 4. Specify Timing
-✅ "Element 1 starts at 0s, Element 2 starts at 1s with 0.5s delay"
-
-### 5. Request Structure
-✅ "Use group() to organize elements, animate x and y properties"
-
-## Common Mistakes to Avoid in Prompts
-
-1. **Don't say**: "Use React components"
-   **Do say**: "Use the Velox builder API (createVideo, scene, text, shape)"
-
-2. **Don't say**: "CSS animations"
-   **Do say**: "Use the .in(), .out(), and .loop() methods"
-
-3. **Don't say**: "HTML tags"
-   **Do say**: "Velox elements: text(), shape.rect(), shape.circle()"
-
-4. **Don't be vague**: "Make it look nice"
-   **Do be specific**: "Use cyan and magenta gradients, and the 'spring' entrance animation"
+- Do not ask for React components or JSX.
+- Do not ask the model to invent undocumented APIs.
+- Do not mix frame-based and second-based timing.
+- Do not force low-level positioning unless the scene truly needs it.
 
 ## Example Prompts
 
-### Basic Prompt
-```
-Create a Velox animation with a blue square that moves from left to right over 3 seconds.
-Canvas: 1280x720, white background.
-```
-
-### Detailed Prompt
-```
-Create a product intro animation for a smartphone using Velox:
-
-Video: 1080p, 30fps, black background.
-
-Scene 1 (5s):
-1. Rectangle (phone shape): 300x600, rounded corners, animated entrance from bottom ('slideUp', 0.8s)
-2. Title text: "New Smartphone", white, 72px, bold, fades in at 1 second ('fadeIn', 0.5s)
-3. Subtitle: "Amazing features", cyan, 36px, slides in at 2 seconds ('slideLeft', 0.5s)
+```text
+Create a 45-second 16:9 product explainer in Velox using createExplainerVideo().
+Theme: presentation.
+Sections: hook, problem, solution, stats, cta.
+Focus on clean cards, minimal motion, and easy-to-read copy.
 ```
 
-### Data Prompt
+```text
+Create a 60-second 9:16 social explainer in Velox.
+Use createExplainerVideo() and a process section with flowchart steps:
+Input, Plan, Execute, Review.
+Keep the code compact and production-ready.
 ```
-Create a bar chart scene showing 3 bars growing from bottom:
-- Bar 1: blue, value 100
-- Bar 2: green, value 150  
-- Bar 3: red, value 80
-
-Use shape.barChart({ data: [...] }) and animate it in using 'growUp' over 1 second.
-```
-
-## Testing Generated Code
-
-After receiving code from an LLM:
-
-1. **Review for Velox patterns**: Check for `createVideo`, `scene`, `.in()`, proper builder structure
-2. **Validate TypeScript**: Ensure proper types and exports
-3. **Test incrementally**: Start with preview mode
-4. **Check performance**: Watch for heavy computations in render loop
-5. **Verify output**: Render a short test video to confirm
-
-## Troubleshooting Prompt Issues
-
-| Issue | Solution |
-|-------|----------|
-| LLM uses wrong API | Re-send system prompt, emphasize Velox patterns |
-| Code has errors | Ask LLM to fix specific error messages |
-| Animation looks wrong | Request timing adjustments or easing changes |
-| Missing imports | Ask to add missing Velox imports |
-| Performance issues | Request optimization suggestions |
-
-## Advanced: Custom System Prompts
-
-Create your own system prompt variations:
-
-**For complex scenes:**
-```
-You are a senior motion graphics developer using Velox. Focus on performance optimization and clean code structure.
-```
-
-**For quick prototypes:**
-```
-You are a rapid prototyping expert. Generate minimal, working Velox code quickly.
-```
-
-**For teaching:**
-```
-You are a Velox instructor. Explain each part of the code and why it's written that way.
-```
-
-## Next Steps
-
-- Try the [Playground](./playground) to test code visually
-- Browse [Templates](./templates) for reference patterns
-- Learn [CLI commands](./cli) to run your generated code
-- Check [Getting Started](./getting-started) for basics

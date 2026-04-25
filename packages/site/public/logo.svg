@@ -1,0 +1,15 @@
+<svg width="256" height="256" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#velox-bg)"/>
+  <path d="M18 19H29L24 31H34L28 45" stroke="url(#velox-bolt)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="45" cy="19" r="4" fill="#FFD089" fill-opacity="0.9"/>
+  <defs>
+    <linearGradient id="velox-bg" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171513"/>
+      <stop offset="1" stop-color="#241A11"/>
+    </linearGradient>
+    <linearGradient id="velox-bolt" x1="20" y1="18" x2="36" y2="46" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFCF6E"/>
+      <stop offset="1" stop-color="#FF8C3A"/>
+    </linearGradient>
+  </defs>
+</svg>

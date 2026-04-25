@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
+import { getDocsMarkdown } from '../../../src/docs'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,16 +10,16 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Invalid slug', { status: 400 })
   }
 
-  const filepath = path.join(process.cwd(), 'content', 'docs', `${slug}.mdx`)
-  
-  try {
-    const raw = fs.readFileSync(filepath, 'utf-8')
-    return new NextResponse(raw, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-    })
-  } catch (e) {
+  const segments = slug === 'index' ? [] : slug.split('/')
+  const markdown = getDocsMarkdown(segments)
+
+  if (!markdown) {
     return new NextResponse('Not found', { status: 404 })
   }
+
+  return new NextResponse(markdown, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  })
 }

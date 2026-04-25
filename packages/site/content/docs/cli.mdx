@@ -1,220 +1,112 @@
 ---
 title: CLI
-description: Complete reference for all Velox CLI commands.
+description: Command reference for scaffolding, previewing, and rendering Velox videos.
 ---
 
 # CLI Reference
 
-The Velox CLI provides a comprehensive set of commands for creating, previewing, and rendering motion graphics projects.
+The Velox CLI is intentionally small. It covers the core workflow: scaffold a project, preview it locally, and render a final artifact.
 
 ## Installation
 
-Install the Velox CLI globally:
+```bash
+npm install -g velox-video
+# or
+pnpm add -g velox-video
+```
+
+## Commands
+
+### `velox new <name>`
+
+Scaffold a new project directory with a starter template.
 
 ```bash
-npm install -g @velox-video/cli
-# or
-pnpm install -g @velox-video/cli
+velox new my-video
+velox new my-video --template llm-explainer
 ```
 
-## Available Commands
+Available templates currently include:
 
-### Project Management
+- `news-intro`
+- `product-launch`
+- `data-story`
+- `kinetic-text`
+- `particle-system`
+- `llm-explainer`
 
-| Command | Description | Options |
-|---------|-------------|---------|
-| `velox-video new <name>` | Create a new project | `-d, --dir <directory>` - Specify project directory |
-| `velox-video init` | Initialize Velox in current directory | `--typescript` - Initialize with TypeScript config |
+### `velox preview <file>`
 
-### Development
+Start the local preview studio with hot reload.
 
-| Command | Description | Options |
-|---------|-------------|---------|
-| `velox-video preview <file>` | Start local development studio with HMR | `--port <number>` - Specify port, `--host <host>` - Network binding |
-| `velox-video studio` | Start the preview studio without a specific file | `--port <number>` - Specify port |
-
-### Rendering
-
-| Command | Description | Options |
-|---------|-------------|---------|
-| `velox-video render <file>` | Render to video (default: MP4) | `--output <file>` - Output path, `--format <mp4|webm|gif>` - Output format |
-| `velox-video render <file> --quality <low|medium|high>` | Render with quality settings | `--preset <string>` - Encoder preset, `--crf <number>` - Quality (18-28) |
-| `velox-video render <file> --loop` | Loop the animation | `--count <number>` - Number of loops |
-
-### Build & Test
-
-| Command | Description | Options |
-|---------|-------------|---------|
-| `velox-video build` | Build the project for production | `--out-dir <dir>` - Output directory |
-| `velox-video test` | Run tests (if configured) | `--coverage` - Generate coverage report |
-
-### Help & Version
-
-| Command | Description |
-|---------|-------------|
-| `velox-video --help` | Show help information |
-| `velox-video --version` | Show version number |
-
-## System Prompt Templates
-
-### For Component Creation
-```
-You are creating a Velox component. Use these patterns:
-- Import: from '@velox-video/core' import { canvas, rect, color, animate }
-- Structure: export default canvas({ width, height, children: [...] })
-- Animation: Use animate() for time-based properties
+```bash
+velox preview video.ts
 ```
 
-### For Animation Definitions
-```
-You are defining animations in Velox. Key patterns:
-- Use group() for organizing multiple elements
-- Animate properties: x, y, width, height, opacity, etc.
-- Timing: from, to, duration, delay, easing
-```
+What it does:
 
-### For Configuration
-```
-You are configuring a Velox project. Include:
-- fps, width, height settings
-- output.quality and output.format
-- preview settings (port, host, open)
-```
+- Loads the same `video.ts` entrypoint used for final render
+- Opens the browser automatically
+- Watches the source file and pushes config updates over WebSocket
+- Lets you scrub, play, and export from the preview UI
 
-## Configuration
+### `velox render <file>`
 
-Create a `velox.config.ts` file in your project root:
+Render a final artifact from the current entry file.
 
-```typescript
-import { defineConfig } from '@velox-video/core'
-
-export default defineConfig({
-  fps: 60,
-  width: 1920,
-  height: 1080,
-  background: '#000000',
-  output: {
-    quality: 'high',
-    format: 'mp4'
-  },
-  preview: {
-    port: 3000,
-    host: 'localhost',
-    open: true
-  }
-})
+```bash
+velox render video.ts --output result.mp4
+velox render video.ts --format gif
+velox render video.ts --format png-sequence --output frames
 ```
 
-## Environment Variables
+Supported formats:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VELOX_FPS` | Frames per second | 30 |
-| `VELOX_WIDTH` | Output width | 1920 |
-| `VELOX_HEIGHT` | Output height | 1080 |
-| `VELOX_LOG_LEVEL` | Logging level | 'info' |
-| `VELOX_PREVIEW_PORT` | Preview server port | 3000 |
+- `mp4`
+- `gif`
+- `png-sequence`
 
-## Interactive Code Testing
+## Recommended Workflow
 
-Try these interactive examples:
+1. Scaffold or write a `video.ts` file.
+2. Run `velox preview video.ts` while iterating.
+3. Tune layout, timing, and typography.
+4. Run `velox render video.ts --output result.mp4` for final output.
 
-**Example 1: Basic Animation**
-```typescript
-import { canvas, rect, color, animate } from '@velox-video/core'
+## LLM-First Workflow
 
-export default canvas({
-  width: 1920,
-  height: 1080,
-  fps: 30,
-  duration: 5.0,
-  children: [
-    rect({
-      width: 200,
-      height: 200,
-      fill: color('red'),
-      x: animate({ from: 0, to: 100, duration: 2.0 }),
-      y: animate({ from: 0, to: 100, duration: 2.0, delay: 1.0 }),
-    }),
+For local or hosted models, the shortest reliable path is to use the high-level schema API:
+
+```ts
+import { createExplainerVideo } from '@velox-video/core'
+
+export default createExplainerVideo({
+  title: 'How AI Agents Work',
+  duration: 60,
+  aspectRatio: '9:16',
+  theme: 'tech',
+  sections: [
+    { type: 'hook', heading: 'From Prompt to Workflow' },
+    { type: 'problem', heading: 'Teams Lose Time', points: ['Manual work', 'Context switching'] },
+    { type: 'process', heading: 'The Loop', steps: ['Input', 'Plan', 'Execute', 'Review'] },
+    { type: 'stats', heading: 'Impact', stats: [{ label: 'Time Saved', value: '68%' }] },
+    { type: 'cta', heading: 'Start With Structure' },
   ],
 })
 ```
-
-**Expected output:** A red square animating from (0,0) to (100,100) over 2 seconds.
-
-**Example 2: Multiple Elements**
-```typescript
-import { canvas, circle, color, animate, group } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  children: [
-    group({
-      children: [
-        circle({
-          radius: 50,
-          fill: color('blue'),
-          x: animate({ from: 100, to: 500, duration: 3.0 }),
-        }),
-        circle({
-          radius: 30,
-          fill: color('green'),
-          x: animate({ from: 100, to: 500, duration: 3.0, delay: 1.0 }),
-        }),
-      ],
-    }),
-  ],
-})
-```
-
-**Expected output:** Two circles (blue then green) animating horizontally with a 1-second delay between them.
-
-## Common Commands Reference
-
-| Command | Description | Use Case |
-|---------|-------------|----------|
-| `velox-video new <name>` | Scaffold project | Starting new projects |
-| `velox-video preview <file>` | Development preview | Iterative development |
-| `velox-video render <file>` | Production export | Final video output |
-| `velox-video studio` | Full studio mode | Exploratory work |
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Command not found | Ensure `@velox-video/cli` is installed globally |
-| Module not found | Run `pnpm install` in project directory |
-| Rendering issues | Check WebAssembly support, try `--quality medium` |
-| Preview not loading | Check port availability, firewall settings |
-
-## Advanced Usage
-
-### Programmatic Usage
-```typescript
-import { renderVideo } from '@velox-video/core'
-
-renderVideo('./src/index.ts', {
-  output: 'output.mp4',
-  quality: 'high',
-  format: 'mp4'
-}).then(() => {
-  console.log('Rendering complete!')
-})
-```
-
-### Interactive Debugging
-```bash
-# Start studio for debugging
-velox-video studio
-
-# Then in another terminal, test render versions
-velox-video render src/index.ts --quality low --output test.mp4
-```
+| Issue | Fix |
+|-------|-----|
+| `velox` not found | Reinstall the CLI globally or use `npx velox-video` |
+| Preview loads but looks wrong | Check size, fps, and scene timing first |
+| Render fails | Run the same file through `preview` first to isolate config issues |
+| Output path is confusing | Pass an explicit `--output` value |
 
 ## Next Steps
 
-- Learn about [Rendering options](./docs/rendering)
-- Check out [Preview Studio features](./docs/preview)
-- Explore [Core API concepts](./app/core)
-- View [example projects](./examples)
+- Review the [Preview](./preview) workflow
+- Learn the [Rendering](./rendering) model
+- Use the [Prompt](./prompt) page for LLM generation
+- Try the [Playground](./playground) for quick experiments

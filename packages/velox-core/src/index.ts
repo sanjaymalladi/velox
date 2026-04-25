@@ -11,6 +11,29 @@ export { shape } from './elements/Shape'
 
 export { random, randomRange } from './utils/random'
 export { themes, resolveTheme } from './themes'
+export {
+  heroTitle,
+  bulletList,
+  statCard,
+  quoteCard,
+  flowchart,
+  cards,
+  diagrams,
+  shots,
+  createExplainerVideo,
+  createStoryVideo,
+  createVideoFromSchema,
+} from './llm'
+export type {
+  AspectRatioPreset,
+  LlmThemeName,
+  VideoSection,
+  LlmVideoSpec,
+  HeroTitleProps,
+  BulletListProps,
+  StatCardProps,
+  FlowchartProps,
+} from './llm'
 
 // ─── Native Rendering Engine ──────────────────────────────────────────────────
 export { drawFrame, getTotalFrames, buildSceneTimeline, resolveSize } from './engine/drawFrame'

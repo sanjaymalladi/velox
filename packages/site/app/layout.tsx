@@ -5,8 +5,15 @@ import 'fumadocs-ui/style.css'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Velox',
-  description: 'Velox is a code-first motion graphics engine with a docs-first workflow.',
+  title: {
+    default: 'Velox',
+    template: '%s | Velox',
+  },
+  description: 'Velox is a code-first motion graphics engine built for fast previews, native rendering, and LLM-friendly video generation.',
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

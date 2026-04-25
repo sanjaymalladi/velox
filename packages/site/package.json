@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "preview": "next start",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@velox-video/core": "^2.0.0",

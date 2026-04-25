@@ -1,4 +1,4 @@
-import { getDocsPage } from '../../../../src/docs'
+import { getDocsPage, getDocsMarkdown } from '../../../../src/docs'
 
 type RouteProps = {
   params: Promise<{ slug?: string[] }> | { slug?: string[] }
@@ -12,7 +12,9 @@ export async function GET(_request: Request, { params }: RouteProps) {
     return new Response('Not found', { status: 404 })
   }
 
-  return new Response(page.markdown, {
+  const markdown = getDocsMarkdown(resolved.slug ?? [])
+
+  return new Response(markdown, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
     },

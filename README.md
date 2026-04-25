@@ -38,6 +38,52 @@ npx velox-video render video.ts --output result.mp4
 - **Aesthetic First:** Beautiful built-in gradients, typography layouts, glassmorphism, and particle emitters.
 - **React-Free:** Built using entirely vanilla TypeScript and math primitives. Zero bundling overhead.
 
+## Example
+
+```ts
+import { createVideo, scene, text, shape } from '@velox-video/core'
+
+export default createVideo({
+  size: '1080p',
+  fps: 30,
+  background: '#06060f',
+  scenes: [
+    scene(4)
+      .background(shape.gradient('160deg', '#0f0c29', '#302b63', '#24243e'))
+      .add(
+        text('Velox')
+          .center()
+          .size(84)
+          .weight(800)
+          .gradient('#ffffff', '#a78bfa')
+          .in('slideUp', 0.6),
+      ),
+  ],
+})
+```
+
+## LLM-First Example
+
+```ts
+import { createExplainerVideo } from '@velox-video/core'
+
+export default createExplainerVideo({
+  title: 'How AI Agents Work',
+  duration: 60,
+  aspectRatio: '9:16',
+  theme: 'tech',
+  sections: [
+    { type: 'hook', heading: 'From Prompt to Workflow' },
+    { type: 'problem', heading: 'Teams Lose Time', points: ['Manual work', 'Context switching'] },
+    { type: 'process', heading: 'The Loop', steps: ['Input', 'Plan', 'Execute', 'Review'] },
+    { type: 'stats', heading: 'Impact', stats: [{ label: 'Time Saved', value: '68%' }] },
+    { type: 'cta', heading: 'Start With Structure' },
+  ],
+})
+```
+
+This layer is designed for small local models: short structured input, automatic scene pacing, reusable shots, aspect-ratio presets, and built-in cards/diagram helpers.
+
 ## Architecture
 
 The engine is split into two packages:

@@ -4,7 +4,7 @@ import { renderCommand } from './commands/render'
 import { previewCommand } from './commands/preview'
 import { newCommand } from './commands/new'
 
-const VERSION = '0.1.0'
+const VERSION = '2.0.0'
 
 console.log(chalk.bold.hex('#6C63FF')('\n  ⚡ velox') + chalk.gray(` v${VERSION}\n`))
 
@@ -23,7 +23,7 @@ program
 // ── velox preview <file> ────────────────────────────────────────────────────
 program
   .command('preview <file>')
-  .description('Live preview in Remotion Studio (hot reload)')
+  .description('Live preview in Velox Studio (hot reload)')
   .action((file: string) => previewCommand(file))
 
 // ── velox render <file> ─────────────────────────────────────────────────────

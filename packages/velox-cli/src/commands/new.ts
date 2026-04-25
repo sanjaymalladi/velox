@@ -2,6 +2,8 @@ import path from 'path'
 import fs from 'fs-extra'
 import chalk from 'chalk'
 
+const CORE_VERSION = '^2.0.0'
+
 const TEMPLATES: Record<string, string> = {
   'news-intro': `import { createVideo, scene, text, shape } from '@velox-video/core'
 
@@ -127,6 +129,51 @@ export default createVideo({
       ),
   ],
 })
+`,
+
+  'llm-explainer': `import { createExplainerVideo } from '@velox-video/core'
+
+export default createExplainerVideo({
+  title: 'How AI Agents Work',
+  subtitle: 'A one minute explainer generated from a short structured outline',
+  duration: 60,
+  aspectRatio: '9:16',
+  theme: 'tech',
+  sections: [
+    {
+      type: 'hook',
+      heading: 'AI Agents Turn Prompts Into Workflows',
+      subheading: 'They plan, execute, review, and iterate without constant manual coordination',
+    },
+    {
+      type: 'problem',
+      heading: 'Why Teams Feel Slow',
+      points: [
+        'Too many repetitive tasks',
+        'Too much manual context switching',
+        'Important work buried in operational overhead',
+      ],
+    },
+    {
+      type: 'process',
+      heading: 'The Agent Loop',
+      steps: ['Input', 'Plan', 'Execute', 'Review'],
+    },
+    {
+      type: 'stats',
+      heading: 'What Good Automation Changes',
+      stats: [
+        { label: 'Cycle Time', value: '-68%', accent: '#06b6d4' },
+        { label: 'Output', value: '3x', accent: '#8b5cf6' },
+      ],
+    },
+    {
+      type: 'cta',
+      heading: 'Start From Structure',
+      subheading: 'Short, typed input gives local models much better video output',
+    },
+  ],
+})
 `
 }
 
@@ -154,7 +201,7 @@ export async function newCommand(name: string, options: { template?: string }) {
       render: 'velox render video.ts',
     },
     dependencies: {
-      '@velox-video/core': '^1.0.0',
+      '@velox-video/core': CORE_VERSION,
     },
   }, { spaces: 2 })
 

@@ -3,9 +3,9 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   createVideo, scene, text, shape, themes, resolveTheme,
-  drawFrame, getTotalFrames,
+  drawFrame, getTotalFrames, createVideoFromSchema,
 } from '@velox-video/core'
-import type { VeloxVideo } from '@velox-video/core'
+import type { VeloxVideo, LlmVideoSpec } from '@velox-video/core'
 
 // ─── Examples ────────────────────────────────────────────────────────────────
 
@@ -129,11 +129,53 @@ const EXAMPLES = [
   ],
 })`,
   },
+  {
+    name: 'JSON Schema',
+    code: `{
+  "title": "How AI Agents Work",
+  "subtitle": "A compact schema that the playground can render directly",
+  "duration": 60,
+  "aspectRatio": "9:16",
+  "theme": "tech",
+  "sections": [
+    { "type": "hook", "heading": "From Prompt to Workflow" },
+    {
+      "type": "problem",
+      "heading": "Teams Lose Time",
+      "points": ["Manual work", "Context switching", "Slow handoffs"]
+    },
+    {
+      "type": "process",
+      "heading": "The Loop",
+      "steps": ["Input", "Plan", "Execute", "Review"]
+    },
+    {
+      "type": "stats",
+      "heading": "Impact",
+      "stats": [
+        { "label": "Time Saved", "value": "68%" },
+        { "label": "Output", "value": "3x" }
+      ]
+    },
+    { "type": "cta", "heading": "Start With Structure" }
+  ]
+}`,
+  },
 ]
 
 // ─── Evaluator ───────────────────────────────────────────────────────────────
 
+function looksLikeJsonSchema(code: string): boolean {
+  const trimmed = code.trim()
+  return trimmed.startsWith('{') && trimmed.includes('"sections"')
+}
+
 function evalVeloxCode(code: string): VeloxVideo {
+  if (looksLikeJsonSchema(code)) {
+    const schema = JSON.parse(code) as LlmVideoSpec
+    return createVideoFromSchema(schema)
+  }
+
   const cleaned = code
     .split('\n')
     .filter(line => !line.trim().startsWith('import '))
@@ -143,10 +185,10 @@ function evalVeloxCode(code: string): VeloxVideo {
 
   // eslint-disable-next-line no-new-func
   const fn = new Function(
-    'createVideo', 'scene', 'text', 'shape', 'themes', 'resolveTheme',
+    'createVideo', 'scene', 'text', 'shape', 'themes', 'resolveTheme', 'createVideoFromSchema',
     `"use strict"; return (${cleaned})`
   )
-  return fn(createVideo, scene, text, shape, themes, resolveTheme)
+  return fn(createVideo, scene, text, shape, themes, resolveTheme, createVideoFromSchema)
 }
 
 // ─── Format time ─────────────────────────────────────────────────────────────
@@ -316,7 +358,7 @@ export function PlaygroundClient() {
             <span className="pg-pane-dot pg-dot-red" />
             <span className="pg-pane-dot pg-dot-yellow" />
             <span className="pg-pane-dot pg-dot-green" />
-            <span className="pg-pane-title">video.ts</span>
+            <span className="pg-pane-title">{looksLikeJsonSchema(code) ? 'video.schema.json' : 'video.ts'}</span>
           </div>
           <textarea
             className="pg-editor"
@@ -413,10 +455,12 @@ export function PlaygroundClient() {
           display: flex;
           flex-direction: column;
           height: 620px;
-          border-radius: 14px;
+          border-radius: 18px;
           overflow: hidden;
-          border: 1px solid rgba(124, 58, 237, 0.2);
-          background: #0a0a0f;
+          border: 1px solid rgba(196, 128, 44, 0.18);
+          background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent), rgba(25, 17, 12, 0.84);
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+          backdrop-filter: blur(18px);
           font-family: ui-monospace, 'Fira Code', monospace;
           margin: 0 -1rem;
         }
@@ -427,32 +471,32 @@ export function PlaygroundClient() {
           align-items: center;
           justify-content: space-between;
           padding: 10px 16px;
-          background: #111118;
-          border-bottom: 1px solid rgba(124,58,237,0.15);
+          background: rgba(35, 24, 16, 0.82);
+          border-bottom: 1px solid rgba(196, 128, 44, 0.14);
           flex-shrink: 0;
         }
         .pg-topbar-left { display: flex; align-items: center; gap: 10px; }
-        .pg-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; font-family: inherit; }
+        .pg-label { font-size: 11px; color: rgba(235, 215, 194, 0.52); text-transform: uppercase; letter-spacing: 0.06em; font-family: inherit; }
         .pg-select {
-          background: #1a1a2e;
-          border: 1px solid rgba(124,58,237,0.3);
-          color: #e2e8f0;
-          border-radius: 6px;
+          background: rgba(53, 37, 24, 0.88);
+          border: 1px solid rgba(196,128,44,0.28);
+          color: #f7ead7;
+          border-radius: 10px;
           padding: 5px 10px;
           font-size: 13px;
           cursor: pointer;
           font-family: inherit;
           outline: none;
         }
-        .pg-select:focus { border-color: #7c3aed; }
+        .pg-select:focus { border-color: #ffb14a; }
         .pg-render-btn {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: linear-gradient(135deg, #7c3aed, #6d28d9);
+          background: linear-gradient(135deg, #ffbf66, #f08a3c);
           border: none;
-          color: white;
-          border-radius: 8px;
+          color: #24160d;
+          border-radius: 999px;
           padding: 8px 18px;
           font-size: 13px;
           font-weight: 600;
@@ -476,7 +520,7 @@ export function PlaygroundClient() {
           display: flex;
           flex-direction: column;
           width: 50%;
-          border-right: 1px solid rgba(124,58,237,0.15);
+          border-right: 1px solid rgba(196,128,44,0.12);
           overflow: hidden;
         }
         .pg-pane-header {
@@ -484,20 +528,20 @@ export function PlaygroundClient() {
           align-items: center;
           gap: 6px;
           padding: 8px 14px;
-          background: #111118;
-          border-bottom: 1px solid rgba(124,58,237,0.1);
+          background: rgba(35, 24, 16, 0.76);
+          border-bottom: 1px solid rgba(196,128,44,0.1);
           flex-shrink: 0;
         }
         .pg-pane-dot { width: 10px; height: 10px; border-radius: 50%; }
         .pg-dot-red    { background: #ff5f57; }
         .pg-dot-yellow { background: #febc2e; }
         .pg-dot-green  { background: #28c840; }
-        .pg-pane-title { font-size: 12px; color: #666; margin-left: 6px; }
+        .pg-pane-title { font-size: 12px; color: rgba(235, 215, 194, 0.52); margin-left: 6px; }
         .pg-editor {
           flex: 1;
           width: 100%;
-          background: #0d0d17;
-          color: #c9d1d9;
+          background: rgba(20, 14, 10, 0.95);
+          color: #f1e2cf;
           border: none;
           outline: none;
           resize: none;
@@ -507,7 +551,7 @@ export function PlaygroundClient() {
           font-family: inherit;
           tab-size: 2;
         }
-        .pg-editor::selection { background: rgba(124,58,237,0.3); }
+        .pg-editor::selection { background: rgba(240,138,60,0.28); }
 
         /* Preview pane */
         .pg-preview-pane {
@@ -515,14 +559,14 @@ export function PlaygroundClient() {
           flex-direction: column;
           width: 50%;
           overflow: hidden;
-          background: #0a0a0f;
+          background: rgba(24, 16, 11, 0.92);
         }
 
         /* Tabs */
         .pg-tabs {
           display: flex;
-          background: #111118;
-          border-bottom: 1px solid rgba(124,58,237,0.15);
+          background: rgba(35, 24, 16, 0.82);
+          border-bottom: 1px solid rgba(196,128,44,0.14);
           flex-shrink: 0;
         }
         .pg-tab {
@@ -530,7 +574,7 @@ export function PlaygroundClient() {
           font-size: 12px;
           background: none;
           border: none;
-          color: #666;
+          color: rgba(235, 215, 194, 0.52);
           cursor: pointer;
           border-bottom: 2px solid transparent;
           transition: color 0.15s, border-color 0.15s;
@@ -540,8 +584,8 @@ export function PlaygroundClient() {
           gap: 6px;
           position: relative;
         }
-        .pg-tab:hover { color: #aaa; }
-        .pg-tab--active { color: #e2e8f0; border-bottom-color: #7c3aed; }
+        .pg-tab:hover { color: #f3e4d0; }
+        .pg-tab--active { color: #fff7ef; border-bottom-color: #ffb14a; }
         .pg-error-dot {
           width: 6px; height: 6px; border-radius: 50%;
           background: #ef4444; display: inline-block;
@@ -555,13 +599,13 @@ export function PlaygroundClient() {
           justify-content: center;
           overflow: hidden;
           padding: 12px;
-          background: #060609;
+          background: radial-gradient(circle at top, rgba(255,190,92,0.08), transparent 30%), rgba(14, 10, 7, 0.96);
         }
         .pg-canvas {
           max-width: 100%;
           max-height: 100%;
           object-fit: contain;
-          border-radius: 4px;
+          border-radius: 10px;
           display: block;
         }
         .pg-empty {
@@ -569,7 +613,7 @@ export function PlaygroundClient() {
           flex-direction: column;
           align-items: center;
           gap: 10px;
-          color: #444;
+          color: rgba(235, 215, 194, 0.44);
           font-size: 13px;
           font-family: ui-sans-serif, system-ui, sans-serif;
           position: absolute;
@@ -581,7 +625,7 @@ export function PlaygroundClient() {
           flex: 1;
           padding: 16px;
           overflow: auto;
-          background: #060609;
+          background: rgba(14, 10, 7, 0.96);
           align-items: flex-start;
         }
         .pg-error-text {
@@ -605,14 +649,14 @@ export function PlaygroundClient() {
           align-items: center;
           gap: 8px;
           padding: 8px 12px;
-          background: #111118;
-          border-top: 1px solid rgba(124,58,237,0.15);
+          background: rgba(35, 24, 16, 0.82);
+          border-top: 1px solid rgba(196,128,44,0.14);
           flex-shrink: 0;
         }
         .pg-ctrl-btn {
           background: none;
           border: none;
-          color: #888;
+          color: rgba(235, 215, 194, 0.64);
           cursor: pointer;
           font-size: 14px;
           padding: 4px 6px;
@@ -620,28 +664,28 @@ export function PlaygroundClient() {
           transition: color 0.15s, background 0.15s;
           font-family: inherit;
         }
-        .pg-ctrl-btn:hover { color: #e2e8f0; background: rgba(124,58,237,0.15); }
-        .pg-ctrl-play { color: #a78bfa; font-size: 15px; }
+        .pg-ctrl-btn:hover { color: #fff7ef; background: rgba(240,138,60,0.16); }
+        .pg-ctrl-play { color: #ffb14a; font-size: 15px; }
         .pg-scrubber {
           flex: 1;
           appearance: none;
           height: 3px;
           border-radius: 2px;
-          background: rgba(124,58,237,0.2);
+          background: rgba(240,138,60,0.22);
           outline: none;
           cursor: pointer;
-          accent-color: #7c3aed;
+          accent-color: #ffb14a;
         }
         .pg-scrubber::-webkit-slider-thumb {
           appearance: none;
           width: 12px; height: 12px;
           border-radius: 50%;
-          background: #7c3aed;
+          background: #ffb14a;
           cursor: pointer;
         }
         .pg-time {
           font-size: 11px;
-          color: #555;
+          color: rgba(235, 215, 194, 0.48);
           white-space: nowrap;
           min-width: 72px;
           text-align: right;

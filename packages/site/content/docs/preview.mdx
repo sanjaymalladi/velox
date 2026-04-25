@@ -1,200 +1,104 @@
 ---
 title: Preview Studio
-description: Interactive development environment for rapid prototyping.
+description: Local iteration workflow for Velox videos.
 ---
 
 # Preview Studio
 
-The Preview Studio provides an interactive development environment with Hot Module Replacement (HMR) for rapid prototyping and iteration.
+The Preview Studio is Velox's local development loop. It loads the same `video.ts` entrypoint used for final renders, watches the file for changes, and updates a browser-based player over WebSocket.
 
 ## Features
 
 ### Hot Module Replacement (HMR)
 
-Any changes you make to your animation code are automatically reflected in the preview without requiring a full reload. This enables rapid development and experimentation.
+Any changes you make to your video config are automatically reflected in the preview without requiring a full reload. This keeps iteration tight while you tune timing, layout, and animation.
 
 ### Real-time Debugging
 
-- Live console output
-- Error overlays with detailed messages
-- Stack traces for runtime errors
-- Performance metrics display
-- FPS counter and memory usage
+- Browser-based canvas preview
+- File watching with automatic config reload
+- Runtime error reporting in the terminal and browser
+- Export actions from the preview UI
+- Frame scrubbing and playback controls
 
 ### Interactive Controls
 
-- Play/Pause/Stop controls
-- Speed adjustment (0.1x to 4x)
+- Play/Pause controls
 - Frame-by-frame navigation
 - Timeline scrubbing
-- Export buttons for quick rendering
+- Quick export from the preview UI
 
 ## System Prompt Templates
 
 ### For Preview Configuration
-```
+```text
 You are configuring the Preview Studio. Key settings:
-- Port: Default 3000, avoid conflicts
-- Host: localhost for development, specific host for network access
-- Open browser: Auto-open for convenience
-- HMR enabled: Essential for development workflow
+- Host: localhost
+- Port: 3333
+- Auto-open browser: enabled
+- HMR enabled: required for development workflow
 ```
 
 ### For Studio Workflow
-```
+```text
 You are using the Preview Studio. Workflow:
 1. Start studio with: velox-video preview <file.ts>
-2. Make code changes in your editor
+2. Edit the Velox builder code in your editor
 3. See changes instantly via HMR
-4. Test different variations quickly
+4. Check motion, spacing, and typography
 5. Export when satisfied
 ```
 
-## Interactive Playground
+## Example Entry File
 
-Try these interactive examples in the studio:
-
-**Example 1: Interactive Color Animation**
 ```typescript
-import { canvas, rect, color, animate } from '@velox-video/core'
+import { createVideo, scene, text, shape } from '@velox-video/core'
 
-export default canvas({
-  width: 1920,
-  height: 1080,
+export default createVideo({
+  size: '1080p',
   fps: 30,
-  duration: 5.0,
-  children: [
-    rect({
-      width: 150,
-      height: 150,
-      fill: color('magenta'),
-      x: animate({ from: 0, to: 300, duration: 2.0 }),
-      y: animate({ from: 0, to: 300, duration: 2.0 }),
-    }),
+  background: '#06060f',
+  scenes: [
+    scene(4)
+      .background(shape.gradient('160deg', '#0f0c29', '#302b63', '#24243e'))
+      .add(
+        text('Preview Loop')
+          .center({ offsetY: -24 })
+          .size(72)
+          .weight(800)
+          .color('#ffffff')
+          .in('slideUp', 0.6),
+        text('Edit this file and save')
+          .center({ offsetY: 52 })
+          .size(26)
+          .color('#a78bfa')
+          .in('fadeIn', 0.5, { delay: 0.35 }),
+      ),
   ],
 })
 ```
-
-**Test Variations in Studio:**
-- Change color to 'cyan' or 'yellow'
-- Modify duration to 1.0 or 10.0
-- Add more rectangles with different timing
-- Experiment with easing functions
-
-**Example 2: Interactive Timing Test**
-```typescript
-import { canvas, circle, color, animate } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  children: [
-    circle({
-      radius: 50,
-      fill: color('lime'),
-      x: animate({ from: 100, to: 800, duration: 4.0, easing: 'easeInOut' }),
-      y: animate({ from: 100, to: 800, duration: 4.0, easing: 'easeInOut' }),
-    }),
-  ],
-})
-```
-
-**Test in Studio:**
-- Use playback controls to slow down and examine
-- Adjust speed to 0.5x for detailed inspection
-- Use frame-by-frame navigation for precision
 
 ## Studio Interface Components
 
 ### Main Canvas Area
-- Full-resolution rendering
-- Zoom in/out (scroll or pinch)
-- Pan with mouse drag
-- Toggle grid and guides
 
-### Timeline Panel
-- Current time indicator
-- Playhead control
-- Keyframe markers
-- Layer management
+- Browser-rendered preview of the current frame
+- Playback controls for checking timing and pacing
+- Scrubbing for frame-level inspection
 
-### Properties Inspector
-- Real-time parameter adjustment
-- Live preview of changes
-- Property history
-- Reset to defaults
+### Export Flow
 
-### Console Panel
-- Log messages from your code
-- Error messages with stack traces
-- Warnings and hints
-- Performance metrics
+- Trigger export directly from the preview UI
+- Stream render progress over WebSocket
+- Write the artifact to the current working directory
 
-## Preview Templates
+## Running the Studio
 
-### Template 1: Simple Animation
-```typescript
-import { canvas, rect, color, animate } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  children: [
-    rect({
-      width: 200,
-      height: 200,
-      fill: color('red'),
-      x: animate({ from: 0, to: 500, duration: 2.0 }),
-    }),
-  ],
-})
+```bash
+npx velox-video preview video.ts
 ```
 
-### Template 2: Multi-layer Composition
-```typescript
-import { canvas, rect, color, animate, group, text } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  children: [
-    group({
-      children: [
-        rect({
-          width: 300,
-          height: 200,
-          fill: color('blue'),
-          x: animate({ from: -300, to: 0, duration: 2.0 }),
-        }),
-        text({
-          content: 'Hello Velox!',
-          font: 'bold 48px sans-serif',
-          fill: color('white'),
-          x: animate({ from: 0, to: 200, duration: 1.0 }),
-        }),
-      ],
-    }),
-  ],
-})
-```
-
-## Configuration
-
-Create a preview configuration in `velox.config.ts`:
-
-```typescript
-import { defineConfig } from '@velox-video/core'
-
-export default defineConfig({
-  preview: {
-    port: 3000,
-    host: 'localhost',
-    open: true,  // Auto-open browser
-    hmr: true,   // Enable Hot Module Replacement
-    quality: 'high'  // Preview quality
-  }
-})
-```
+The preview server currently binds to `http://localhost:3333` and opens the browser automatically.
 
 ## Development Workflow
 
@@ -202,32 +106,32 @@ export default defineConfig({
 
 1. **Start the Studio**
    ```bash
-   npx velox-video preview src/index.ts
+   npx velox-video preview video.ts
    ```
 
 2. **Make Code Changes**
-   - Edit your TypeScript file in your editor
-   - Save the file (Ctrl+S)
+   - Edit your `video.ts` file in your editor
+   - Save the file
 
 3. **Observe Changes**
    - HMR automatically updates the preview
    - No manual refresh needed
-   - State is preserved when possible
+   - The latest config is pushed to the player
 
 4. **Test Variations**
-   - Try different parameters
-   - Compare multiple versions
-   - Use playback controls to analyze
+   - Try different text, spacing, and animation settings
+   - Compare alternate scene timings
+   - Use playback controls to analyze motion
 
 5. **Debug Issues**
-   - Check console for errors
-   - Use error overlays
-   - Adjust parameters in real-time
+   - Check the terminal for reload failures
+   - Confirm the edited file is the watched entrypoint
+   - Reduce the scene to a smaller repro when needed
 
 6. **Export Final Version**
-   - Stop the studio (Ctrl+C)
-   - Run render command
-   - Verify exported output
+   - Export from the preview UI or stop the studio with `Ctrl+C`
+   - Run `velox render video.ts --output output.mp4`
+   - Verify the exported output
 
 ## Interactive Debugging Techniques
 
@@ -235,50 +139,44 @@ export default defineConfig({
 
 **Pattern 1: Iterative Refinement**
 ```bash
-# Start with basic version
-npx velox-video preview src/animation.ts
-
-# In another terminal, test variations
-npx velox-video render src/animation.ts --quality low --output test1.mp4
-npx velox-video render src/animation.ts --quality high --output test2.mp4
+npx velox-video preview video.ts
+npx velox-video render video.ts --output test.mp4
 ```
 
-**Pattern 2: Parameter Tuning**
-- Adjust FPS in studio
-- Test different resolutions
-- Compare performance
+**Pattern 2: Timing Review**
+- Pause on transition boundaries
+- Scrub through entrances and exits
+- Compare neighboring scenes for overlap issues
 
-**Pattern 3: State Preservation**
-- Use HMR to maintain state
-- Test edge cases
-- Roll back changes easily
+**Pattern 3: Layout Review**
+- Verify text clipping on long copy
+- Check contrast against the scene background
+- Confirm safe spacing near frame edges
 
 ## Performance Optimization
 
 ### In Studio Mode
-- Use lower preview quality for faster updates
-- Disable unnecessary features during development
-- Monitor performance metrics
+- Keep scenes small while iterating
+- Reduce particle counts or visual effects when debugging timing
+- Prefer shorter test clips before full-length renders
 
 ### Testing Best Practices
-- Test on target devices
-- Verify export quality matches preview
-- Document successful parameter combinations
+- Verify export quality matches preview intent
+- Check output dimensions and frame rate explicitly
+- Re-render after major timing changes rather than trusting preview alone
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| HMR not working | Check console for errors, ensure file is saved |
-| Studio slow | Reduce preview quality, disable unnecessary effects |
-| Console not showing | Open browser dev tools, check network tab |
-| Port conflict | Change port in config or use `--port` flag |
-| Module errors | Run `npm install`, check TypeScript errors |
+| HMR not working | Check terminal output and ensure the watched file is the file you are editing |
+| Studio slow | Reduce scene complexity or shorten the clip while iterating |
+| Preview looks wrong | Verify size, fps, and scene timing first |
+| Export failed | Re-run with `velox render` to isolate render-time issues |
+| Module errors | Run `pnpm install` and fix TypeScript or import issues |
 
 ## Next Steps
 
-- Learn about [Rendering options](./docs/rendering)
-- Explore [CLI commands](./docs/cli)
-- Check out [Core API concepts](./app/core)
-- Browse [example projects](./examples)
-- Read the [Getting Started guide](./docs/getting-started)
+- Learn about [Rendering options](./rendering)
+- Explore [CLI commands](./cli)
+- Read the [Getting Started guide](./getting-started)

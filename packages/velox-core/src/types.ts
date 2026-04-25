@@ -1,5 +1,16 @@
 // ─── Size & Video ───────────────────────────────────────────────────────────
-export type VeloxSize = '1080p' | '720p' | '4k' | 'square' | 'portrait' | [number, number]
+export type VeloxSize =
+  | '1080p'
+  | '720p'
+  | '4k'
+  | 'square'
+  | 'portrait'
+  | '16:9'
+  | '9:16'
+  | '1:1'
+  | '4:5'
+  | '21:9'
+  | [number, number]
 export type VeloxFps = 24 | 30 | 60
 
 // ─── Color & Gradient ───────────────────────────────────────────────────────

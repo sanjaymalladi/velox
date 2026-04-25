@@ -1,9 +1,10 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
+import { VeloxWordmark } from '../VeloxBrand'
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: 'Velox',
+      title: <VeloxWordmark compact />,
       url: '/',
       transparentMode: 'top',
     },
