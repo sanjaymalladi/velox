@@ -2,7 +2,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const canvasStub = path.join(__dirname, 'stubs', 'napi-rs-canvas-stub.mjs')
+/** Webpack resolves from `packages/site`; Turbopack root is usually the workspace root (pnpm lockfile). */
+const canvasStubAbs = path.join(__dirname, 'stubs', 'napi-rs-canvas-stub.mjs')
+const canvasStubTurboProjectRelative = './packages/site/stubs/napi-rs-canvas-stub.mjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -13,13 +15,13 @@ const nextConfig = {
     config.resolve = config.resolve ?? {}
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@napi-rs/canvas': canvasStub,
+      '@napi-rs/canvas': canvasStubAbs,
     }
     return config
   },
   turbopack: {
     resolveAlias: {
-      '@napi-rs/canvas': canvasStub,
+      '@napi-rs/canvas': canvasStubTurboProjectRelative,
     },
   },
   allowedDevOrigins: ['127.0.0.1'],
