@@ -230,6 +230,23 @@ export type ElementConfig =
   | ShapeElementConfig
   | GroupElementConfig
 
+export interface SfxCue {
+  /** Preset sfx id (CLI may map to bundled/user assets) */
+  name: string
+  /** Seconds from global timeline start */
+  at: number
+  volume?: number
+}
+
+/**
+ * Timeline metadata for music, one-shots, and beat markers — muxing is a future CLI stage.
+ */
+export interface VeloxAudioPlan {
+  music?: { src: string; volume?: number }
+  sfx: SfxCue[]
+  beats: number[]
+}
+
 // ─── Scene Config ───────────────────────────────────────────────────────────
 export interface SceneConfig {
   id: string
@@ -272,4 +289,6 @@ export interface VeloxVideoConfig {
   motionQuality?: MotionQuality
   scenes: SceneConfig[]
   audio?: { src: string; volume?: number }
+  /** Declarative audio timeline (VML / future mux); optional */
+  audioPlan?: VeloxAudioPlan
 }

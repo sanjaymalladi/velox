@@ -28,13 +28,25 @@ import { createVideoFromMarkup } from '@velox-video/core'
 
 export default createVideoFromMarkup(`
 <video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <center motion="heroCinematic">
-      <hero kicker="HELLO" title="Your first Velox video" subtitle="VML is safe for LLMs and easy to edit." />
-    </center>
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Your first Velox reel" subtitle="VML is safe for LLMs and easy to edit." badge="HELLO" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Your first Velox reel is just markup." style="karaoke" />
   </scene>
 </video>
 `)
+```
+
+You can also skip TypeScript and create `reel.vml` directly:
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
+  <scene duration="5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
+    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+  </scene>
+</video>
 ```
 
 ### 2. Preview Your Animation
@@ -43,6 +55,8 @@ Run the local studio against your project:
 
 ```bash
 npx velox-video preview video.ts
+# or
+npx velox-video preview reel.vml
 ```
 
 This will start a development server with Hot Module Replacement (HMR). Any changes you make to your animation code will be automatically reflected in the preview.
@@ -62,6 +76,8 @@ Export your project to a high-quality video file:
 ```bash
 # Render with default settings
 npx velox-video render video.ts --output my-animation.mp4
+# or
+npx velox-video render reel.vml --output my-animation.mp4
 
 # Render with high quality
 npx velox-video render video.ts --quality high --output my-animation.mp4
@@ -82,44 +98,19 @@ npx velox-video render video.ts --format gif --output animation.gif
 | `velox-video render <file> --quality high` | High quality render | `velox-video render src/index.ts --quality high` |
 | `velox-video studio` | Start studio without file | `velox-video studio` |
 
-## Configuration
+## Reel Features To Try
 
-Create a `velox.config.ts` file in your project root:
-
-```typescript
-import { defineConfig } from '@velox-video/core'
-
-export default defineConfig({
-  fps: 60,
-  width: 1920,
-  height: 1080,
-  background: '#000000',
-  output: {
-    quality: 'high',
-    format: 'mp4'
-  },
-  preview: {
-    port: 3000,
-    host: 'localhost',
-    open: true
-  }
-})
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VELOX_FPS` | Frames per second | 30 |
-| `VELOX_WIDTH` | Output width | 1920 |
-| `VELOX_HEIGHT` | Output height | 1080 |
-| `VELOX_LOG_LEVEL` | Logging level | 'info' |
-| `VELOX_PREVIEW_PORT` | Preview server port | 3000 |
+- Use `template="topTextBottomVisual"` or `template="headlineThenProof"` on scenes.
+- Add `slot="top|visual|caption|overlay"` to important children.
+- Use semantic tags like `<announcement>`, `<breakingNews>`, `<ranking>`, `<finalCTA>`.
+- Add captions with `<captions text="..." style="karaoke" />`.
+- Use generated cards like `<githubRepo owner="..." repo="..." />` or `<npmPackage name="..." />`.
+- Add timeline metadata with `<sfx name="pop" at="0.4" />` and `<beat at="1.0" />`. MP4 audio muxing is staged; current exports are silent.
 
 ## Next Steps
 
 - Explore [Preview Studio features](./docs/preview)
 - Learn about [Rendering options](./docs/rendering)
 - Check out [CLI commands](./docs/cli)
-- Browse [example projects](./examples)
-- Read the [Core API documentation](./app/core)
+- Try the [playground](./docs/playground) and export a quick WebM
+- Use the [recommended VML prompt](./docs/markup-prompt)

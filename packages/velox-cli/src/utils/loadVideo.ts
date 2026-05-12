@@ -1,42 +1,55 @@
 import path from 'path'
+import fs from 'fs-extra'
 import { createJiti } from 'jiti'
-import { validateVeloxVideoConfig } from '@velox-video/core'
+import { createVideoFromMarkup, validateVeloxVideoConfig } from '@velox-video/core'
 import type { VeloxVideoConfig } from '@velox-video/core'
+import { resolveVeloxPlaceholders } from '../media/resolveVeloxPlaceholders'
 
 export async function loadVideoConfig(filePath: string): Promise<VeloxVideoConfig> {
   const abs = path.resolve(filePath)
 
+  if ((await fs.pathExists(abs)) && abs.toLowerCase().endsWith('.vml')) {
+    const trimmed = (await fs.readFile(abs, 'utf8')).trim()
+    if (!trimmed.startsWith('<video')) {
+      throw new Error(`"${filePath}" must start with <video> markup.`)
+    }
+    const video = createVideoFromMarkup(trimmed)
+    const cfg = video.config
+    validateVeloxVideoConfig(cfg)
+    await resolveVeloxPlaceholders(cfg, path.dirname(abs))
+    return cfg
+  }
+
   try {
-    // Use the resolved velox-core path as jiti context so it can find modules correctly
     const veloxCorePath = require.resolve('@velox-video/core')
     const jiti = createJiti(veloxCorePath, {
       alias: {
         '@velox-video/core': veloxCorePath,
-      }
+      },
     })
-    const mod = await jiti.import(abs, { default: true }) as any
+    const mod = (await jiti.import(abs, { default: true })) as { default?: unknown }
     const exported = mod?.default ?? mod
 
-    // VeloxVideo instance (has .config property)
+    let config: VeloxVideoConfig | undefined
+
     if (exported && typeof exported === 'object' && 'config' in exported) {
-      const config = exported.config as VeloxVideoConfig
-      validateVeloxVideoConfig(config)
-      return config
+      config = (exported as { config: VeloxVideoConfig }).config
     }
 
-    // Plain config object (advanced usage)
     if (exported && typeof exported === 'object' && 'scenes' in exported) {
-      const config = exported as VeloxVideoConfig
-      validateVeloxVideoConfig(config)
-      return config
+      config = exported as VeloxVideoConfig
     }
 
-    throw new Error(
-      `Could not find a valid video export in "${filePath}".\n` +
-      `Make sure you export a VeloxVideo: export default createVideo({ ... })`
-    )
+    if (!config)
+      throw new Error(
+        `Could not find a valid video export in "${filePath}".\n` +
+          `Export a VeloxVideo: export default createVideo({ ... }) or compile VML.`,
+      )
+
+    validateVeloxVideoConfig(config)
+    await resolveVeloxPlaceholders(config, path.dirname(abs))
+    return config
   } catch (err) {
     throw err
   }
 }
-

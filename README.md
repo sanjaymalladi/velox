@@ -36,6 +36,8 @@ npx velox-video render video.ts --output result.mp4
 - **Premium motion controls:** Scene cameras, blur dissolves, vignette/grain overlays, and Popmotion-backed easing presets.
 - **Charts and organic motion:** D3-backed bar/line/donut charts plus Flubber-backed morph blobs.
 - **Color and brand systems:** Theme tokens, Culori/Chroma color helpers, and bundled SVGL logo rendering.
+- **Reel production layer:** VML templates, semantic announcement components, captions, transparent asset/icon primitives, generated cards, and stock/media placeholders.
+- **Free-first media workflow:** Local/generated fallbacks first, optional no-key provider refs, and CLI-side cache materialization under `.velox/cache/media`.
 - **React-free core:** Plain TypeScript config and Canvas drawing primitives.
 
 ## VML Example
@@ -45,23 +47,86 @@ import { createVideoFromMarkup } from '@velox-video/core'
 
 export default createVideoFromMarkup(`
 <video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <center motion="heroCinematic">
-      <hero kicker="CASE STUDY" title="Great visuals feel alive" subtitle="Depth, rhythm, and smooth timing." />
-    </center>
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" />
   </scene>
-  <scene duration="5" background="warmPaper">
-    <column gap="32" placement="center">
-      <kicker color="theme.accent">DATA</kicker>
-      <lineChart width="700" height="320" curve="smooth">
-        <series label="A" values="12,38,29,72" color="theme.accent" />
-        <series label="B" values="20,26,48,88" color="#22c55e" />
-      </lineChart>
-    </column>
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" />
   </scene>
 </video>
 `)
 ```
+
+The CLI also accepts pure `.vml` files:
+
+```bash
+npx velox-video preview reel.vml
+npx velox-video render reel.vml --output reel.mp4
+```
+
+## Complex VML Example
+
+This example uses the reel production surface: templates, slots, semantic components, captions, generated card placeholders, stock refs, chart tags, SFX, and beat metadata.
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium" music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" staggerStep="0.14">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, stock refs, cards, charts, and beat metadata." badge="NEW" tone="success" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
+  </scene>
+
+  <scene duration="5.4" template="splitLeftRight" background="aurora:ocean" camera="parallaxDrift" mood="cinematic" transition="zoomSmooth">
+    <featureReveal slot="left" title="Production pieces included" caption="High-level tags instead of fragile offsets." motion="premiumSlide">
+      <item>caption styles</item>
+      <item>transparent SVG assets</item>
+      <item>stock provider refs</item>
+      <item>generated cards</item>
+    </featureReveal>
+    <stock slot="right" query="developer coding at night" provider="generated" width="440" height="620" radius="32" motion="driftIn" />
+  </scene>
+
+  <scene duration="5.2" template="centerCard" background="mesh:violet" camera="kenBurns" mood="cinematic">
+    <card slot="visual" width="900" height="720" radius="40" motion="softReveal">
+      <column gap="26">
+        <kicker color="theme.accent">DATA STORY</kicker>
+        <lineChart width="720" height="260" curve="smooth" motion="drawIn">
+          <series label="Prompt" values="18,30,46,64,78" color="theme.accent" />
+          <series label="Render" values="8,18,36,62,92" color="#22c55e" />
+        </lineChart>
+        <donutChart size="260" motion="growUp">
+          <slice label="Layout" value="35" color="theme.accent" />
+          <slice label="Media" value="25" color="#38bdf8" />
+          <slice label="Motion" value="40" color="#22c55e" />
+        </donutChart>
+      </column>
+    </card>
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" delay="0.25" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" delay="0.45" />
+  </scene>
+</video>
+```
+
+## Reel Production Surface
+
+- Scene templates: `topTextBottomVisual`, `topVisualBottomText`, `splitLeftRight`, `centerCard`, `fullBleedMedia`, `headlineThenProof`, `threeBeatReveal`.
+- Slots: `top`, `bottom`, `visual`, `caption`, `overlay`, `left`, `right`, `center`, `full`.
+- Components: `<announcement>`, `<launchCard>`, `<breakingNews>`, `<featureReveal>`, `<problemSolution>`, `<beforeAfter>`, `<quoteCard>`, `<ranking>`, `<countdown>`, `<finalCTA>`.
+- Captions: `<captions text="..." style="karaoke|pill|wordPop|highlightKeywords" />` and timed `<caption at="..." dur="...">...</caption>` children.
+- Assets: `<asset name="phone-frame|new-badge|arrow-right|highlight-ring|star-burst" />` and `<icon name="github|npm|rss|discord" />`.
+- Cards/capture refs: `<githubRepo>`, `<npmPackage>`, `<brandCard>`, `<website>`.
+- Audio metadata: root `music`, `<audio>`, `<sfx>`, and `<beat>` compile into timeline metadata. MP4 audio muxing is staged; current renderer warns and exports silent video.
 
 ## TypeScript Example
 

@@ -20,6 +20,7 @@ import type { AnimationState } from './animations'
 import { drawText, drawTextList } from './drawText'
 import { drawShape } from './drawShape'
 import { lerp, easeOut } from './easing'
+import { isPlaceholderImageSrc } from '../mediaProviders'
 
 type Ctx = CanvasRenderingContext2D
 type CachedImage = { width?: number; height?: number; naturalWidth?: number; naturalHeight?: number }
@@ -87,8 +88,9 @@ export async function preloadImages(config: VeloxVideoConfig): Promise<Map<strin
   await Promise.all(logoFetchQueue.map(q => q.promise))
 
   const cache = new Map<string, CachedImage>()
+  const preloadTargets = Array.from(srcs).filter((src) => !isPlaceholderImageSrc(src))
   await Promise.all(
-    Array.from(srcs).map(async (src) => {
+    preloadTargets.map(async (src) => {
       try {
         if (typeof window !== 'undefined') {
           // Browser
@@ -165,6 +167,12 @@ export function buildSceneTimeline(config: VeloxVideoConfig): ActiveScene[] {
     cursor += frames - transFrames
   }
   return timeline
+}
+
+/** Global scene start times in seconds (matches transition-aware timeline). */
+export function buildSceneStartsSeconds(config: VeloxVideoConfig): number[] {
+  const timeline = buildSceneTimeline(config)
+  return timeline.map((t) => t.startFrame / config.fps)
 }
 
 // ─── Background ───────────────────────────────────────────────────────────────
@@ -415,6 +423,24 @@ function drawImage(
     g.addColorStop(1, to)
     ctx.fillStyle = g
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+    ctx.restore()
+    return
+  }
+  const isVeloxUnresolved =
+    el.src.startsWith('velox-stock:') ||
+    el.src.startsWith('velox-card:') ||
+    el.src.startsWith('velox-web:')
+  if (!img && isVeloxUnresolved) {
+    ctx.save()
+    ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
+    const [from, to] = ['#334155', '#0f172a']
+    const g = ctx.createLinearGradient(drawX - 200, drawY - 200, drawX + 200, drawY + 200)
+    g.addColorStop(0, from)
+    g.addColorStop(1, to)
+    ctx.fillStyle = g
+    const dw = el.width ?? 780
+    const dh = el.height ?? 440
+    ctx.fillRect(drawX - dw / 2, drawY - dh / 2, dw, dh)
     ctx.restore()
     return
   }

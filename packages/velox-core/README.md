@@ -25,23 +25,30 @@ import { createVideoFromMarkup } from '@velox-video/core'
 
 export default createVideoFromMarkup(`
 <video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <center motion="heroCinematic">
-      <hero kicker="CASE STUDY" title="Great visuals feel alive" subtitle="Depth, rhythm, and smooth timing." />
-    </center>
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
   </scene>
-  <scene duration="5" background="warmPaper">
-    <column gap="32" placement="center">
-      <kicker color="theme.accent">DATA</kicker>
-      <lineChart width="700" height="320" curve="smooth">
-        <series label="A" values="12,38,29,72" color="theme.accent" />
-        <series label="B" values="20,26,48,88" color="#22c55e" />
-      </lineChart>
-    </column>
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" />
   </scene>
 </video>
 `)
 ```
+
+## Reel VML Surface
+
+Core now includes a reel production layer designed for AI-generated shorts:
+
+- Scene templates and slots: `template="topTextBottomVisual"` plus `slot="top|visual|caption|overlay|left|right"`.
+- Semantic components: `<announcement>`, `<launchCard>`, `<breakingNews>`, `<featureReveal>`, `<problemSolution>`, `<beforeAfter>`, `<quoteCard>`, `<ranking>`, `<countdown>`, `<finalCTA>`.
+- Captions: `<captions text="..." style="karaoke|pill|wordPop|highlightKeywords" />` and timed `<caption at="..." dur="...">...</caption>`.
+- Built-in transparent SVG assets/icons: `<asset name="phone-frame" />`, `<asset name="new-badge" />`, `<icon name="github" />`.
+- Media placeholders for CLI preprocessing: `<stock provider="wikipedia" query="..." />`, `<githubRepo />`, `<npmPackage />`, `<brandCard />`, `<website />`.
+- Audio timeline metadata: root `music`, `<audio>`, `<sfx>`, and `<beat>` compile to `audioPlan` for future muxing; current MP4 export is silent.
 
 ## TypeScript API
 
@@ -84,6 +91,7 @@ export default createVideo({
 - Flubber-backed morph blobs for organic motion accents.
 - Color helpers powered by Culori and Chroma.
 - Bundled SVGL logo path rendering through `@velox-video/svgl`.
+- Reel templates, captions, semantic components, local transparent SVG assets, generated cards, and stock/media placeholder refs.
 
 ## Public Exports
 
@@ -93,7 +101,9 @@ Common exports include:
 - `text`, `shape`, `image`, `logo`, `group`, `layout`
 - `backdrops`, `typography`, `creativeCards`, `motion`, `colors`
 - `createVideoFromMarkup`, `isVeloxMarkup`
-- `drawFrame`, `getTotalFrames`, `preloadImages`
+- `drawFrame`, `getTotalFrames`, `preloadImages`, `setImageCache`
+- `encodeVeloxStockRef`, `encodeVeloxCardRef`, `decodeVeloxStockRef`, `decodeVeloxCardRef`
+- `parseSrt`, `splitWords`, `buildCaptionWordSpans`
 
 ## License
 

@@ -6,7 +6,7 @@
 import path from 'path'
 import fs from 'fs-extra'
 import type { VeloxVideoConfig } from '@velox-video/core'
-import { drawFrame, getTotalFrames, resolveSize } from '@velox-video/core'
+import { drawFrame, getTotalFrames, resolveSize, preloadImages, setImageCache } from '@velox-video/core'
 
 export interface RenderOptions {
   outputPath: string
@@ -36,6 +36,15 @@ export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions
   const { outputPath, format = 'mp4', onProgress } = opts
   const [width, height] = resolveSize(config.size)
   const totalFrames = getTotalFrames(config)
+
+  const imgCache = await preloadImages(config)
+  setImageCache(imgCache)
+
+  if (config.audioPlan && (config.audioPlan.sfx.length > 0 || config.audioPlan.beats.length > 0 || config.audioPlan.music)) {
+    console.warn(
+      '[velox] Timeline metadata detected (music / sfx / beats). Audio multiplexing into MP4 is planned; current export renders silent video.',
+    )
+  }
 
   if (format === 'mp4') {
     await renderMp4(config, width, height, totalFrames, outputPath, opts)

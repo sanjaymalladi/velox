@@ -243,6 +243,49 @@ describe('velox markup', () => {
     expect(video.config.scenes[0].elements[0].type).toBe('group')
   })
 
+  it('compiles reel components, captions, placeholders, templates, and audio cues', () => {
+    const video = createVideoFromMarkup(`
+      <video size="portrait" fps="30" theme="obsidian" music="bg.mp3" musicVolume="0.35">
+        <scene duration="6" template="topTextBottomVisual" transition="blurDissolve">
+          <announcement slot="top" title="Ship faster" subtitle="Velox reels" badge="NEW" tone="neutral" motion="fade" />
+          <asset slot="visual" name="phone-frame" motion="driftIn" />
+          <captions text="Ship faster today" style="karaoke" slot="caption" />
+          <stock slot="overlay" provider="wikipedia" query="OpenAI_logo" motion="fade" />
+          <sfx name="pop" at="0.4" />
+          <beat at="1.0" />
+          <ranking title="Trending">
+            <item>Agents</item>
+            <item>Video</item>
+          </ranking>
+        </scene>
+      </video>
+    `)
+
+    expect(video.config.scenes[0].elements.length).toBeGreaterThan(3)
+    const stockSrc = (
+      video.config.scenes[0].elements.find(
+        (e) => e.type === 'image' && (e as { src?: string }).src?.startsWith('velox-stock:'),
+      ) as { src?: string } | undefined
+    )?.src
+    expect(stockSrc).toContain('wikipedia')
+
+    expect(video.config.audioPlan?.beats?.length).toBe(1)
+    expect(video.config.audioPlan?.sfx?.length).toBe(1)
+    expect(video.config.audio).toEqual(expect.objectContaining({ src: 'bg.mp3', volume: 0.35 }))
+
+    const videoCards = createVideoFromMarkup(`
+      <video><scene duration="5">
+        <githubRepo owner="octocat" repo="Hello-World" />
+        <npmPackage name="@velox-video/core" />
+        <website url="https://example.com" />
+      </scene></video>
+    `)
+    const imgs = videoCards.config.scenes[0].elements.filter((e) => e.type === 'image') as { src: string }[]
+    expect(imgs.some((i) => i.src.startsWith('velox-card:github'))).toBe(true)
+    expect(imgs.some((i) => i.src.startsWith('velox-card:npm'))).toBe(true)
+    expect(imgs.some((i) => i.src.startsWith('velox-web:'))).toBe(true)
+  })
+
   it('adds fade outs between delayed top-level sections in a long scene', () => {
     const video = createVideoFromMarkup(`
       <video>

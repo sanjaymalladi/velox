@@ -15,12 +15,28 @@ const allowedTags = new Set([
   'video', 'scene',
   'center', 'row', 'column', 'stack',
   'text', 'kicker', 'hero', 'list', 'item',
-  'logo', 'logoLockup', 'image', 'stock',
+  'logo', 'logoLockup', 'image', 'stock', 'stockVideo',
   'rect', 'circle', 'line', 'progress', 'metric', 'metricRow', 'glassList', 'card',
   'barChart', 'bar', 'lineChart', 'series', 'donutChart', 'slice', 'morphBlob',
+  // reels / production
+  'announcement', 'launchCard', 'breakingNews', 'featureReveal', 'problemSolution',
+  'beforeAfter', 'quoteCard', 'ranking', 'countdown', 'finalCTA',
+  'asset', 'assetPack', 'icon',
+  'captions', 'caption',
+  'website', 'githubRepo', 'npmPackage', 'brandCard',
+  'audio', 'sfx', 'beat',
 ])
 
-const voidTags = new Set(['hero', 'logo', 'logoLockup', 'image', 'stock', 'circle', 'line', 'progress', 'metric', 'bar', 'series', 'slice', 'morphBlob'])
+const voidTags = new Set([
+  'hero', 'logo', 'logoLockup', 'image', 'stock', 'stockVideo',
+  'circle', 'line', 'progress', 'metric', 'bar', 'series', 'slice', 'morphBlob',
+  'announcement', 'launchCard', 'breakingNews', 'problemSolution',
+  'beforeAfter', 'quoteCard', 'countdown', 'finalCTA',
+  'asset', 'assetPack', 'icon',
+  'caption',
+  'website', 'githubRepo', 'npmPackage', 'brandCard',
+  'audio', 'sfx', 'beat',
+])
 
 function fail(message: string): never {
   throw new Error(`[velox markup] ${message}`)
@@ -84,7 +100,8 @@ export function parseVeloxMarkup(markup: string): MarkupNode {
     const attrSource = space === -1 ? '' : inner.slice(space + 1)
 
     if (!allowedTags.has(tag)) fail(`Unsupported tag <${tag}>.`)
-    if (voidTags.has(tag) && !selfClosing && tag !== 'card') fail(`<${tag}> must be self-closing.`)
+    if (voidTags.has(tag) && !selfClosing && tag !== 'card')
+      fail(`<${tag}> must be self-closing.`)
 
     const node: MarkupNode = { tag, attrs: parseAttrs(attrSource, tag), children: [], text: '' }
     current.children.push(node)

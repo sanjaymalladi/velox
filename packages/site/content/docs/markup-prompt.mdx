@@ -29,6 +29,8 @@ Valid root attributes:
 - theme: geist, notion, linear, obsidian, sandstone, corporateBlue, mintMinimal, monochromeGrid, creamChecks
 - background: CSS color, grid(...), or creamGrid. This is the default for the whole video. Scene background overrides it.
 - motionQuality: standard, premium
+- music / musicVolume: optional score (also maps to root `audio{src,volume}`)
+- Optional root child: `<audio src="theme.mp3" volume="0.45" />` (wins over music attributes if both exist)
 
 Valid scene attributes:
 - duration: positive seconds
@@ -39,6 +41,8 @@ Valid scene attributes:
 - transitionDuration: seconds
 - vignette/grain: 0 to 1 overlay strengths
 - staggerStep: seconds to add between top-level child entrances
+- template: none, topTextBottomVisual, topVisualBottomText, splitLeftRight, centerCard, fullBleedMedia, headlineThenProof, threeBeatReveal (optional). Pair important children with slot="top|bottom|visual|caption|overlay|left|right".
+- embed timing metadata: `<sfx name="whoosh" at="0.6" volume="0.8" />`, `<beat at="1.0" />` (multiplexing is staged — renderer still exports silent video today)
 - valid moods/palettes: midnight, violet, danger, ocean, ember
 - accepted aliases: neon -> violet, purple -> violet, blue -> ocean, red -> danger, orange -> ember
 
@@ -63,7 +67,17 @@ Valid media/brand tags:
 <logo name="openai" theme="light" size="96" />
 <logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
 <image src="/path.png" width="520" height="320" />
-<stock query="developer coding at night" width="520" height="320" />
+<stock query="developer coding at night" provider="generated|local|wikipedia|unsplashSource|openbrand|..." width="520" height="320" />
+<stockVideo query="city sunset" provider="unsplashSource" />
+<githubRepo owner="vercel" repo="next.js" />
+<npmPackage name="@velox-video/core" />
+<website url="https://example.com" device="laptop" />
+<brandCard name="openai" provider="openbrand" />
+Reel semantic shortcuts (attributes only unless noted):
+`<announcement />`, `<launchCard />`, `<breakingNews />`, `<featureReveal>...</featureReveal>`, `<problemSolution />`, `<beforeAfter />`, `<quoteCard />`, `<ranking>...</ranking>`, `<countdown />`, `<finalCTA />`
+`<asset name="phone-frame|new-badge|arrow-right|highlight-ring|star-burst" />`
+`<icon name="github|npm|rss|discord" pack="simple-icons" />`
+`<captions text="..." style="karaoke|pill|..." />` or structured `<captions><caption at="0" dur="1.5">Line</caption></captions>`
 
 Valid shape/data tags:
 <rect width="420" height="240" color="rgba(255,255,255,0.1)" radius="24" />
@@ -267,31 +281,146 @@ Premium motion values use Popmotion easing under the hood. Prefer `heroCinematic
 
 Use `delay` in seconds. Prefer separate scenes for sequential beats. If one long scene contains delayed top-level sections, Velox automatically fades older sections before the next delayed top-level section appears.
 
-## Example
+### Reel Production
+
+Use reel templates when creating social video, product announcements, model launches, and news explainers. Templates place elements by semantic slots so LLMs do not need pixel offsets.
+
+Scene templates:
+- `topTextBottomVisual`
+- `topVisualBottomText`
+- `splitLeftRight`
+- `centerCard`
+- `fullBleedMedia`
+- `headlineThenProof`
+- `threeBeatReveal`
+
+Slots:
+- `top`
+- `bottom`
+- `visual`
+- `caption`
+- `overlay`
+- `left`
+- `right`
+- `center`
+- `full`
+
+Semantic reel components:
 
 ```xml
-<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
-  <scene duration="5" background="aurora:violet">
-    <center motion="cinematic">
-      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
-    </center>
+<announcement slot="top" title="New model dropped" subtitle="Here is what changed" badge="BREAKING" />
+<launchCard title="Velox 2.0" subtitle="VML-first reels" cta="Try it" proof="Native Canvas export" />
+<breakingNews headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand." />
+<featureReveal title="Production pieces">
+  <item>captions</item>
+  <item>asset overlays</item>
+  <item>generated cards</item>
+</featureReveal>
+<problemSolution problem="LLMs invent offsets" solution="Use templates and slots" />
+<beforeAfter before="fragile chains" after="safe markup" />
+<quoteCard quote="Markup is easier for small models." author="Velox" />
+<ranking title="Top features"><item>VML</item><item>Captions</item></ranking>
+<countdown value="3" label="days left" />
+<finalCTA title="Paste VML. Render. Export." cta="Try it now" />
+```
+
+Assets and icons:
+
+```xml
+<asset name="phone-frame" slot="visual" width="360" height="640" motion="driftIn" />
+<asset name="new-badge" slot="overlay" width="240" height="110" motion="magneticPop" />
+<icon name="github" pack="simple-icons" size="104" slot="overlay" />
+```
+
+Built-in asset names: `phone-frame`, `new-badge`, `arrow-right`, `highlight-ring`, `star-burst`.
+Built-in icon names: `github`, `npm`, `rss`, `discord`.
+
+Captions:
+
+```xml
+<captions text="Launch reels from markup with safe VML." style="karaoke" slot="caption" />
+<captions style="wordPop" slot="caption">
+  <caption at="0.2" dur="1.4">First line</caption>
+  <caption at="1.8" dur="1.5">Second line</caption>
+</captions>
+```
+
+Caption styles: `plain`, `pill`, `karaoke`, `wordPop`, `highlightKeywords`.
+
+Stock and generated cards:
+
+```xml
+<stock query="developer coding at night" provider="generated" width="520" height="320" />
+<stock query="open source robot" provider="wikipedia" width="520" height="320" />
+<githubRepo owner="sanjaymalladi" repo="velox" slot="visual" />
+<npmPackage name="@velox-video/core" />
+<website url="https://example.com" device="laptop" />
+<brandCard name="openai" provider="openbrand" />
+```
+
+Provider values: `generated`, `local`, `wikipedia`, `flickr`, `unsplashSource`, `openbrand`, `pexels`, `unsplash`, `pixabay`. Remote providers are best-effort and should cache before render. Use `generated` or `local` when determinism matters most.
+
+Audio and beat metadata:
+
+```xml
+<video music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4">
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
+  </scene>
+</video>
+```
+
+Audio muxing is staged: VML compiles music, SFX, and beat markers into timeline metadata, but current MP4 export remains silent.
+
+## Complex Reel Example
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium" music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" staggerStep="0.14">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, stock refs, cards, charts, and beat metadata." badge="NEW" tone="success" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
   </scene>
 
-  <scene duration="5" background="mesh:ocean">
-    <column gap="32" placement="center">
-      <kicker color="#67e8f9">THE LOOP</kicker>
-      <row gap="24">
-        <metric value="01" label="Input" />
-        <metric value="02" label="Plan" />
-      </row>
-      <progress value="72" color="#22c55e" width="620" height="18" motion="growUp" />
-    </column>
+  <scene duration="5.4" template="splitLeftRight" background="aurora:ocean" camera="parallaxDrift" mood="cinematic" transition="zoomSmooth">
+    <featureReveal slot="left" title="Production pieces included" caption="High-level tags instead of fragile offsets." motion="premiumSlide">
+      <item>caption styles</item>
+      <item>transparent SVG assets</item>
+      <item>stock provider refs</item>
+      <item>generated cards</item>
+    </featureReveal>
+    <stock slot="right" query="developer coding at night" provider="generated" width="440" height="620" radius="32" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Every block stays semantic for small models." style="wordPop" start="0.8" />
+    <beat at="1.0" />
   </scene>
 
-  <scene duration="4" background="#050505">
-    <center>
-      <logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
-    </center>
+  <scene duration="5.2" template="centerCard" background="mesh:violet" camera="kenBurns" mood="cinematic" transition="blurDissolve">
+    <card slot="visual" width="900" height="720" radius="40" motion="softReveal">
+      <column gap="26">
+        <kicker color="theme.accent">DATA STORY</kicker>
+        <lineChart width="720" height="260" curve="smooth" motion="drawIn">
+          <series label="Prompt" values="18,30,46,64,78" color="theme.accent" />
+          <series label="Render" values="8,18,36,62,92" color="#22c55e" />
+        </lineChart>
+        <donutChart size="260" motion="growUp">
+          <slice label="Layout" value="35" color="theme.accent" />
+          <slice label="Media" value="25" color="#38bdf8" />
+          <slice label="Motion" value="40" color="#22c55e" />
+        </donutChart>
+      </column>
+    </card>
+    <captions slot="caption" text="Charts are VML too, powered by D3." style="pill" start="0.4" />
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial" transition="zoomSmooth">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" motion="heroCinematic" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" delay="0.25" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" delay="0.45" />
+    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+    <sfx name="pop" at="0.6" />
   </scene>
 </video>
 ```

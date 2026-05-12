@@ -16,6 +16,8 @@ Velox provides a comprehensive solution for creating motion graphics programmati
 - **Programmatic animation**: Define scenes in TypeScript when you need low-level control
 - **Premium motion**: Scene cameras, blur dissolves, vignette/grain overlays, and Popmotion-backed easing
 - **Data and organic visuals**: D3-backed charts and Flubber-backed morph blobs
+- **Reel production**: VML templates, semantic announcement components, captions, transparent assets, generated cards, and stock/media placeholders
+- **Free-first providers**: generated/local media first, no-key refs where possible, cached before render
 - **Fast preview**: Built-in preview studio for rapid iteration
 - **Native export**: Canvas + WASM/native encoders instead of browser automation
 
@@ -25,6 +27,7 @@ Velox provides a comprehensive solution for creating motion graphics programmati
 - Text animations and kinetic typography
 - Particle systems and generative art
 - UI animations and micro-interactions
+- Short-form announcements, launch videos, tech reels, and social explainers
 
 ## Documentation
 
@@ -71,10 +74,10 @@ Use Velox Markup as the model-facing format:
 
 ```xml
 <video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <center motion="heroCinematic">
-      <hero kicker="CASE STUDY" title="Fluid video generation" subtitle="Safe markup, premium motion." />
-    </center>
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Safe markup, premium motion." style="karaoke" />
   </scene>
 </video>
 ```
@@ -85,4 +88,4 @@ Interactive code playground where you can paste code and see outputs:
 
 ### Pre-defined Examples
 
-Paste VML into the playground or export it from TypeScript with `createVideoFromMarkup()`.
+Paste VML into the playground, preview it, and use **Export WebM** to download the current custom video from the browser. For final MP4/GIF/PNG sequence output, use `velox render`.

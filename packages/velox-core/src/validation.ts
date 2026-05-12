@@ -97,4 +97,28 @@ export function validateVeloxVideoConfig(config: VeloxVideoConfig): void {
     }
     for (const element of scene.elements) validateElement(element, scene.id)
   }
+
+  if (config.audioPlan !== undefined) {
+    const plan = config.audioPlan
+    if (plan.music) {
+      assert(typeof plan.music.src === 'string' && plan.music.src.length > 0, 'audioPlan.music.src is required.')
+      if (plan.music.volume !== undefined) {
+        assert(Number.isFinite(plan.music.volume) && plan.music.volume >= 0 && plan.music.volume <= 1, `audioPlan.music.volume must be 0-1.`)
+      }
+    }
+    assert(Array.isArray(plan.sfx), 'audioPlan.sfx must be an array.')
+    assert(Array.isArray(plan.beats), 'audioPlan.beats must be an array.')
+    for (let i = 0; i < plan.sfx.length; i++) {
+      const cue = plan.sfx[i]!
+      assert(typeof cue.name === 'string' && cue.name.length > 0, `audioPlan.sfx[${i}].name is required.`)
+      assert(Number.isFinite(cue.at) && cue.at >= 0, `audioPlan.sfx[${i}].at must be >= 0.`)
+      if (cue.volume !== undefined) {
+        assert(Number.isFinite(cue.volume) && cue.volume >= 0 && cue.volume <= 1, `audioPlan.sfx[${i}].volume must be 0-1.`)
+      }
+    }
+    for (let i = 0; i < plan.beats.length; i++) {
+      const t = plan.beats[i]!
+      assert(Number.isFinite(t) && t >= 0, `audioPlan.beats[${i}] must be >= 0.`)
+    }
+  }
 }

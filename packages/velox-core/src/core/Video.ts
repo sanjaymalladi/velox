@@ -6,6 +6,7 @@ import type {
   VeloxTheme,
   VeloxColor,
   VeloxGradient,
+  VeloxAudioPlan,
 } from '../types'
 import { SceneBuilder } from './Scene'
 import { resolveTheme } from '../themes'
@@ -37,6 +38,7 @@ export interface RawVideoInput {
   motionQuality?: MotionQuality
   scenes: SceneBuilder[]
   audio?: { src: string; volume?: number }
+  audioPlan?: VeloxAudioPlan
 }
 
 /** Compiled, serialisable video config — passed to the renderer */
@@ -55,6 +57,7 @@ export class VeloxVideo {
       motionQuality: input.motionQuality,
       scenes: input.scenes.map((s) => s.toConfig()),
       audio: input.audio,
+      audioPlan: input.audioPlan,
     }
     validateVeloxVideoConfig(this.config)
   }

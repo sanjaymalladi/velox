@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   createVideo, scene, text, shape, logo, image, group, themes, resolveTheme,
   drawFrame, getTotalFrames, createVideoFromSchema, createVideoFromCreativeSpec, isCreativeSpec, preloadImages,
-  createVideoFromMarkup, isVeloxMarkup,
+  createVideoFromMarkup, isVeloxMarkup, setImageCache,
   layout, backdrops, typography, creativeCards, motion,
 } from '@velox-video/core'
 import type { VeloxVideo, LlmVideoSpec } from '@velox-video/core'
@@ -13,139 +13,57 @@ import type { VeloxVideo, LlmVideoSpec } from '@velox-video/core'
 
 const EXAMPLES = [
   {
-    name: 'Text Reveal',
-    code: `createVideo({
-  size: '720p',
-  fps: 30,
-  theme: 'linear',
-  background: 'grid(rgba(255,255,255,0.05), 40)',
-  scenes: [
-    scene(4)
-      .add(
-        shape.particles(30, { color: '#5e6ad2', speed: 0.3 }).opacity(0.4),
-        text('VELOX')
-          .center({ offsetY: -30 })
-          .size(120).weight(900).color('#f4f5f8')
-          .in('slideUp', 0.8),
-        text('Motion Graphics Engine')
-          .center({ offsetY: 60 })
-          .size(32).color('#5e6ad2')
-          .in('fadeIn', 0.6, { delay: 0.4 }),
-      ),
-  ],
-})`,
-  },
-  {
-    name: 'Geometric',
-    code: `createVideo({
-  size: '720p',
-  fps: 30,
-  theme: 'notion',
-  background: '#ffffff',
-  scenes: [
-    scene(5)
-      .add(
-        shape.circle(300).center().color('#0f7b6c').opacity(0.12).in('zoomIn', 1.0),
-        shape.circle(200).center().color('#e03e3e').opacity(0.18).in('zoomIn', 0.8, { delay: 0.2 }),
-        shape.circle(90).center().color('#37352f').in('bounceIn', 0.6, { delay: 0.4 }),
-        text('GEOMETRY')
-          .center({ offsetY: 200 })
-          .size(48).weight(700).color('#37352f').letterSpacing(8)
-          .in('expandX', 0.6, { delay: 0.8 }),
-      ),
-  ],
-})`,
-  },
-  {
-    name: 'Bar Chart',
-    code: `createVideo({
-  size: '720p',
-  fps: 30,
-  theme: 'geist',
-  background: 'grid(rgba(0,0,0,0.05), 40)',
-  scenes: [
-    scene(5)
-      .add(
-        text('Q4 Revenue')
-          .center({ offsetY: -200 })
-          .size(48).weight(700).color('#111')
-          .in('slideDown', 0.5),
-        shape.barChart({
-          data: [
-            { label: 'Jan', value: 65, color: '#111' },
-            { label: 'Feb', value: 80, color: '#666' },
-            { label: 'Mar', value: 55, color: '#333' },
-            { label: 'Apr', value: 95, color: '#0070f3' },
-          ]
-        })
-          .center({ offsetY: 50 }).size(800, 300)
-          .in('growUp', 1.0, { delay: 0.4 }),
-      ),
-  ],
-})`,
-  },
-  {
-    name: 'Kinetic Text',
-    code: `createVideo({
-  size: '720p',
-  fps: 30,
-  theme: 'obsidian',
-  background: 'grid(rgba(255,255,255,0.05), 30)',
-  scenes: [
-    scene(5)
-      .add(
-        text('MAKE')
-          .center({ offsetX: -280, offsetY: -20 }).size(76).weight(900).color('#ffffff')
-          .in('slideRight', 0.5),
-        text('IT')
-          .center({ offsetX: 0, offsetY: -20 }).size(76).weight(900).color('#a8a8a8')
-          .in('zoomIn', 0.4, { delay: 0.3 }),
-        text('MOVE')
-          .center({ offsetX: 280, offsetY: -20 }).size(76).weight(900).color('#ffffff')
-          .in('slideLeft', 0.5, { delay: 0.5 }),
-        text('velox motion graphics')
-          .center({ offsetY: 100 }).size(24).color('#888').letterSpacing(4).uppercase()
-          .in('fadeIn', 0.8, { delay: 1.0 }),
-      ),
-  ],
-})`,
-  },
-  {
-    name: 'Progress Bar',
-    code: `createVideo({
-  size: '720p',
-  fps: 30,
-  theme: 'linear',
-  background: '#0a0b10',
-  scenes: [
-    scene(4)
-      .add(
-        text('Loading...').center({ offsetY: -60 }).size(40).weight(600).color('#f4f5f8').in('fadeIn', 0.4),
-        shape.progressBar(100, { color: '#5e6ad2', trackColor: 'rgba(244,245,248,0.1)' })
-          .center({ offsetY: 20 }).size(500, 10)
-          .in('expandX', 2.5, { delay: 0.5 }),
-        text('Complete').center({ offsetY: 90 }).size(28).color('#5e6ad2').in('fadeIn', 0.4, { delay: 3.0 }),
-      ),
-  ],
-})`,
-  },
-  {
-    name: 'VML Motion',
-    code: `<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
-  <scene duration="4" background="aurora:violet">
-    <center motion="cinematic">
-      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
-    </center>
+    name: 'Reel Production VML',
+    code: `<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium" music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.55" staggerStep="0.14">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, stock refs, cards, charts, and beat metadata." badge="NEW" tone="success" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
   </scene>
-  <scene duration="5" background="mesh:ocean">
-    <column gap="32" placement="center">
-      <kicker color="theme.accent">THE LOOP</kicker>
-      <barChart width="700" height="320" motion="growUp">
-        <bar label="Input" value="80" color="theme.accent" />
-        <bar label="Plan" value="64" color="#38bdf8" />
-        <bar label="Render" value="92" color="#22c55e" />
-      </barChart>
-    </column>
+
+  <scene duration="5.4" template="splitLeftRight" background="aurora:ocean" camera="parallaxDrift" mood="cinematic" transition="zoomSmooth" staggerStep="0.12">
+    <featureReveal slot="left" title="Production pieces included" caption="High-level tags instead of fragile offsets." motion="premiumSlide">
+      <item>caption styles</item>
+      <item>transparent SVG assets</item>
+      <item>stock provider refs</item>
+      <item>generated cards</item>
+    </featureReveal>
+    <stock slot="right" query="developer coding at night" provider="generated" width="440" height="620" radius="32" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Every block stays semantic for small models." style="wordPop" start="0.8" />
+    <beat at="1.0" />
+  </scene>
+
+  <scene duration="5.2" template="centerCard" background="mesh:violet" camera="kenBurns" mood="cinematic" transition="blurDissolve">
+    <card slot="visual" width="900" height="720" radius="40" motion="softReveal">
+      <column gap="26">
+        <kicker color="theme.accent">DATA STORY</kicker>
+        <lineChart width="720" height="260" curve="smooth" motion="drawIn">
+          <series label="Prompt" values="18,30,46,64,78" color="theme.accent" />
+          <series label="Render" values="8,18,36,62,92" color="#22c55e" />
+        </lineChart>
+        <donutChart size="260" motion="growUp">
+          <slice label="Layout" value="35" color="theme.accent" />
+          <slice label="Media" value="25" color="#38bdf8" />
+          <slice label="Motion" value="40" color="#22c55e" />
+        </donutChart>
+      </column>
+    </card>
+    <captions slot="caption" text="Charts are VML too, powered by D3." style="pill" start="0.4" />
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial" transition="zoomSmooth">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" motion="heroCinematic" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" delay="0.25" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" delay="0.45" />
+    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+    <sfx name="pop" at="0.6" />
+  </scene>
+
+  <scene duration="4.4" template="centerCard" background="#050505" camera="handheld" mood="cinematic" vignette="0.32" grain="0.08">
+    <finalCTA title="Paste VML. Render. Export." subtitle="The playground can now download your current custom video as WebM." cta="Try the export button" motion="magneticPop" />
+    <captions slot="caption" text="Paste VML, preview it, export it." style="karaoke" />
   </scene>
 </video>`,
   },
@@ -355,6 +273,7 @@ export function PlaygroundClient() {
   const [currentFrame, setCurrentFrame] = useState(0)
   const [totalFrames, setTotalFrames] = useState(0)
   const [hasRendered, setHasRendered] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // ── Draw a frame onto the canvas ──────────────────────────────────────────
   const drawCurrentFrame = useCallback((frame: number) => {
@@ -425,7 +344,8 @@ export function PlaygroundClient() {
         canvas.height = h
       }
 
-      preloadImages(cfg).then(() => {
+      preloadImages(cfg).then((cache) => {
+        setImageCache(cache)
         // Draw first frame then start loop
         drawCurrentFrame(0)
         setIsPlaying(true)
@@ -466,6 +386,79 @@ export function PlaygroundClient() {
     setCode(EXAMPLES[idx].code)
   }
 
+  const exportCurrentVideo = useCallback(async () => {
+    stopLoop()
+    setIsPlaying(false)
+    setError(null)
+    setIsExporting(true)
+
+    try {
+      const video = evalVeloxCode(code)
+      const cfg = video.config
+      const canvas = canvasRef.current
+      if (!canvas) throw new Error('Canvas is not ready.')
+      if (!('captureStream' in canvas)) throw new Error('This browser cannot export canvas video.')
+      if (typeof MediaRecorder === 'undefined') throw new Error('This browser does not support MediaRecorder export.')
+
+      const [w, h] = cfg.size as [number, number]
+      canvas.width = w
+      canvas.height = h
+
+      const cache = await preloadImages(cfg)
+      setImageCache(cache)
+
+      configRef.current = cfg
+      const total = getTotalFrames(cfg)
+      totalFramesRef.current = total
+      setTotalFrames(total)
+      setHasRendered(true)
+
+      const stream = canvas.captureStream(cfg.fps || 30)
+      const mimeType =
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9'
+          : 'video/webm'
+      const recorder = new MediaRecorder(stream, { mimeType })
+      const chunks: Blob[] = []
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunks.push(event.data)
+      }
+
+      const done = new Promise<Blob>((resolve, reject) => {
+        recorder.onerror = () => reject(new Error('Browser video export failed.'))
+        recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }))
+      })
+
+      recorder.start()
+      const frameDelay = 1000 / (cfg.fps || 30)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Could not create a canvas context.')
+      for (let f = 0; f < total; f++) {
+        frameRef.current = f
+        setCurrentFrame(f)
+        drawFrame(ctx, cfg, f, w, h)
+        await new Promise(resolve => setTimeout(resolve, frameDelay))
+      }
+      recorder.stop()
+
+      const blob = await done
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${isVeloxMarkup(code) ? 'velox-reel' : 'velox-video'}.webm`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      setActiveTab('preview')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e))
+      setActiveTab('output')
+    } finally {
+      setIsExporting(false)
+    }
+  }, [code, stopLoop])
+
   const fps = configRef.current?.fps ?? 30
 
   return (
@@ -484,7 +477,7 @@ export function PlaygroundClient() {
             ))}
           </select>
         </div>
-        {isDev && <button className="pg-render-btn" style={{ background: 'blue' }} onClick={async () => {
+        {isDev && <button className="pg-render-btn pg-render-btn--secondary" onClick={async () => {
           for (let i = 0; i < EXAMPLES.length; i++) {
             const ex = EXAMPLES[i]
             setExampleIdx(i)
@@ -541,6 +534,9 @@ export function PlaygroundClient() {
         }}>
           <span className="pg-render-icon">🎬</span> Export All
         </button>}
+        <button className="pg-render-btn pg-render-btn--secondary" onClick={exportCurrentVideo} disabled={isExporting}>
+          <span className="pg-render-icon">⬇</span> {isExporting ? 'Exporting…' : 'Export WebM'}
+        </button>
         <button className="pg-render-btn" onClick={handleRender}>
           <span className="pg-render-icon">▶</span> Render
         </button>
@@ -701,6 +697,12 @@ export function PlaygroundClient() {
           font-family: inherit;
         }
         .pg-render-btn:hover { opacity: 0.88; }
+        .pg-render-btn:disabled { opacity: 0.55; cursor: wait; }
+        .pg-render-btn--secondary {
+          background: rgba(53, 37, 24, 0.88);
+          border: 1px solid rgba(196,128,44,0.28);
+          color: #f7ead7;
+        }
         .pg-render-icon { font-size: 10px; }
 
         /* Split */

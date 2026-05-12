@@ -8,9 +8,30 @@ import { group } from './elements/Group'
 import { layout } from './layout'
 import { backdrops } from './backdrops'
 import { typography, cards as creativeCards, motion } from './presets'
+import {
+  reelAnnouncement,
+  reelLaunchCard,
+  reelBreakingNews,
+  reelFeatureReveal,
+  reelProblemSolution,
+  reelBeforeAfter,
+  reelQuoteCard as reelSemanticQuoteCard,
+  reelRanking,
+  reelCountdown,
+  reelFinalCTA,
+} from './reelComponents'
+import { resolveReelAsset, resolveSimpleGlyph } from './assets'
+import {
+  buildCaptionWordSpans,
+  pickCaptionEntrance,
+  type CaptionStyle,
+} from './captions'
+import { encodeVeloxCardRef, encodeVeloxStockRef, encodeVeloxWebCapture } from './mediaProviders'
+
+import { applyReelSlot, isReelTemplate, type ReelTemplateId } from './reelTemplates'
 import { resolveTheme } from './themes'
 import type { Element } from './core/Element'
-import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType } from './types'
+import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan } from './types'
 import { isVeloxMarkup, parseVeloxMarkup, type MarkupNode } from './markup'
 
 type AnyElement = Element<ElementConfig>
@@ -28,6 +49,17 @@ const sceneCameras: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handh
 const sceneMoods: SceneMood[] = ['neutral', 'editorial', 'cinematic']
 const transitionTypes = new Set<TransitionType>([
   'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash',
+])
+const stockProviders = new Set([
+  'generated',
+  'local',
+  'wikipedia',
+  'flickr',
+  'unsplashSource',
+  'openbrand',
+  'pexels',
+  'unsplash',
+  'pixabay',
 ])
 const scaleMap = { xs: 0.55, sm: 0.75, md: 1, lg: 1.25, xl: 1.55 }
 const paletteAliases = {
@@ -200,17 +232,85 @@ function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
   }
 }
 
-function finish<T extends AnyElement>(el: T, node: MarkupNode): T {
+function finish<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: ReelTemplateId): T {
   validateCommon(node)
-  return animate(place(el, attr(node, 'placement')), node)
+  const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
+  const slot = attr(node, 'slot')
+  const positioned =
+    tpl && slot ? applyReelSlot(el, tpl, slot) : place(el, attr(node, 'placement'))
+  return animate(positioned, node)
 }
 
-function finishInFlow<T extends AnyElement>(el: T, node: MarkupNode): T {
+function finishInFlow<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: ReelTemplateId): T {
   validateCommon(node)
-  return animate(el, node)
+  const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
+  const slot = attr(node, 'slot')
+  const positioned =
+    tpl && slot ? applyReelSlot(el, tpl, slot) : el
+  return animate(positioned, node)
 }
 
-function compileList(node: MarkupNode, ctx: CompileContext): AnyElement {
+function compileCaptionsMarkup(
+  node: MarkupNode,
+  ctx: CompileContext,
+  sceneDuration: number,
+  reelTemplate?: ReelTemplateId,
+): AnyElement {
+  const styleRaw = attr(node, 'style') ?? 'pill'
+  const styles: CaptionStyle[] = ['plain', 'pill', 'karaoke', 'wordPop', 'highlightKeywords']
+  if (!styles.includes(styleRaw as CaptionStyle))
+    fail('<captions> style must be plain, pill, karaoke, wordPop, highlightKeywords.')
+
+  const style = styleRaw as CaptionStyle
+
+  if (attr(node, 'src')) {
+    fail(
+      '[velox markup] <captions src="..."/> is expanded by preprocessors — embed <caption> children or CLI-inlined cues.',
+    )
+  }
+
+  const captionChildren = node.children.filter((c) => c.tag === 'caption')
+  const cues: { start: number; end: number; text: string }[] =
+    captionChildren.length > 0
+      ? captionChildren.map((c) => ({
+          start: num(attr(c, 'at'), 0, 'caption.at'),
+          end:
+            attr(c, 'dur') !== undefined
+              ? num(attr(c, 'at'), 0, 'caption.at') + num(attr(c, 'dur'), 1.5, 'caption.dur')
+              : sceneDuration,
+          text: textContent(c) || requiredAttr(c, 'text'),
+        }))
+      : [
+          {
+            start: num(attr(node, 'start'), 0, 'captions.start'),
+            end: sceneDuration,
+            text: attr(node, 'text') ?? fail('<captions> requires text="..." or <caption> children.'),
+          },
+        ]
+
+  const cueRows: AnyElement[] = []
+  for (const cue of cues) {
+    const dur = Math.max(0.25, cue.end - cue.start)
+    const spans = buildCaptionWordSpans(cue.text, dur, style)
+    const anim = pickCaptionEntrance(style)
+    const words = spans.map((span) => {
+      const fontSize = span.emphasize && style === 'highlightKeywords' ? 50 : style === 'wordPop' ? 44 : 38
+      return text(span.word)
+        .size(fontSize)
+        .weight(800)
+        .color(color(undefined, ctx, ctx.theme.text))
+        .in(anim, 0.45, { delay: cue.start + span.delay, ease: style === 'plain' ? 'ease' : 'tactile' })
+    })
+    cueRows.push(layout.row(words, { gap: 14, align: 'middle' }))
+  }
+
+  const col = layout
+    .column(cueRows, { gap: 20, align: 'center' })
+    .pos('bottomCenter', undefined, { offsetY: -130 })
+  return finish(col, node, reelTemplate)
+}
+
+function compileList(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): AnyElement {
   const items = node.children.filter((child) => child.tag === 'item').map((child) => textContent(child) || attr(child, 'text') || '')
   if (items.length === 0) fail('<list> requires <item> children.')
   const el = text.list(items)
@@ -220,10 +320,10 @@ function compileList(node: MarkupNode, ctx: CompileContext): AnyElement {
     .gap(num(attr(node, 'gap'), 18, 'list.gap'))
     .wrap(num(attr(node, 'wrap'), 760, 'list.wrap'))
   if (attr(node, 'stagger') !== 'false') el.stagger('slideUp', 0.12)
-  return finish(el, node)
+  return finish(el, node, reelTemplate)
 }
 
-function compileRect(node: MarkupNode, ctx: CompileContext): AnyElement {
+function compileRect(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): AnyElement {
   const w = num(attr(node, 'width'), scale(attr(node, 'scale'), 420), 'rect.width')
   const h = num(attr(node, 'height'), Math.round(w * 0.58), 'rect.height')
   const radius = num(attr(node, 'radius'), 24, 'rect.radius')
@@ -236,31 +336,45 @@ function compileRect(node: MarkupNode, ctx: CompileContext): AnyElement {
     ]).stack()
     : shape.rect(w, h).color(fill).radius(radius)
   if (node.children.length > 0) {
-    const content = layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx)), { gap: num(attr(node, 'gap'), 16, 'rect.gap') })
-    return finish(group([rect, content]).stack(), node)
+    const content = layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx, reelTemplate)), {
+      gap: num(attr(node, 'gap'), 16, 'rect.gap'),
+    })
+    return finish(group([rect, content]).stack(), node, reelTemplate)
   }
-  return finish(rect, node)
+  return finish(rect, node, reelTemplate)
 }
 
-function compileFlowNode(node: MarkupNode, ctx: CompileContext): AnyElement[] {
+function compileFlowNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): AnyElement[] {
   switch (node.tag) {
     case 'center':
     case 'stack':
-      return [layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx)), { gap: num(attr(node, 'gap'), 18, `${node.tag}.gap`) })]
+      return [
+        layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx, reelTemplate)), {
+          gap: num(attr(node, 'gap'), 18, `${node.tag}.gap`),
+        }),
+      ]
     case 'row':
-      return [layout.row(node.children.flatMap((child) => compileFlowNode(child, ctx)), { gap: num(attr(node, 'gap'), 24, 'row.gap') })]
+      return [
+        layout.row(node.children.flatMap((child) => compileFlowNode(child, ctx, reelTemplate)), {
+          gap: num(attr(node, 'gap'), 24, 'row.gap'),
+        }),
+      ]
     case 'column':
-      return [layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx)), { gap: num(attr(node, 'gap'), 28, 'column.gap') })]
+      return [
+        layout.column(node.children.flatMap((child) => compileFlowNode(child, ctx, reelTemplate)), {
+          gap: num(attr(node, 'gap'), 28, 'column.gap'),
+        }),
+      ]
     default:
-      return [compileNode(node, ctx)]
+      return [compileNode(node, ctx, reelTemplate)]
   }
 }
 
-function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
+function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): AnyElement {
   validateCommon(node)
   switch (node.tag) {
     case 'center': {
-      const children = compileChildren(node, ctx)
+      const children = compileChildren(node, ctx, reelTemplate)
       const child = children.length <= 1
         ? (children[0] ?? text(''))
         : layout.column(children, { gap: num(attr(node, 'gap'), 28, 'center.gap') })
@@ -268,18 +382,18 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
     }
     case 'row': {
       if (attr(node, 'width') || attr(node, 'height')) fail('<row> does not support width/height. Size children instead.')
-      return finish(layout.row(compileChildren(node, ctx), { gap: num(attr(node, 'gap'), 24, 'row.gap') }), node)
+      return finish(layout.row(compileChildren(node, ctx, reelTemplate), { gap: num(attr(node, 'gap'), 24, 'row.gap') }), node, reelTemplate)
     }
     case 'column': {
       if (attr(node, 'width') || attr(node, 'height')) fail('<column> does not support width/height. Size children instead.')
-      return finish(layout.column(compileChildren(node, ctx), { gap: num(attr(node, 'gap'), 28, 'column.gap') }), node)
+      return finish(layout.column(compileChildren(node, ctx, reelTemplate), { gap: num(attr(node, 'gap'), 28, 'column.gap') }), node, reelTemplate)
     }
     case 'stack': {
-      const children = compileChildren(node, ctx)
+      const children = compileChildren(node, ctx, reelTemplate)
       const stacked = hasAttr(node, 'gap') && children.length > 1
         ? layout.column(children, { gap: num(attr(node, 'gap'), 18, 'stack.gap') })
         : layout.stack(children)
-      return finish(stacked, node)
+      return finish(stacked, node, reelTemplate)
     }
     case 'hero':
       return finish(typography.hero(requiredAttr(node, 'title'), {
@@ -287,20 +401,20 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
         subtitle: attr(node, 'subtitle'),
         color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined,
         accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
-      }), node)
+      }), node, reelTemplate)
     case 'kicker':
-      return finish(typography.kicker(textContent(node) || requiredAttr(node, 'text'), attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined), node)
+      return finish(typography.kicker(textContent(node) || requiredAttr(node, 'text'), attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined), node, reelTemplate)
     case 'text':
       return finish(text(textContent(node) || requiredAttr(node, 'value'))
         .size(num(attr(node, 'size'), scale(attr(node, 'scale'), 56), 'text.size'))
         .weight(num(attr(node, 'weight'), 700, 'text.weight'))
         .color(color(attr(node, 'color'), ctx, ctx.theme.text))
-        .wrap(num(attr(node, 'wrap'), 820, 'text.wrap')), node)
+        .wrap(num(attr(node, 'wrap'), 820, 'text.wrap')), node, reelTemplate)
     case 'list':
-      return compileList(node, ctx)
+      return compileList(node, ctx, reelTemplate)
     case 'logo':
       return finish(logo(requiredAttr(node, 'name'), (attr(node, 'theme') as 'light' | 'dark' | undefined) ?? 'light')
-        .size(num(attr(node, 'size'), scale(attr(node, 'scale'), 96), 'logo.size')), node)
+        .size(num(attr(node, 'size'), scale(attr(node, 'scale'), 96), 'logo.size')), node, reelTemplate)
     case 'logoLockup': {
       const el = group([...logo.lockup(requiredAttr(node, 'name'), requiredAttr(node, 'label'), (attr(node, 'theme') as 'light' | 'dark' | undefined) ?? 'light', {
         logoSize: num(attr(node, 'logoSize'), scale(attr(node, 'scale'), 72), 'logoLockup.logoSize'),
@@ -308,33 +422,62 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
         gap: num(attr(node, 'gap'), 24, 'logoLockup.gap'),
         color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined,
       })]).stack()
-      return finish(el, node)
+      return finish(el, node, reelTemplate)
     }
     case 'image':
       return finish(image(requiredAttr(node, 'src'))
         .size(num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'image.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'image.height'))
         .radius(num(attr(node, 'radius'), 24, 'image.radius'))
-        .fit(), node)
-    case 'stock':
-      return finish(image.stock(requiredAttr(node, 'query'))
-        .size(num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'stock.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'stock.height'))
-        .radius(num(attr(node, 'radius'), 24, 'stock.radius')), node)
+        .fit(), node, reelTemplate)
+    case 'stock': {
+      const provider = (attr(node, 'provider') ?? 'generated').toLowerCase()
+      const q = requiredAttr(node, 'query')
+      if (!stockProviders.has(provider)) fail(`<stock> provider="${provider}" is invalid.`)
+      const base =
+        provider === 'generated'
+          ? image.stock(q)
+          : image(
+              encodeVeloxStockRef(
+                provider,
+                provider === 'local' ? q.replace(/\\/g, '/') : q,
+              ),
+            )
+      let sized = base
+        .size(
+          num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'stock.width'),
+          num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'stock.height'),
+        )
+        .radius(num(attr(node, 'radius'), 24, 'stock.radius'))
+      if (provider !== 'generated' && attr(node, 'fit') === 'cover') sized = sized.fill()
+      return finish(sized, node, reelTemplate)
+    }
+    case 'stockVideo': {
+      const provider = (attr(node, 'provider') ?? 'generated').toLowerCase()
+      const q = requiredAttr(node, 'query')
+      if (!stockProviders.has(provider)) fail(`<stockVideo> provider="${provider}" is invalid.`)
+      const base =
+        provider === 'generated'
+          ? image.stock(q)
+          : image(encodeVeloxStockRef(provider, provider === 'local' ? q.replace(/\\/g, '/') : q))
+      const sized = base.fill().radius(num(attr(node, 'radius'), 0, 'stockVideo.radius'))
+      return finish(sized, node, reelTemplate)
+    }
     case 'rect':
-      return compileRect(node, ctx)
+      return compileRect(node, ctx, reelTemplate)
     case 'circle':
-      return finish(shape.circle(num(attr(node, 'diameter'), scale(attr(node, 'scale'), 220), 'circle.diameter')).color(color(attr(node, 'color'), ctx, ctx.theme.accent ?? '#a78bfa')), node)
+      return finish(shape.circle(num(attr(node, 'diameter'), scale(attr(node, 'scale'), 220), 'circle.diameter')).color(color(attr(node, 'color'), ctx, ctx.theme.accent ?? '#a78bfa')), node, reelTemplate)
     case 'line':
-      return finish(shape.line(num(attr(node, 'length'), scale(attr(node, 'scale'), 420), 'line.length')).color(color(attr(node, 'color'), ctx, ctx.theme.accent ?? '#a78bfa')).thickness(num(attr(node, 'thickness'), 4, 'line.thickness')), node)
+      return finish(shape.line(num(attr(node, 'length'), scale(attr(node, 'scale'), 420), 'line.length')).color(color(attr(node, 'color'), ctx, ctx.theme.accent ?? '#a78bfa')).thickness(num(attr(node, 'thickness'), 4, 'line.thickness')), node, reelTemplate)
     case 'progress':
       return finish(shape.progressBar(num(attr(node, 'value'), 0, 'progress.value'), {
         color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
         trackColor: attr(node, 'trackColor') ? color(attr(node, 'trackColor'), ctx, ctx.theme.muted) : undefined,
       })
-        .size(num(attr(node, 'width'), 620, 'progress.width'), num(attr(node, 'height'), 18, 'progress.height')), node)
+        .size(num(attr(node, 'width'), 620, 'progress.width'), num(attr(node, 'height'), 18, 'progress.height')), node, reelTemplate)
     case 'metric':
-      return finish(creativeCards.metric(requiredAttr(node, 'value'), requiredAttr(node, 'label'), { accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined }), node)
+      return finish(creativeCards.metric(requiredAttr(node, 'value'), requiredAttr(node, 'label'), { accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined }), node, reelTemplate)
     case 'metricRow':
-      return finish(layout.row(node.children.filter((child) => child.tag === 'metric').map((child) => compileNode(child, ctx)), { gap: num(attr(node, 'gap'), 24, 'metricRow.gap') }), node)
+      return finish(layout.row(node.children.filter((child) => child.tag === 'metric').map((child) => compileNode(child, ctx, reelTemplate)), { gap: num(attr(node, 'gap'), 24, 'metricRow.gap') }), node, reelTemplate)
     case 'barChart': {
       const bars = node.children.filter((child) => child.tag === 'bar')
       if (bars.length === 0) fail('<barChart> requires <bar label="..." value="..." /> children.')
@@ -346,7 +489,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
         })),
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
-      }).size(num(attr(node, 'width'), 700, 'barChart.width'), num(attr(node, 'height'), 320, 'barChart.height')), node)
+      }).size(num(attr(node, 'width'), 700, 'barChart.width'), num(attr(node, 'height'), 320, 'barChart.height')), node, reelTemplate)
     }
     case 'lineChart': {
       const series = node.children.filter((child) => child.tag === 'series')
@@ -360,7 +503,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
         curve: (attr(node, 'curve') as 'linear' | 'smooth' | 'step' | undefined) ?? 'smooth',
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
-      }).size(num(attr(node, 'width'), 700, 'lineChart.width'), num(attr(node, 'height'), 320, 'lineChart.height')), node)
+      }).size(num(attr(node, 'width'), 700, 'lineChart.width'), num(attr(node, 'height'), 320, 'lineChart.height')), node, reelTemplate)
     }
     case 'donutChart': {
       const slices = node.children.filter((child) => child.tag === 'slice')
@@ -374,53 +517,234 @@ function compileNode(node: MarkupNode, ctx: CompileContext): AnyElement {
         innerRadius: num(attr(node, 'innerRadius'), 0.58, 'donutChart.innerRadius'),
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
-      }).size(num(attr(node, 'size'), scale(attr(node, 'scale'), 340), 'donutChart.size')), node)
+      }).size(num(attr(node, 'size'), scale(attr(node, 'scale'), 340), 'donutChart.size')), node, reelTemplate)
     }
     case 'morphBlob': {
       const variant = (attr(node, 'variant') ?? 'soft') as keyof typeof blobPathPresets
       if (!(variant in blobPathPresets)) fail('<morphBlob> variant must be soft or sharp.')
       return finish(shape.morphBlob([...blobPathPresets[variant]], {
         color: color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary),
-      }).size(num(attr(node, 'width'), scale(attr(node, 'scale'), 340), 'morphBlob.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 340), 'morphBlob.height')), node)
+      }).size(num(attr(node, 'width'), scale(attr(node, 'scale'), 340), 'morphBlob.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 340), 'morphBlob.height')), node, reelTemplate)
     }
     case 'glassList': {
       const items = node.children.filter((child) => child.tag === 'item').map((child) => textContent(child) || attr(child, 'text') || '')
-      return finish(creativeCards.glassList(items, { width: num(attr(node, 'width'), 620, 'glassList.width'), color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined }), node)
+      return finish(creativeCards.glassList(items, { width: num(attr(node, 'width'), 620, 'glassList.width'), color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined }), node, reelTemplate)
     }
     case 'card':
-      return finish(creativeCards.glass(compileChildren(node, ctx), {
+      return finish(creativeCards.glass(compileChildren(node, ctx, reelTemplate), {
         width: num(attr(node, 'width'), 620, 'card.width'),
         height: num(attr(node, 'height'), 300, 'card.height'),
         radius: num(attr(node, 'radius'), 32, 'card.radius'),
-      }), node)
+      }), node, reelTemplate)
+    case 'announcement':
+      return finish(
+        reelAnnouncement({
+          title: requiredAttr(node, 'title'),
+          subtitle: attr(node, 'subtitle'),
+          badge: attr(node, 'badge'),
+          tone: attr(node, 'tone'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'launchCard':
+      return finish(
+        reelLaunchCard({
+          title: requiredAttr(node, 'title'),
+          subtitle: attr(node, 'subtitle'),
+          cta: attr(node, 'cta'),
+          proof: attr(node, 'proof'),
+          tone: attr(node, 'tone'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'breakingNews':
+      return finish(
+        reelBreakingNews({
+          headline: requiredAttr(node, 'headline'),
+          ticker: attr(node, 'ticker'),
+          tone: attr(node, 'tone'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'featureReveal':
+      return finish(
+        reelFeatureReveal({
+          title: requiredAttr(node, 'title'),
+          bullets: node.children.filter((i) => i.tag === 'item').map((i) => textContent(i) || attr(i, 'text') || ''),
+          caption: attr(node, 'caption'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'problemSolution':
+      return finish(
+        reelProblemSolution({
+          problem: requiredAttr(node, 'problem'),
+          solution: requiredAttr(node, 'solution'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'beforeAfter':
+      return finish(reelBeforeAfter({ before: requiredAttr(node, 'before'), after: requiredAttr(node, 'after') }), node, reelTemplate)
+    case 'quoteCard':
+      return finish(reelSemanticQuoteCard({ quote: requiredAttr(node, 'quote'), author: attr(node, 'author'), role: attr(node, 'role') }), node, reelTemplate)
+    case 'ranking': {
+      const items = node.children.filter((ch) => ch.tag === 'item').map((ch) => textContent(ch) || attr(ch, 'text') || '')
+      if (!items.length) fail('<ranking> requires <item> children.')
+      return finish(reelRanking({ title: attr(node, 'title'), items }), node, reelTemplate)
+    }
+    case 'countdown':
+      return finish(reelCountdown({ value: requiredAttr(node, 'value'), label: attr(node, 'label') }), node, reelTemplate)
+    case 'finalCTA':
+      return finish(
+        reelFinalCTA({
+          title: requiredAttr(node, 'title'),
+          subtitle: attr(node, 'subtitle'),
+          cta: requiredAttr(node, 'cta'),
+        }),
+        node,
+        reelTemplate,
+      )
+    case 'asset': {
+      const nm = requiredAttr(node, 'name')
+      const srcPack = resolveReelAsset(nm)
+      if (!srcPack) fail(`Unknown built-in asset "${nm}". Try new-badge, phone-frame, arrow-right…`)
+      return finish(
+        image(srcPack).size(num(attr(node, 'width'), 280, 'asset.width'), num(attr(node, 'height'), 420, 'asset.height')),
+        node,
+        reelTemplate,
+      )
+    }
+    case 'icon': {
+      const nm = requiredAttr(node, 'name')
+      const pack = attr(node, 'pack') ?? 'simple-icons'
+      const srcIcon = resolveSimpleGlyph(pack, nm)
+      if (!srcIcon) fail(`Unsupported icon "${nm}" pack="${pack}".`)
+      return finish(
+        image(srcIcon).size(num(attr(node, 'size'), 96, 'icon.size'), num(attr(node, 'size'), 96, 'icon.size')),
+        node,
+        reelTemplate,
+      )
+    }
+    case 'website':
+      return finish(image(encodeVeloxWebCapture(requiredAttr(node, 'url'), attr(node, 'device'))), node, reelTemplate)
+    case 'githubRepo':
+      return finish(image(encodeVeloxCardRef('github', `${requiredAttr(node, 'owner')}/${requiredAttr(node, 'repo')}`)), node, reelTemplate)
+    case 'npmPackage':
+      return finish(image(encodeVeloxCardRef('npm', requiredAttr(node, 'name'))), node, reelTemplate)
+    case 'brandCard':
+      return finish(
+        image(encodeVeloxCardRef('brand', `${(attr(node, 'provider') ?? 'openbrand').toLowerCase()}:${requiredAttr(node, 'name')}`)),
+        node,
+        reelTemplate,
+      )
     default:
       fail(`Unsupported element tag <${node.tag}>.`)
   }
 }
 
-function compileChildren(node: MarkupNode, ctx: CompileContext): AnyElement[] {
-  return node.children.map((child) => compileNode(child, ctx))
+function compileChildren(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): AnyElement[] {
+  return node.children.map((child) => compileNode(child, ctx, reelTemplate))
 }
 
 function delayOf(node: MarkupNode): number {
   return num(attr(node, 'delay'), 0, `${node.tag}.delay`)
 }
 
-function compileSceneChildren(node: MarkupNode, sceneDuration: number, ctx: CompileContext): AnyElement[] {
-  const staggerStep = num(attr(node, 'staggerStep'), 0, 'scene.staggerStep')
-  return node.children.map((child, index) => {
-    const el = compileNode(child, ctx)
-    if (staggerStep > 0)
-      el.bumpEntranceDelay(staggerStep * index)
+function sceneStartsForMarkup(sceneNodes: MarkupNode[], fps: VeloxFps): number[] {
+  const starts: number[] = []
+  let cursorFrames = 0
+  for (const sn of sceneNodes) {
+    starts.push(cursorFrames / fps)
+    const frames = Math.round(num(attr(sn, 'duration'), 5, 'scene.duration') * fps)
+    const transFrames =
+      attr(sn, 'transition') !== undefined
+        ? Math.round(num(attr(sn, 'transitionDuration'), 0.55, 'scene.transitionDuration') * fps)
+        : 0
+    cursorFrames += frames - transFrames
+  }
+  return starts
+}
 
-    const next = node.children.slice(index + 1).find((candidate) => delayOf(candidate) > delayOf(child))
+function compileSceneChildren(
+  node: MarkupNode,
+  sceneDuration: number,
+  ctx: CompileContext,
+  reelTemplate?: ReelTemplateId,
+): AnyElement[] {
+  const meta = new Set(['sfx', 'beat', 'audio', 'assetPack'])
+  const drawable = node.children.filter((c) => !meta.has(c.tag))
+  const staggerStep = num(attr(node, 'staggerStep'), 0, 'scene.staggerStep')
+  const out: AnyElement[] = []
+
+  drawable.forEach((child, drawableIndex) => {
+    let el: AnyElement
+    if (child.tag === 'captions')
+      el = compileCaptionsMarkup(child, ctx, sceneDuration, reelTemplate)
+    else el = compileNode(child, ctx, reelTemplate)
+
+    if (staggerStep > 0) el.bumpEntranceDelay(staggerStep * drawableIndex)
+
+    const next = drawable
+      .slice(drawableIndex + 1)
+      .find((candidate) => delayOf(candidate) > delayOf(child))
     const nextDelay = next ? delayOf(next) : sceneDuration
     const currentDelay = delayOf(child)
     if (nextDelay - currentDelay > 0.8 && nextDelay < sceneDuration) {
       el.out('fadeOut', 0.35, { at: Math.max(currentDelay + 0.45, nextDelay - 0.35) })
     }
-    return el
+
+    out.push(el)
   })
+  return out
+}
+
+function collectAudioFromVideoRoot(root: MarkupNode, fps: VeloxFps): VeloxAudioPlan {
+  const sfx: SfxCue[] = []
+  const beats: number[] = []
+  let musicPlan: VeloxAudioPlan['music']
+
+  const musicAttr = attr(root, 'music')
+  if (musicAttr) {
+    musicPlan = {
+      src: musicAttr,
+      volume: attr(root, 'musicVolume') !== undefined ? num(attr(root, 'musicVolume'), 0.45, 'video.musicVolume') : undefined,
+    }
+  }
+
+  for (const ch of root.children) {
+    if (ch.tag === 'audio') {
+      musicPlan = {
+        src: requiredAttr(ch, 'src'),
+        volume: attr(ch, 'volume') !== undefined ? num(attr(ch, 'volume'), 0.5, 'audio.volume') : undefined,
+      }
+    }
+  }
+
+  const sceneNodes = root.children.filter((c) => c.tag === 'scene')
+  const starts = sceneStartsForMarkup(sceneNodes, fps)
+
+  sceneNodes.forEach((sn, sceneIndex) => {
+    const offset = starts[sceneIndex] ?? 0
+    for (const ch of sn.children) {
+      if (ch.tag === 'sfx') {
+        sfx.push({
+          name: requiredAttr(ch, 'name'),
+          at: offset + num(attr(ch, 'at'), 0, 'sfx.at'),
+          volume: attr(ch, 'volume') !== undefined ? num(attr(ch, 'volume'), 1, 'sfx.volume') : undefined,
+        })
+      }
+      if (ch.tag === 'beat') {
+        beats.push(offset + num(attr(ch, 'at'), 0, 'beat.at'))
+      }
+    }
+  })
+
+  return { music: musicPlan, sfx, beats: beats.sort((a, b) => a - b) }
 }
 
 function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode): void {
@@ -458,16 +782,32 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
   const duration = num(attr(node, 'duration'), 5, 'scene.duration')
   const s = scene(duration)
   applySceneVmlAttributes(s, node)
+  const tplRaw = attr(node, 'template')
+  if (tplRaw && !isReelTemplate(tplRaw))
+    fail(
+      `<scene> template="${tplRaw}" is invalid. Use none, topTextBottomVisual, splitLeftRight, centerCard, headlineThenProof…`,
+    )
+  const reelTemplate = tplRaw && isReelTemplate(tplRaw) ? (tplRaw as ReelTemplateId) : undefined
+
+  const sceneAudio = node.children.find((c) => c.tag === 'audio')
+  if (sceneAudio) {
+    s.audio(requiredAttr(sceneAudio, 'src'), {
+      volume: attr(sceneAudio, 'volume') !== undefined ? num(attr(sceneAudio, 'volume'), 1, 'audio.volume') : undefined,
+      startFrom: attr(sceneAudio, 'startFrom') !== undefined ? num(attr(sceneAudio, 'startFrom'), 0, 'audio.startFrom') : undefined,
+    })
+  }
+
   const bg = background(attr(node, 'background'))
   if (bg) s.background(bg)
-  s.add(...compileSceneChildren(node, duration, ctx))
+  s.add(...compileSceneChildren(node, duration, ctx, reelTemplate === 'none' ? undefined : reelTemplate))
   return s
 }
 
 export function createVideoFromMarkup(markup: string): VeloxVideo {
   const root = parseVeloxMarkup(markup)
   const theme = resolveTheme(attr(root, 'theme') ?? 'obsidian') ?? resolveTheme('obsidian')!
-  const scenes = root.children.map((child) => compileScene(child, { theme }))
+  const sceneNodes = root.children.filter((c) => c.tag === 'scene')
+  const scenes = sceneNodes.map((child) => compileScene(child, { theme }))
   if (scenes.length === 0) fail('<video> requires at least one <scene>.')
 
   const mqAttr = attr(root, 'motionQuality')
@@ -478,13 +818,24 @@ export function createVideoFromMarkup(markup: string): VeloxVideo {
     motionQuality = mqAttr as MotionQuality
   }
 
+  const fps = num(attr(root, 'fps'), 60, 'video.fps') as VeloxFps
+  const audioPlanRaw = collectAudioFromVideoRoot(root, fps)
+  const hasAnyAudioCue =
+    Boolean(audioPlanRaw.music) ||
+    audioPlanRaw.sfx.length > 0 ||
+    audioPlanRaw.beats.length > 0
+
   return createVideo({
     size: (attr(root, 'size') as VeloxSize | undefined) ?? 'portrait',
-    fps: (num(attr(root, 'fps'), 60, 'video.fps') as VeloxFps),
+    fps,
     theme,
     background: rootBackground(attr(root, 'background')),
     motionQuality,
     scenes,
+    ...(audioPlanRaw.music
+      ? { audio: { src: audioPlanRaw.music.src, volume: audioPlanRaw.music.volume ?? 1 } }
+      : {}),
+    ...(hasAnyAudioCue ? { audioPlan: audioPlanRaw } : {}),
   })
 }
 

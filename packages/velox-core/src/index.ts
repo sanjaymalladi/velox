@@ -61,11 +61,35 @@ export type {
 } from './llm'
 
 // ─── Native Rendering Engine ──────────────────────────────────────────────────
-export { drawFrame, getTotalFrames, buildSceneTimeline, resolveSize, preloadImages, setImageCache } from './engine/drawFrame'
+export {
+  drawFrame,
+  getTotalFrames,
+  buildSceneTimeline,
+  buildSceneStartsSeconds,
+  resolveSize,
+  preloadImages,
+  setImageCache,
+} from './engine/drawFrame'
 export { getAnimationState } from './engine/animations'
 export type { AnimationState } from './engine/animations'
 export { resolveEase, lerp, clamp, frameProgress, springValue } from './engine/easing'
 export { validateRawVideoInput, validateVeloxVideoConfig } from './validation'
+export {
+  encodeVeloxStockRef,
+  encodeVeloxCardRef,
+  encodeVeloxWebCapture,
+  decodeVeloxStockRef,
+  decodeVeloxCardRef,
+  isVeloxUnresolvedSrc,
+  isPlaceholderImageSrc,
+} from './mediaProviders'
+export {
+  parseSrt,
+  splitWords,
+  buildCaptionWordSpans,
+  pickCaptionEntrance,
+} from './captions'
+export type { CaptionStyle } from './captions'
 
 // ─── Re-export all types ──────────────────────────────────────────────────────
 export type {
@@ -78,4 +102,5 @@ export type {
   ImageElementConfig, ShapeElementConfig, ShapeConfig, ElementConfig,
   GroupElementConfig, ChartDataPoint, SceneConfig, VeloxTheme, VeloxVideoConfig,
   MotionQuality, SceneCamera, SceneMood, SceneOverlay,
+  SfxCue, VeloxAudioPlan,
 } from './types'

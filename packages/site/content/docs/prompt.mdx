@@ -12,24 +12,21 @@ For small/local LLMs, generate **Velox Markup (VML)** first. VML is the main LLM
 Use the full VML system prompt in the **Markup Prompt** page. The playground accepts VML directly:
 
 ```xml
-<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
-  <scene duration="5" background="aurora:violet">
-    <center motion="cinematic">
-      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
-    </center>
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
   </scene>
-  <scene duration="5" background="mesh:ocean">
-    <column gap="32" placement="center">
-      <kicker color="theme.accent">THE LOOP</kicker>
-      <barChart width="700" height="320" motion="growUp">
-        <bar label="Input" value="80" color="theme.accent" />
-        <bar label="Plan" value="64" color="#38bdf8" />
-        <bar label="Render" value="92" color="#22c55e" />
-      </barChart>
-    </column>
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" />
   </scene>
 </video>
 ```
+
+New VML reel tags include scene `template`, child `slot`, `<announcement>`, `<breakingNews>`, `<featureReveal>`, `<ranking>`, `<finalCTA>`, `<asset>`, `<icon>`, `<captions>`, `<stock>`, `<githubRepo>`, `<npmPackage>`, `<website>`, `<sfx>`, and `<beat>`.
 
 Raw TypeScript is still supported, but it is the advanced path for users who need manual control. Legacy JSON/Creative Spec support may remain internally for old examples, but do not recommend it as the model-facing format.
 

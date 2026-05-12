@@ -13,10 +13,11 @@ The playground is the fastest place to try the current Velox API without leaving
 - Comparing animation presets
 - Exploring aspect-ratio-safe layouts
 - Verifying cards, charts, and simple scene ideas
+- Exporting a quick browser WebM of the current custom code
 
 ## What It Is Not For
 
-- Final render output
+- Final MP4 render output
 - Large multi-scene videos
 - File-based project structure
 - Asset-heavy production work
@@ -26,8 +27,9 @@ The playground is the fastest place to try the current Velox API without leaving
 1. Start from one of the built-in examples.
 2. Change one thing at a time.
 3. Validate motion, spacing, and readability.
-4. Move the working code into `video.ts`.
-5. Use `velox preview` and `velox render` for the real workflow.
+4. Use **Export WebM** when you need a quick browser-generated preview file.
+5. Move the working code into `video.ts` or `reel.vml`.
+6. Use `velox preview` and `velox render` for the production workflow.
 
 ## Example: Compact Builder Scene
 
@@ -58,24 +60,31 @@ export default createVideo({
 })
 ```
 
-## Example: LLM-First Scene Structure
+## Example: Reel-Ready VML
 
-```ts
-import { createExplainerVideo } from '@velox-video/core'
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+  </scene>
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" />
+  </scene>
+</video>
+```
 
-export default createExplainerVideo({
-  title: 'How AI Agents Work',
-  duration: 60,
-  aspectRatio: '9:16',
-  theme: 'tech',
-  sections: [
-    { type: 'hook', heading: 'From Prompt to Workflow' },
-    { type: 'problem', heading: 'Teams Lose Time', points: ['Manual work', 'Context switching'] },
-    { type: 'process', heading: 'The Loop', steps: ['Input', 'Plan', 'Execute', 'Review'] },
-    { type: 'stats', heading: 'Impact', stats: [{ label: 'Time Saved', value: '68%' }] },
-    { type: 'cta', heading: 'Start With Structure' },
-  ],
-})
+## Browser Export
+
+The playground's **Export WebM** button records the current canvas animation with `MediaRecorder` and downloads a `.webm` file. It exports whatever is in the editor: VML, TypeScript builder code, or legacy examples that still compile.
+
+This is meant for quick sharing and visual checks. For deterministic production export, use the CLI:
+
+```bash
+npx velox-video render reel.vml --output reel.mp4
 ```
 
 ## Tips
@@ -85,3 +94,4 @@ export default createExplainerVideo({
 - Check contrast before adding more effects.
 - Use one visual idea per scene.
 - If the result feels busy, remove elements before adding more animation.
+- Prefer VML templates and slots for reels; they reduce manual positioning.
