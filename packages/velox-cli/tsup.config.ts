@@ -22,7 +22,7 @@ export default defineConfig({
     'jiti',    // must not be bundled — it relies on __filename for module resolution
   ],
   // Bundle these inline so velox-cli is self-contained everywhere else
-  noExternal: ['chalk', 'ora', 'commander', 'fs-extra', '@velox-video/core', 'chrome-paths'],
+  noExternal: ['chalk', 'ora', 'commander', 'fs-extra', '@velox-video/core'],
   async onSuccess() {
     // Inject shebang so `velox` works as a global binary
     const outFile = path.resolve('dist/index.js')

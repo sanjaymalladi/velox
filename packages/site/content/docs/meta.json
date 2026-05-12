@@ -8,8 +8,9 @@
     "preview",
     "rendering",
     "cli",
-    "templates",
+    "markup-prompt",
     "prompt",
+    "code-prompt",
     "playground"
   ]
 }

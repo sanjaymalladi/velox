@@ -1,6 +1,6 @@
 ---
 title: Rendering
-description: Export MP4, WebM, or GIF output from the CLI with advanced options.
+description: Export MP4, GIF, or PNG sequence output from the CLI with advanced options.
 ---
 
 # Rendering
@@ -14,8 +14,8 @@ Velox supports multiple output formats to suit different use cases:
 | Format | Best For | File Extension |
 |--------|----------|----------------|
 | `mp4` | High quality video, web, social media | `.mp4` |
-| `webm` | Smaller file size, web applications | `.webm` |
 | `gif` | Simple animations, compatibility | `.gif` |
+| `png-sequence` | Frame pipelines and external compositing | folder |
 
 ## Quality Settings
 
@@ -31,33 +31,13 @@ Use the `--quality` flag to control output quality:
 # High quality MP4 render
 velox-video render animation.ts --quality high --output animation.mp4
 
-# Medium quality WebM render
-velox-video render animation.ts --quality medium --format webm --output animation.webm
+# PNG sequence for external compositing
+velox-video render animation.ts --format png-sequence --output frames
 ```
 
 ## Interactive Rendering Examples
 
-Try these interactive examples to understand rendering options:
-
-**Example 1: Format Comparison**
-```typescript
-// Test different output formats
-import { canvas, rect, color, animate } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  duration: 3.0,
-  children: [
-    rect({
-      width: 300,
-      height: 200,
-      fill: color('purple'),
-      x: animate({ from: 0, to: 500, duration: 2.0 }),
-    }),
-  ],
-})
-```
+Use any `video.ts` that exports a `createVideo(...)` or `createVideoFromMarkup(...)` result, then compare `mp4`, `gif`, and `png-sequence`.
 
 **Example 2: Quality Settings Impact**
 ```typescript
@@ -238,5 +218,5 @@ velox-video render anim.ts --quality high --output final.mp4
 
 - Explore [Preview Studio features](./docs/preview)
 - Learn about [configuration options](./docs/cli)
-- Check out [example projects](./examples/animations)
+- Try the [Markup Prompt](./markup-prompt) for VML examples
 - Read the [Core API documentation](./app/core)

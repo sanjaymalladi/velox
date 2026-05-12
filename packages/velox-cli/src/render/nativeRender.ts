@@ -11,8 +11,25 @@ import { drawFrame, getTotalFrames, resolveSize } from '@velox-video/core'
 export interface RenderOptions {
   outputPath: string
   format?: 'mp4' | 'gif' | 'png-sequence'
-  quality?: number       // 1-51 (H.264 CRF, lower = better). Default 23.
+  quality?: number       // 0-100 user quality (higher = better)
   onProgress?: (progress: number, frame: number, total: number) => void
+}
+
+function toQualityPercent(quality?: number): number {
+  if (!Number.isFinite(quality)) return 80
+  return Math.min(100, Math.max(0, quality as number))
+}
+
+function toMp4Quantization(quality?: number): number {
+  const percent = toQualityPercent(quality)
+  const qp = 51 - (percent / 100) * 41
+  return Math.round(Math.min(51, Math.max(10, qp)))
+}
+
+function toGifQuality(quality?: number): number {
+  const percent = toQualityPercent(quality)
+  // gif-encoder-2: lower is better, valid 1-30
+  return Math.round(30 - (percent / 100) * 29)
 }
 
 export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions): Promise<void> {
@@ -26,6 +43,8 @@ export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions
     await renderGif(config, width, height, totalFrames, outputPath, opts)
   } else if (format === 'png-sequence') {
     await renderPngSequence(config, width, height, totalFrames, outputPath, opts)
+  } else {
+    throw new Error(`Unsupported render format "${format}".`)
   }
 }
 
@@ -48,7 +67,7 @@ async function renderMp4(
   encoder.width = Math.floor(width / 2) * 2
   encoder.height = Math.floor(height / 2) * 2
   encoder.frameRate = Math.round(config.fps || 30)
-  encoder.quantizationParameter = Math.max(10, Math.min(51, Math.round(opts.quality ?? 23)))
+  encoder.quantizationParameter = toMp4Quantization(opts.quality)
   encoder.initialize()
 
   const canvas = createCanvas(encoder.width, encoder.height)
@@ -100,7 +119,7 @@ async function renderGif(
 
   encoder.start()
   encoder.setDelay(Math.round(1000 / gifFps))
-  encoder.setQuality(10)
+  encoder.setQuality(toGifQuality(opts.quality))
 
   const canvas = createCanvas(width, height)
   const gifCanvas = createCanvas(gifW, gifH)

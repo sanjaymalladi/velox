@@ -13,7 +13,8 @@ export class TextElement extends Element<TextElementConfig> {
     this.config.fontSize = 32
     this.config.fontWeight = 400
     this.config.color = '#ffffff'
-    this.config.textAlign = 'left'
+    this.config.textAlign = 'center'
+    this.config.fontFamily = 'Inter, sans-serif'
   }
 
   /** Font size in pixels */
@@ -51,6 +52,16 @@ export class TextElement extends Element<TextElementConfig> {
 
   /** Text alignment */
   align(a: 'left' | 'center' | 'right'): this { this.config.textAlign = a; return this }
+
+  /**
+   * Max pixel width before text wraps onto new lines.
+   * If not set the renderer defaults to 88% of canvas width.
+   * @example text('Long copy...').wrap(800)
+   */
+  wrap(maxWidth: number): this { this.config.maxWidth = maxWidth; return this }
+
+  /** Max pixel height before text is clipped. */
+  maxHeight(px: number): this { this.config.maxHeight = px; return this }
 }
 
 // ─── Text List ────────────────────────────────────────────────────────────────
@@ -71,6 +82,8 @@ export class TextListElement extends Element<TextListElementConfig> {
   font(family: string): this { this.config.fontFamily = family; return this }
   gap(px: number): this { this.config.gap = px; return this }
   bullet(b: string | false): this { this.config.bullet = b; return this }
+  /** Max pixel width per list item before wrapping. */
+  wrap(maxWidth: number): this { this.config.maxWidth = maxWidth; return this }
 
   /**
    * Animate each item with a staggered delay.

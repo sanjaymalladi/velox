@@ -1,0 +1,298 @@
+---
+title: Markup Prompt
+description: XML-like Velox Markup prompt for LLM-safe creative video generation.
+---
+
+# Velox Markup Prompt
+
+Velox Markup is an XML-like authoring format for LLMs. It is safer than raw TypeScript because the model writes tags and attributes, not method chains. It is more flexible than JSON because hierarchy expresses layout naturally.
+
+## Copy-Paste System Prompt
+
+````text
+You generate Velox Markup only.
+
+Do not generate TypeScript, React, JSX, HTML, CSS, or JSON.
+Output one <video> document.
+Do not wrap the final answer in ```xml fences when pasting into the playground. The playground can tolerate fences, but the preferred output is raw markup starting with <video>.
+
+Root:
+<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="5" background="aurora:violet" camera="slowPush" mood="cinematic">
+    ...
+  </scene>
+</video>
+
+Valid root attributes:
+- size: portrait, 1080p, 720p, square, 16:9, 9:16, 1:1, 4:5, 21:9
+- fps: 24, 30, 60
+- theme: geist, notion, linear, obsidian, sandstone, corporateBlue, mintMinimal, monochromeGrid, creamChecks
+- background: CSS color, grid(...), or creamGrid. This is the default for the whole video. Scene background overrides it.
+- motionQuality: standard, premium
+
+Valid scene attributes:
+- duration: positive seconds
+- background: CSS color, grid(...), creamGrid, creamGrid(size), aurora:mood, mesh:palette
+- camera: none, slowPush, parallaxDrift, handheld, kenBurns
+- mood: neutral, editorial, cinematic
+- transition: crossDissolve, blurDissolve, zoomSmooth, slide, wipe, zoom, glitch, flash
+- transitionDuration: seconds
+- vignette/grain: 0 to 1 overlay strengths
+- staggerStep: seconds to add between top-level child entrances
+- valid moods/palettes: midnight, violet, danger, ocean, ember
+- accepted aliases: neon -> violet, purple -> violet, blue -> ocean, red -> danger, orange -> ember
+
+Valid layout tags:
+<center>...</center>
+<center gap="28">...</center>
+<row gap="24">...</row>
+<column gap="32">...</column>
+<stack>...</stack>
+
+Do not put width or height on row/column/stack/center.
+Use <column gap="..."> for vertical layout. <stack> is for overlays; if you add gap to <stack>, Velox treats it like vertical flow to prevent overlap.
+Prefer multiple <scene> blocks for sequential ideas. If using one long scene with delayed top-level sections, give each top-level section a delay; Velox will fade older sections before the next delayed section.
+
+Valid text tags:
+<hero kicker="..." title="..." subtitle="..." />
+<text value="..." size="64" color="#fff" weight="700" />
+<kicker color="#67e8f9">THE LOOP</kicker>
+<list><item>One</item><item>Two</item></list>
+
+Valid media/brand tags:
+<logo name="openai" theme="light" size="96" />
+<logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
+<image src="/path.png" width="520" height="320" />
+<stock query="developer coding at night" width="520" height="320" />
+
+Valid shape/data tags:
+<rect width="420" height="240" color="rgba(255,255,255,0.1)" radius="24" />
+<rect width="420" height="240" color="#111" stroke="#fff" radius="24" />
+<rect width="420" height="240" color="#111" stroke="#fff" radius="24"><center><text value="Card text" /></center></rect>
+<circle diameter="220" color="#a78bfa" />
+<line length="420" color="#67e8f9" thickness="4" />
+<progress value="72" width="620" height="18" color="#22c55e" />
+<metric value="68%" label="Time Saved" accent="#22c55e" />
+<barChart width="700" height="320" motion="growUp">
+  <bar label="Input" value="80" color="theme.accent" />
+  <bar label="Plan" value="64" color="#38bdf8" />
+</barChart>
+<lineChart width="700" height="320" curve="smooth">
+  <series label="A" values="12,38,29,72" color="theme.accent" />
+</lineChart>
+<donutChart size="300">
+  <slice label="Design" value="45" color="theme.accent" />
+  <slice label="Code" value="55" color="#38bdf8" />
+</donutChart>
+<morphBlob variant="soft" width="360" height="360" color="theme.accent" motion="driftIn" />
+
+Theme color tokens:
+- color="theme.text"
+- color="theme.muted"
+- color="theme.accent"
+- color="theme.primary"
+- color="theme.secondary"
+- color="theme.background"
+
+Valid shared attributes on visual/layout tags:
+- placement: center, top, bottom, left, right, hero, safeTop, safeBottom
+- motion: none, fade, cinematic, typewriter, pop, float, drawIn, growUp, slideIn, heroCinematic, softReveal, driftIn, premiumSlide, magneticPop
+- delay: seconds
+- scale: xs, sm, md, lg, xl, or numeric multiplier
+
+Never output:
+- .stroke(), .pos(), .size(), JavaScript method chains
+- group sizing attributes like <row width="500">
+- placement objects like placement="{ x: 0.5, y: 0.2 }"
+- arbitrary HTML tags like <div>, <span>, <section>
+- unsupported palettes like mesh:rainbow. Use mesh:violet or mesh:neon.
+- many delayed sections inside one scene without fade windows. Prefer separate scenes, or top-level delayed sections.
+- invented chart tags. Use barChart, lineChart, or donutChart only.
+````
+
+## Full Reference
+
+VML is the recommended format for LLMs. It avoids TypeScript chain mistakes while keeping creative hierarchy: scenes contain layouts, layouts contain text/media/shapes/data, and shared attributes add placement and motion.
+
+### Root Video
+
+`<video>` wraps exactly one video document and must contain one or more `<scene>` tags.
+
+- `size`: `portrait`, `1080p`, `720p`, `square`, `16:9`, `9:16`, `1:1`, `4:5`, `21:9`.
+- `fps`: `24`, `30`, or `60`.
+- `theme`: `geist`, `notion`, `linear`, `obsidian`, `sandstone`, `corporateBlue`, `mintMinimal`, `monochromeGrid`, `creamChecks`.
+- `background`: a CSS color, `grid(color, size)`, `creamGrid`, or `creamGrid(size)` for the whole video.
+- `motionQuality`: `standard` or `premium`. Premium adds subtle default grain/vignette when scene mood asks for it.
+
+### Themes
+
+- `geist`: clean white product/demo slides.
+- `notion`: warm document and knowledge-base style.
+- `linear`: dark SaaS, roadmap, and engineering dashboards.
+- `obsidian`: cinematic black backgrounds and high contrast launches.
+- `sandstone`: editorial, calm, premium storytelling.
+- `corporateBlue`: business, reports, B2B explainers.
+- `mintMinimal`: wellness, finance, calm productivity.
+- `monochromeGrid`: technical diagrams and black-and-white system explainers.
+- `creamChecks`: warm cream background with brown text/accent, best with `background="creamGrid"` for premium/editorial explainers.
+
+Use theme tokens instead of hand-picking colors when contrast matters: `theme.text`, `theme.muted`, `theme.accent`, `theme.primary`, `theme.secondary`, `theme.background`.
+
+### Backgrounds
+
+Global video background applies to every scene unless the scene has its own background.
+
+```xml
+<video background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="4">...</scene>
+  <scene duration="4" background="aurora:ocean">...</scene>
+</video>
+```
+
+Warm cream grid video background:
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid">
+  <scene duration="4">
+    <center>
+      <hero kicker="CASE STUDY" title="Soft editorial motion" subtitle="Warm cream grid with theme-aware text" />
+    </center>
+  </scene>
+</video>
+```
+
+Scene backgrounds can be:
+
+- CSS colors: `#050505`, `rgba(0,0,0,0.2)`, `white`.
+- Grid: `grid(rgba(255,255,255,0.05), 44)`.
+- Cream grid: `creamGrid` or `creamGrid(36)`.
+- Aurora: `aurora:midnight`, `aurora:violet`, `aurora:danger`, `aurora:ocean`, `aurora:ember`.
+- Mesh: `mesh:midnight`, `mesh:violet`, `mesh:danger`, `mesh:ocean`, `mesh:ember`.
+- Aliases: `neon` and `purple` map to `violet`; `blue` maps to `ocean`; `red` maps to `danger`; `orange` maps to `ember`.
+
+### Premium Scene Controls
+
+Scene-level controls add fluid movement without pixel offsets:
+
+```xml
+<scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.6" staggerStep="0.12">
+  <center motion="heroCinematic">
+    <hero kicker="CASE STUDY" title="Great visuals feel alive" subtitle="Depth, rhythm, and smooth timing." />
+  </center>
+</scene>
+```
+
+- `camera`: `none`, `slowPush`, `parallaxDrift`, `handheld`, `kenBurns`.
+- `mood`: `neutral`, `editorial`, `cinematic`; controls default vignette/grain with `motionQuality="premium"`.
+- `transition`: `crossDissolve`, `blurDissolve`, `zoomSmooth`, `slide`, `wipe`, `zoom`, `glitch`, `flash`.
+- `vignette` and `grain`: explicit `0` to `1` overlay strengths.
+- `staggerStep`: adds rhythmic entrance delays to top-level children.
+
+### Layout
+
+Use `center` for a single centered composition, `column` for vertical flow, `row` for side-by-side items, and `stack` only for overlays.
+
+```xml
+<column gap="32" placement="center">
+  <kicker color="theme.accent">RESULTS</kicker>
+  <row gap="24">
+    <metric value="68%" label="Less layout work" />
+    <metric value="3x" label="Faster drafts" />
+  </row>
+</column>
+```
+
+Do not put `width` or `height` on layout tags. Size the child elements instead. If an LLM writes `<stack gap="...">`, Velox treats it as vertical flow because a gap usually means the model wanted a column, not an overlay.
+
+### Text
+
+- `<hero kicker="..." title="..." subtitle="..." />` for title moments.
+- `<text value="..." size="64" weight="700" color="theme.text" wrap="820" />` for custom text.
+- `<kicker color="theme.accent">LABEL</kicker>` for small uppercase labels.
+- `<list><item>One</item><item>Two</item></list>` for bullets.
+
+For portrait videos, keep main text around `48` to `76`, subtitles around `28` to `42`, and use `wrap` between `680` and `860`.
+
+### Media And Logos
+
+```xml
+<logo name="openai" theme="light" size="96" motion="float" />
+<logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
+<image src="/images/demo.png" width="520" height="320" radius="24" />
+<stock query="developer coding at night" width="520" height="320" radius="24" />
+```
+
+Use `logoLockup` when text should align with the brand mark. Do not try to call methods on logo lockups; VML uses attributes only.
+
+### Shapes And Cards
+
+`rect` can be a simple shape or a card container.
+
+```xml
+<rect width="620" height="300" color="rgba(255,255,255,0.08)" stroke="theme.accent" radius="32">
+  <column gap="18">
+    <kicker color="theme.accent">INSIGHT</kicker>
+    <text value="VML keeps models away from invalid chains." size="42" color="theme.text" />
+  </column>
+</rect>
+```
+
+Other shapes: `circle`, `line`, `progress`, `metric`, `metricRow`, `glassList`, and `card`.
+
+### Charts And Data
+
+Use `barChart` for simple comparisons, `lineChart` for trends, and `donutChart` for shares. These are D3-backed and animate safely from VML.
+
+```xml
+<barChart width="720" height="340" motion="growUp" showLabels="true" showValues="true">
+  <bar label="Prompt" value="82" color="theme.accent" />
+  <bar label="Layout" value="64" color="#38bdf8" />
+  <bar label="Render" value="91" color="#22c55e" />
+</barChart>
+```
+
+Use `progress` for one number and `metric`/`metricRow` for short KPI cards.
+
+Organic accents use Flubber path morphing:
+
+```xml
+<morphBlob variant="soft" width="360" height="360" color="theme.accent" motion="driftIn" />
+```
+
+### Motion
+
+Shared motion values: `none`, `fade`, `cinematic`, `typewriter`, `pop`, `float`, `drawIn`, `growUp`, `slideIn`, `heroCinematic`, `softReveal`, `driftIn`, `premiumSlide`, `magneticPop`.
+
+Premium motion values use Popmotion easing under the hood. Prefer `heroCinematic` for hero blocks, `softReveal` for calm text/cards, `driftIn` for ambient accents, `premiumSlide` for panels, and `magneticPop` for metrics.
+
+Use `delay` in seconds. Prefer separate scenes for sequential beats. If one long scene contains delayed top-level sections, Velox automatically fades older sections before the next delayed top-level section appears.
+
+## Example
+
+```xml
+<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="5" background="aurora:violet">
+    <center motion="cinematic">
+      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
+    </center>
+  </scene>
+
+  <scene duration="5" background="mesh:ocean">
+    <column gap="32" placement="center">
+      <kicker color="#67e8f9">THE LOOP</kicker>
+      <row gap="24">
+        <metric value="01" label="Input" />
+        <metric value="02" label="Plan" />
+      </row>
+      <progress value="72" color="#22c55e" width="620" height="18" motion="growUp" />
+    </column>
+  </scene>
+
+  <scene duration="4" background="#050505">
+    <center>
+      <logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
+    </center>
+  </scene>
+</video>
+```
+

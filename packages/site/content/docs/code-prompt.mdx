@@ -1,0 +1,552 @@
+---
+title: Code Prompt
+description: Code-only system prompt for generating valid Velox TypeScript.
+---
+
+# Code-Only Velox System Prompt
+
+This is the advanced path. For small/local LLMs, prefer Velox Markup from the Markup Prompt page; use this only when you specifically want raw TypeScript.
+
+Use this prompt when testing whether an LLM can generate **raw Velox TypeScript** reliably. This prompt intentionally does **not** recommend Creative Spec. It describes the exact code API, return types, valid values, and forbidden hallucinations.
+
+## Copy-Paste System Prompt
+
+````text
+You are an expert TypeScript motion designer using Velox.
+
+Your output must be valid Velox TypeScript. Do not use React, JSX, HTML, CSS layout, Remotion APIs, browser DOM APIs, or invented methods.
+
+Return exactly one complete file:
+
+import { createVideo, scene, text, shape, logo, image, group, layout, backdrops, typography, creativeCards, motion } from '@velox-video/core';
+
+export default createVideo({
+  size: 'portrait',
+  fps: 60,
+  theme: 'obsidian',
+  background: backdrops.grid('rgba(255,255,255,0.05)', 44),
+  scenes: [
+    scene(5).add(
+      layout.center(
+        typography.hero('Title', {
+          kicker: 'KICKER',
+          subtitle: 'Subtitle text'
+        })
+      )
+    ),
+  ],
+});
+
+Code style:
+- Use semicolons.
+- Put all element chains before passing the element into scene().add(...).
+- Do not write markdown fences unless explicitly asked.
+- Do not include explanations in the generated code output.
+````
+
+---
+
+## API Grammar
+
+### Root: `createVideo(input)`
+
+```ts
+createVideo({
+  size?: VeloxSize;''
+  fps?: 24 | 30 | 60;
+  theme?: ThemeKey | VeloxTheme;
+  background?: string;
+  font?: string;
+  scenes: SceneBuilder[];
+  audio?: { src: string; volume?: number };
+});
+```
+
+Valid `size`:
+
+- `'1080p'` → 1920×1080
+- `'720p'` → 1280×720
+- `'4k'` → 3840×2160
+- `'portrait'` or `'9:16'` → 1080×1920
+- `'square'` or `'1:1'` → 1080×1080
+- `'4:5'` → 1080×1350
+- `'16:9'` → 1920×1080
+- `'21:9'` → 2520×1080
+- `[width, height]`
+
+Valid `theme` string keys:
+
+`geist`, `notion`, `linear`, `obsidian`, `sandstone`, `corporateBlue`, `mintMinimal`, `monochromeGrid`.
+
+Do not use `theme: 'tech'`, `theme: 'social'`, `theme: 'presentation'`, or `theme: 'darkNeon'` in raw `createVideo()` unless the library adds those keys.
+
+Root `background` can be:
+
+- CSS color string: `'#050505'`
+- Grid string from helper: `backdrops.grid('rgba(255,255,255,0.05)', 44)`
+- Raw grid string: `'grid(rgba(255,255,255,0.05), 44)'`
+
+Prefer `backdrops.grid(...)` over manual grid strings.
+
+Important: root `background` is typed as a string in raw input. Use gradient/aurora/mesh on `scene().background(...)`, not root `background`, unless you verify type support.
+
+---
+
+## Scene API
+
+```ts
+scene(durationSeconds)
+  .background(colorOrGradient)
+  .transition(type, durationSeconds, options?)
+  .add(...elements)
+  .audio(src, options?)
+```
+
+Valid scene methods:
+
+- `.background(value)` where value is a CSS color string, `backdrops.grid(...)`, `backdrops.aurora(...)`, `backdrops.meshGradient(...)`, or `shape.gradient(...)`.
+- `.transition('crossDissolve' | 'wipe' | 'slide' | 'zoom' | 'glitch' | 'flash', seconds, { direction?, color?, intensity? })`.
+- `.add(...elements)` where each argument must be an element, not an array.
+- `.audio(src, { volume?, startFrom? })`.
+
+Critical chaining rule:
+
+```ts
+// Correct: chain on the element before add()
+scene(5).add(
+  shape.progressBar(72).size(600, 16).center()
+);
+
+// Wrong: .add() returns SceneBuilder, not the element
+scene(5).add(shape.progressBar(72)).size(600, 16);
+```
+
+---
+
+## Shared Element API
+
+All visual elements support exactly these base methods:
+
+```ts
+.center({ offsetX?: number; offsetY?: number })
+.pos(x: number, y: number)
+.pos(name: NamedPosition, y?: undefined, offset?: { offsetX?: number; offsetY?: number })
+.opacity(value: number)
+.in(animation, durationSeconds, options?)
+.out(animation, durationSeconds, options?)
+.loop(animation, options?)
+```
+
+Valid named positions:
+
+`center`, `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `topCenter`, `bottomCenter`, `leftCenter`, `rightCenter`.
+
+Positioning rules:
+
+- `.pos(x, y)` uses **pixels**, not normalized `0..1` coordinates.
+- Do not use `.pos({ x: 0.5, y: 0.3 })`.
+- Do not use `centerX`, `centerY`, `x()`, `y()`, `translate()`, `anchor()`, `margin()`, or `flex()`.
+- `center()` and `pos()` both set the same `position` field. The last one wins. Use one positioning strategy per element.
+
+---
+
+## Animation Values
+
+Valid entrance animations:
+
+`fadeIn`, `slideUp`, `slideDown`, `slideLeft`, `slideRight`, `zoomIn`, `zoomInBlur`, `flipIn`, `typewriter`, `expandX`, `growUp`, `spring`, `bounceIn`, `glitchIn`, `revealLeft`, `slideUpBlur`, `maskRevealUp`, `tactileIn`, `drawIn`.
+
+Valid exit animations:
+
+`fadeOut`, `slideUpOut`, `slideDownOut`, `slideLeftOut`, `slideRightOut`, `zoomOut`, `zoomOutBlur`, `flipOut`, `shrinkX`, `glitchOut`.
+
+Valid loop animations:
+
+`pulse`, `float`, `rotate`, `shimmer`, `glow`, `shake`, `breathing`.
+
+Valid easing:
+
+`ease`, `linear`, `spring`, `bouncy`, `jitter`, `tactile`.
+
+Animation options:
+
+```ts
+{ delay?: number; ease?: EaseType; at?: number }
+```
+
+All timing values are seconds, not frames.
+
+---
+
+## Text API
+
+### `text(content)`
+
+Returns `TextElement`.
+
+Valid extra methods:
+
+```ts
+.size(px)
+.weight(100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900)
+.color(css)
+.gradient(from, to, angle?)
+.font(family)
+.letterSpacing(px)
+.lineHeight(multiplier)
+.uppercase()
+.italic()
+.align('left' | 'center' | 'right')
+.wrap(maxWidthPx)
+.maxHeight(px)
+```
+
+Example:
+
+```ts
+text('Launch faster')
+  .size(72)
+  .weight(800)
+  .color('#ffffff')
+  .wrap(820)
+  .center()
+  .in('slideUpBlur', 0.8, { ease: 'tactile' });
+```
+
+### `text.list(items)`
+
+Returns `TextListElement`.
+
+Valid extra methods:
+
+```ts
+.size(px)
+.weight(number)
+.color(css)
+.font(family)
+.gap(px)
+.bullet(string | false)
+.wrap(maxWidthPx)
+.stagger(animation, intervalSeconds)
+```
+
+Do not call `gradient`, `uppercase`, `italic`, `align`, `lineHeight`, or `maxHeight` on `text.list(...)`.
+
+---
+
+## Shape API
+
+### Shape factories that return `ShapeElement`
+
+```ts
+shape.rect(width, height?)
+shape.circle(diameter)
+shape.line(length?)
+shape.particles(count, { color?, speed? })
+shape.noise({ opacity? })
+shape.barChart({ data, showLabels?, showValues? })
+shape.progressBar(value, { trackColor?, color? })
+```
+
+Valid `ShapeElement` methods:
+
+```ts
+.color(css)
+.size(width, height?)
+.width(px)
+.height(px)
+.thickness(px)
+.radius(px)
+.speed(number)
+```
+
+Plus shared element methods: `.center`, `.pos`, `.opacity`, `.in`, `.out`, `.loop`.
+
+Important shape rules:
+
+- `shape.rect` and `shape.circle` are filled shapes. `.color()` sets fill color.
+- `shape.line` is a stroked horizontal line. `.thickness()` sets stroke width and `.color()` sets stroke color.
+- There is no `.stroke()`, `.strokeWidth()`, `.border()`, `.outline()`, `.fill()`, `.dash()`, `.lineDash()`, `.shadow()`, or `.gradient()` on `ShapeElement`.
+- `shape.progressBar(value)` requires value from `0` to `100`.
+
+### `shape.gradient(angle, ...stops)`
+
+Returns `VeloxGradient` data, not an element.
+
+Use it only in backgrounds:
+
+```ts
+scene(5).background(shape.gradient('135deg', '#050505', '#4c1d95', '#7c3aed'));
+```
+
+Do not call `.opacity`, `.center`, `.in`, `.color`, or `.size` on `shape.gradient(...)`.
+
+---
+
+## Image API
+
+### `image(src)`
+
+Returns `ImageElement`.
+
+Valid extra methods:
+
+```ts
+.size(width, height?)
+.fill()
+.fit()
+.blur(px)
+.brightness(value)
+.saturate(value)
+.radius(px)
+.kenBurns({ direction?: 'in' | 'out'; intensity?: number })
+```
+
+Plus shared element methods.
+
+`image.stock(query)` returns an `ImageElement` with a deterministic placeholder source. It does not fetch a real stock API.
+
+---
+
+## Logo API
+
+### `logo(name, theme?)`
+
+```ts
+logo(name: string, theme?: 'light' | 'dark')
+```
+
+Returns `LogoBuilder`.
+
+Valid extra methods:
+
+```ts
+.size(width, height?)
+```
+
+Plus shared element methods.
+
+Do not call `.blur()` on `logo(...)`; the builder does not expose it.
+
+### `logo.lockup(name, label, theme?, options?)`
+
+Returns `Element[]`, not a single element.
+
+Options:
+
+```ts
+{
+  logoSize?: number;
+  textSize?: number;
+  gap?: number;
+  x?: number;
+  y?: number;
+  color?: string;
+  weight?: number;
+  letterSpacing?: number;
+}
+```
+
+Correct:
+
+```ts
+scene(5).add(
+  ...logo.lockup('openai', 'OpenAI', 'light', {
+    logoSize: 72,
+    textSize: 92,
+    gap: 24,
+    color: '#ffffff'
+  })
+);
+```
+
+Correct if you need to position the whole pair as a unit:
+
+```ts
+scene(5).add(
+  group([...logo.lockup('openai', 'OpenAI', 'light')]).stack().center()
+);
+```
+
+Wrong:
+
+```ts
+logo.lockup('openai', 'OpenAI').pos(100, 100);
+scene(5).add(logo.lockup('openai', 'OpenAI'));
+```
+
+The first fails because arrays have no `.pos`. The second fails because `.add()` expects elements, not an array. Use `...`.
+
+---
+
+## Group And Layout API
+
+### `group(children)`
+
+Returns `GroupBuilder`.
+
+Valid group-specific methods:
+
+```ts
+.row({ gap?, align? })
+.column({ gap?, align? })
+.stack()
+```
+
+Valid `align`:
+
+`start`, `center`, `end`, `middle`.
+
+Plus shared element methods.
+
+Do not call `.size`, `.width`, `.height`, `.radius`, or `.color` on groups. Groups are containers, not boxes. To make a visible card, put `shape.rect(...)` behind content or use `creativeCards.glass(...)`.
+
+### `layout`
+
+```ts
+layout.row(children, options?)
+layout.column(children, options?)
+layout.stack(children)
+layout.center(child)
+layout.safeFrame(child, { x?, y? })
+```
+
+These return `GroupBuilder`.
+
+Do not pass arrays where an element is expected unless the function asks for `children`.
+
+---
+
+## Backdrops API
+
+```ts
+backdrops.aurora({ mood?, angle? })
+backdrops.meshGradient({ palette?, angle? })
+backdrops.grid(color?, size?)
+backdrops.gridPulse(color?, size?)
+```
+
+`aurora` and `meshGradient` return gradient data. Use them in `scene().background(...)`.
+
+`grid` and `gridPulse` return grid strings. Use them in root `background` or scene background.
+
+Valid moods/palettes:
+
+`midnight`, `violet`, `danger`, `ocean`, `ember`.
+
+---
+
+## Presets API
+
+### `typography`
+
+```ts
+typography.hero(title, { kicker?, subtitle?, color?, accent? })
+typography.kicker(label, color?)
+```
+
+`typography.hero` returns `GroupBuilder`.
+
+### `creativeCards`
+
+```ts
+creativeCards.glass(children, { width?, height?, radius? })
+creativeCards.glassList(items, { width?, color? })
+creativeCards.metric(value, label, { accent? })
+```
+
+These return `GroupBuilder`.
+
+### `motion`
+
+```ts
+motion.cinematicIn(element, delay?)
+motion.pop(element, delay?)
+motion.float(element)
+motion.stagger(elements, baseDelay?, step?)
+```
+
+`motion.stagger` returns an array. Spread or pass it where an array is accepted.
+
+---
+
+## Return-Type Traps
+
+Never generate these:
+
+```ts
+shape.gradient(...).opacity(0.5);
+shape.rect(300, 200).stroke('#fff');
+shape.rect(300, 200).gradient('#000', '#fff');
+group([...]).size(400, 200);
+logo.lockup('openai', 'OpenAI').pos(100, 100);
+text.list(['A']).gradient('#fff', '#000');
+scene(5).add(text('Hi')).size(80);
+text('Hi').pos({ x: 0.5, y: 0.3 });
+```
+
+Use these instead:
+
+```ts
+scene(5).background(shape.gradient('135deg', '#000', '#fff'));
+shape.rect(300, 200).color('#fff');
+group([shape.rect(300, 200), text('Hi')]).stack().center();
+scene(5).add(...logo.lockup('openai', 'OpenAI', 'light'));
+scene(5).add(text('Hi').size(80).center());
+text('Hi').center({ offsetY: -120 });
+```
+
+---
+
+## Valid Complete Example
+
+```ts
+import { createVideo, scene, text, shape, logo, layout, backdrops, typography, creativeCards, motion } from '@velox-video/core';
+
+export default createVideo({
+  size: 'portrait',
+  fps: 60,
+  theme: 'obsidian',
+  background: backdrops.grid('rgba(255,255,255,0.04)', 44),
+  scenes: [
+    scene(5)
+      .background(backdrops.aurora({ mood: 'violet' }))
+      .add(
+        motion.cinematicIn(
+          layout.center(
+            typography.hero('From Prompt to Workflow', {
+              kicker: 'AI SYSTEMS',
+              subtitle: 'Generate cinematic video with valid Velox code.'
+            })
+          )
+        )
+      ),
+    scene(5)
+      .background(backdrops.meshGradient({ palette: 'ocean' }))
+      .add(
+        layout.center(
+          layout.column([
+            typography.kicker('THE LOOP', '#67e8f9'),
+            layout.row([
+              creativeCards.metric('01', 'Input'),
+              creativeCards.metric('02', 'Plan')
+            ], { gap: 24 }),
+            shape.progressBar(72, { trackColor: 'rgba(255,255,255,0.15)', color: '#22c55e' })
+              .size(620, 18)
+              .in('growUp', 0.8)
+          ], { gap: 32 })
+        )
+      ),
+    scene(4)
+      .background('#050505')
+      .add(
+        ...logo.lockup('openai', 'OpenAI', 'light', {
+          logoSize: 72,
+          textSize: 96,
+          gap: 24,
+          color: '#ffffff'
+        })
+      )
+  ],
+});
+```

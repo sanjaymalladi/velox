@@ -22,12 +22,13 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
-      - name: Build velox-core (required for CLI type resolution)
-        run: pnpm --filter @velox-video/core build
+      - name: Lint
+        run: pnpm run lint
 
-      - name: Lint and Build
-        run: |
-          pnpm run lint
-          pnpm --filter @velox-video/core build
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build

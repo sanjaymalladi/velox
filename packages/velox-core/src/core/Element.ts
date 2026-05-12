@@ -67,6 +67,17 @@ export abstract class Element<TConfig extends BaseElementConfig> {
     return this
   }
 
+  /** Add seconds to existing entrance delay (for scene-level stagger) */
+  bumpEntranceDelay(extraSeconds: number): this {
+    if (!this.config.entrance) return this
+    const prev = this.config.entrance.options?.delay ?? 0
+    this.config.entrance = {
+      ...this.config.entrance,
+      options: { ...this.config.entrance.options, delay: prev + extraSeconds },
+    }
+    return this
+  }
+
   /** Serialize config — called by Scene.add() */
   toConfig(): TConfig {
     return { ...this.config }

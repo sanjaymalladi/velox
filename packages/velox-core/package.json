@@ -1,7 +1,7 @@
 {
   "name": "@velox-video/core",
   "version": "2.0.0",
-  "description": "Zero-dependency motion graphics pure mathematical rendering engine",
+  "description": "LLM-friendly motion graphics engine with deterministic Canvas rendering",
   "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
   "repository": {
     "type": "git",
@@ -14,16 +14,24 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external @napi-rs/canvas",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external @napi-rs/canvas",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.97",
+    "@types/chroma-js": "^3.1.2",
+    "@types/culori": "^4.0.1",
+    "@types/d3": "^7.4.3",
+    "@types/d3-array": "^3.2.2",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-shape": "^3.1.8",
+    "@types/flubber": "^0.4.0",
     "tsup": "^8.3.0",
     "typescript": "^5.4.5",
     "vitest": "^2.1.0"
@@ -32,8 +40,21 @@
     "video",
     "motion-graphics",
     "animation",
+    "canvas",
+    "video-rendering",
+    "generative-video",
+    "xml",
+    "vml",
     "llm",
     "ai"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@velox-video/svgl": "workspace:^",
+    "chroma-js": "^3.2.0",
+    "culori": "^4.0.2",
+    "d3": "^7.9.0",
+    "flubber": "^0.4.2",
+    "popmotion": "^11.0.5"
+  }
 }

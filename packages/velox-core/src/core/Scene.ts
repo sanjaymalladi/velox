@@ -1,6 +1,6 @@
 import type {
   SceneConfig, ElementConfig, TransitionType, TransitionOptions,
-  VeloxColor, VeloxGradient,
+  VeloxColor, VeloxGradient, SceneCamera, SceneMood, SceneOverlay,
 } from '../types'
 import { Element } from './Element'
 
@@ -19,9 +19,27 @@ export class SceneBuilder {
     return this
   }
 
+  /** Subtle renderer camera (slow push, drift, handheld, ken burns) */
+  camera(mode: SceneCamera): this {
+    this._config.camera = mode
+    return this
+  }
+
+  /** Editorial / cinematic default overlays when overlay not explicitly set */
+  mood(mode: SceneMood): this {
+    this._config.mood = mode
+    return this
+  }
+
+  /** Optional vignette and film grain intensities (0–1) */
+  overlay(options: SceneOverlay): this {
+    this._config.overlay = { ...this._config.overlay, ...options }
+    return this
+  }
+
   /**
    * Transition INTO this scene from the previous one.
-   * @param type     - 'crossDissolve' | 'wipe' | 'slide' | 'zoom' | 'glitch' | 'flash'
+   * @param type     - crossDissolve | blurDissolve | zoomSmooth | wipe | slide | zoom | glitch | flash
    * @param duration - seconds
    */
   transition(type: TransitionType, duration: number, options?: TransitionOptions): this {

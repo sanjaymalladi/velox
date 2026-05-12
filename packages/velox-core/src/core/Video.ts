@@ -1,6 +1,15 @@
-import type { VeloxVideoConfig, VeloxSize, VeloxFps, VeloxTheme, VeloxColor } from '../types'
+import type {
+  MotionQuality,
+  VeloxVideoConfig,
+  VeloxSize,
+  VeloxFps,
+  VeloxTheme,
+  VeloxColor,
+  VeloxGradient,
+} from '../types'
 import { SceneBuilder } from './Scene'
 import { resolveTheme } from '../themes'
+import { validateRawVideoInput, validateVeloxVideoConfig } from '../validation'
 
 function resolveSize(size: VeloxSize): [number, number] {
   if (Array.isArray(size)) return size
@@ -22,9 +31,10 @@ function resolveSize(size: VeloxSize): [number, number] {
 export interface RawVideoInput {
   size?: VeloxSize
   fps?: VeloxFps
-  background?: VeloxColor
+  background?: VeloxColor | VeloxGradient
   font?: string
   theme?: VeloxTheme | string
+  motionQuality?: MotionQuality
   scenes: SceneBuilder[]
   audio?: { src: string; volume?: number }
 }
@@ -34,6 +44,7 @@ export class VeloxVideo {
   readonly config: VeloxVideoConfig
 
   constructor(input: RawVideoInput) {
+    validateRawVideoInput(input)
     const theme = resolveTheme(input.theme)
     this.config = {
       size: resolveSize(input.size ?? '1080p'),
@@ -41,9 +52,11 @@ export class VeloxVideo {
       background: input.background ?? theme?.background ?? '#000000',
       font: input.font ?? theme?.font,
       theme,
+      motionQuality: input.motionQuality,
       scenes: input.scenes.map((s) => s.toConfig()),
       audio: input.audio,
     }
+    validateVeloxVideoConfig(this.config)
   }
 }
 

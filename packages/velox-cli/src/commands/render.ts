@@ -7,7 +7,7 @@ import { getTotalFrames, resolveSize } from '@velox-video/core'
 
 export async function renderCommand(inputFile: string, options: {
   output?: string
-  format?: 'mp4' | 'gif' | 'png-sequence'
+  format?: 'mp4' | 'gif' | 'png-sequence' | string
   quality?: number
 }) {
   const spinner = ora()
@@ -23,6 +23,13 @@ export async function renderCommand(inputFile: string, options: {
 
     // 2. Determine output path
     const format = options.format ?? 'mp4'
+    const validFormats = new Set(['mp4', 'gif', 'png-sequence'])
+    if (!validFormats.has(format)) {
+      throw new Error(`Unsupported format "${format}". Use one of: mp4, gif, png-sequence.`)
+    }
+    const normalizedQuality = Number.isFinite(options.quality)
+      ? Math.min(100, Math.max(0, options.quality as number))
+      : undefined
     const ext = format === 'png-sequence' ? '' : `.${format}`
     const outputPath = options.output ?? path.join(
       path.dirname(path.resolve(inputFile)),
@@ -35,8 +42,8 @@ export async function renderCommand(inputFile: string, options: {
 
     await nativeRender(config, {
       outputPath,
-      format,
-      quality: options.quality,
+      format: format as 'mp4' | 'gif' | 'png-sequence',
+      quality: normalizedQuality,
       onProgress: (progress, frame, total) => {
         const pct = Math.round(progress * 100)
         if (pct !== lastPct) {

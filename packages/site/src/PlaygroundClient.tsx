@@ -2,8 +2,10 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 import {
-  createVideo, scene, text, shape, themes, resolveTheme,
-  drawFrame, getTotalFrames, createVideoFromSchema,
+  createVideo, scene, text, shape, logo, image, group, themes, resolveTheme,
+  drawFrame, getTotalFrames, createVideoFromSchema, createVideoFromCreativeSpec, isCreativeSpec, preloadImages,
+  createVideoFromMarkup, isVeloxMarkup,
+  layout, backdrops, typography, creativeCards, motion,
 } from '@velox-video/core'
 import type { VeloxVideo, LlmVideoSpec } from '@velox-video/core'
 
@@ -15,19 +17,19 @@ const EXAMPLES = [
     code: `createVideo({
   size: '720p',
   fps: 30,
-  background: '#0a0a0f',
+  theme: 'linear',
+  background: 'grid(rgba(255,255,255,0.05), 40)',
   scenes: [
     scene(4)
-      .background(shape.gradient('135deg', '#0a0a0f', '#1a0a2e'))
       .add(
-        shape.particles(30, { color: '#7c3aed', speed: 0.3 }).opacity(0.4),
+        shape.particles(30, { color: '#5e6ad2', speed: 0.3 }).opacity(0.4),
         text('VELOX')
           .center({ offsetY: -30 })
-          .size(120).weight(900).color('#ffffff')
+          .size(120).weight(900).color('#f4f5f8')
           .in('slideUp', 0.8),
         text('Motion Graphics Engine')
           .center({ offsetY: 60 })
-          .size(32).color('#a78bfa')
+          .size(32).color('#5e6ad2')
           .in('fadeIn', 0.6, { delay: 0.4 }),
       ),
   ],
@@ -38,17 +40,17 @@ const EXAMPLES = [
     code: `createVideo({
   size: '720p',
   fps: 30,
-  background: '#050510',
+  theme: 'notion',
+  background: '#ffffff',
   scenes: [
     scene(5)
-      .background('#050510')
       .add(
-        shape.circle(300).center().color('#6C63FF').opacity(0.12).in('zoomIn', 1.0),
-        shape.circle(200).center().color('#FF6584').opacity(0.18).in('zoomIn', 0.8, { delay: 0.2 }),
-        shape.circle(90).center().color('#ffffff').in('bounceIn', 0.6, { delay: 0.4 }),
+        shape.circle(300).center().color('#0f7b6c').opacity(0.12).in('zoomIn', 1.0),
+        shape.circle(200).center().color('#e03e3e').opacity(0.18).in('zoomIn', 0.8, { delay: 0.2 }),
+        shape.circle(90).center().color('#37352f').in('bounceIn', 0.6, { delay: 0.4 }),
         text('GEOMETRY')
           .center({ offsetY: 200 })
-          .size(48).weight(700).color('#ffffff').letterSpacing(8)
+          .size(48).weight(700).color('#37352f').letterSpacing(8)
           .in('expandX', 0.6, { delay: 0.8 }),
       ),
   ],
@@ -59,24 +61,22 @@ const EXAMPLES = [
     code: `createVideo({
   size: '720p',
   fps: 30,
-  background: '#0f0f1a',
+  theme: 'geist',
+  background: 'grid(rgba(0,0,0,0.05), 40)',
   scenes: [
     scene(5)
-      .background('#0f0f1a')
       .add(
         text('Q4 Revenue')
           .center({ offsetY: -200 })
-          .size(48).weight(700).color('#ffffff')
+          .size(48).weight(700).color('#111')
           .in('slideDown', 0.5),
         shape.barChart({
           data: [
-            { label: 'Jan', value: 65, color: '#6C63FF' },
-            { label: 'Feb', value: 80, color: '#7c3aed' },
-            { label: 'Mar', value: 55, color: '#8b5cf6' },
-            { label: 'Apr', value: 95, color: '#a78bfa' },
-          ],
-          showLabels: true,
-          showValues: true,
+            { label: 'Jan', value: 65, color: '#111' },
+            { label: 'Feb', value: 80, color: '#666' },
+            { label: 'Mar', value: 55, color: '#333' },
+            { label: 'Apr', value: 95, color: '#0070f3' },
+          ]
         })
           .center({ offsetY: 50 }).size(800, 300)
           .in('growUp', 1.0, { delay: 0.4 }),
@@ -89,22 +89,22 @@ const EXAMPLES = [
     code: `createVideo({
   size: '720p',
   fps: 30,
-  background: '#030303',
+  theme: 'obsidian',
+  background: 'grid(rgba(255,255,255,0.05), 30)',
   scenes: [
     scene(5)
-      .background('#030303')
       .add(
         text('MAKE')
-          .center({ offsetX: -250, offsetY: -20 }).size(90).weight(900).color('#ffffff')
+          .center({ offsetX: -280, offsetY: -20 }).size(76).weight(900).color('#ffffff')
           .in('slideRight', 0.5),
         text('IT')
-          .center({ offsetX: 0, offsetY: -20 }).size(90).weight(900).color('#7c3aed')
+          .center({ offsetX: 0, offsetY: -20 }).size(76).weight(900).color('#a8a8a8')
           .in('zoomIn', 0.4, { delay: 0.3 }),
         text('MOVE')
-          .center({ offsetX: 250, offsetY: -20 }).size(90).weight(900).color('#ffffff')
+          .center({ offsetX: 280, offsetY: -20 }).size(76).weight(900).color('#ffffff')
           .in('slideLeft', 0.5, { delay: 0.5 }),
         text('velox motion graphics')
-          .center({ offsetY: 100 }).size(24).color('#555').letterSpacing(4).uppercase()
+          .center({ offsetY: 100 }).size(24).color('#888').letterSpacing(4).uppercase()
           .in('fadeIn', 0.8, { delay: 1.0 }),
       ),
   ],
@@ -115,51 +115,120 @@ const EXAMPLES = [
     code: `createVideo({
   size: '720p',
   fps: 30,
-  background: '#0a0a0f',
+  theme: 'linear',
+  background: '#0a0b10',
   scenes: [
     scene(4)
-      .background('#0a0a0f')
       .add(
-        text('Loading...').center({ offsetY: -60 }).size(40).weight(600).color('#ffffff').in('fadeIn', 0.4),
-        shape.progressBar(100, { color: '#7c3aed', trackColor: 'rgba(124,58,237,0.15)' })
+        text('Loading...').center({ offsetY: -60 }).size(40).weight(600).color('#f4f5f8').in('fadeIn', 0.4),
+        shape.progressBar(100, { color: '#5e6ad2', trackColor: 'rgba(244,245,248,0.1)' })
           .center({ offsetY: 20 }).size(500, 10)
           .in('expandX', 2.5, { delay: 0.5 }),
-        text('Complete').center({ offsetY: 90 }).size(28).color('#7c3aed').in('fadeIn', 0.4, { delay: 3.0 }),
+        text('Complete').center({ offsetY: 90 }).size(28).color('#5e6ad2').in('fadeIn', 0.4, { delay: 3.0 }),
       ),
   ],
 })`,
   },
   {
-    name: 'JSON Schema',
-    code: `{
-  "title": "How AI Agents Work",
-  "subtitle": "A compact schema that the playground can render directly",
-  "duration": 60,
-  "aspectRatio": "9:16",
-  "theme": "tech",
-  "sections": [
-    { "type": "hook", "heading": "From Prompt to Workflow" },
-    {
-      "type": "problem",
-      "heading": "Teams Lose Time",
-      "points": ["Manual work", "Context switching", "Slow handoffs"]
-    },
-    {
-      "type": "process",
-      "heading": "The Loop",
-      "steps": ["Input", "Plan", "Execute", "Review"]
-    },
-    {
-      "type": "stats",
-      "heading": "Impact",
-      "stats": [
-        { "label": "Time Saved", "value": "68%" },
-        { "label": "Output", "value": "3x" }
-      ]
-    },
-    { "type": "cta", "heading": "Start With Structure" }
+    name: 'VML Motion',
+    code: `<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="4" background="aurora:violet">
+    <center motion="cinematic">
+      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
+    </center>
+  </scene>
+  <scene duration="5" background="mesh:ocean">
+    <column gap="32" placement="center">
+      <kicker color="theme.accent">THE LOOP</kicker>
+      <barChart width="700" height="320" motion="growUp">
+        <bar label="Input" value="80" color="theme.accent" />
+        <bar label="Plan" value="64" color="#38bdf8" />
+        <bar label="Render" value="92" color="#22c55e" />
+      </barChart>
+    </column>
+  </scene>
+</video>`,
+  },
+  {
+    name: 'Premium Motion',
+    code: `createVideo({
+  size: '1080p',
+  fps: 60,
+  theme: 'linear',
+  background: 'grid(rgba(255,255,255,0.03), 60)',
+  scenes: [
+    scene(4)
+      .add(
+        shape.circle(800).center().color('#5e6ad2').opacity(0.15).in('zoomInBlur', 1.5, { ease: 'tactile' }),
+        text('VELOX ENGINE')
+          .center({ offsetY: -40 })
+          .size(104).weight(900).color('#f4f5f8').wrap(1200)
+          .in('tactileIn', 1.0, { ease: 'jitter' }),
+        text('PRODUCTION READY MOTION')
+          .center({ offsetY: 60 })
+          .size(32).color('#8892e0').letterSpacing(8)
+          .in('slideUpBlur', 0.8, { delay: 0.3, ease: 'tactile' })
+          .loop('breathing', { speed: 0.5 })
+      )
+      .transition('crossDissolve', 0.5),
+    scene(4)
+      .add(
+        text('FLUID PHYSICS')
+          .center({ offsetY: -100 })
+          .size(90).weight(900).color('#f4f5f8')
+          .in('maskRevealUp', 0.8, { ease: 'tactile' }),
+        shape.rect(600, 300).center({ offsetY: 80 }).color('#26293d').radius(24)
+          .in('tactileIn', 1.0, { delay: 0.2 }),
+        text('Built-in tactile springs & motion blur')
+          .center({ offsetY: 80 })
+          .size(28).color('#8892e0')
+          .in('fadeIn', 0.6, { delay: 0.6 })
+      )
   ]
-}`,
+})`
+  },
+  {
+    name: 'SVGL Logos',
+    code: `createVideo({
+  size: '720p',
+  fps: 60,
+  theme: 'geist',
+  background: '#ffffff',
+  scenes: [
+    scene(5)
+      .add(
+        logo('github', 'light').center({ offsetX: -200, offsetY: -30 }).size(120).in('tactileIn', 1.0, { ease: 'jitter' }).loop('float', { distance: 15, speed: 0.8 }),
+        logo('react', 'dark').center({ offsetX: 0, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.1, ease: 'jitter' }).loop('rotate', { speed: 0.2 }),
+        logo('svelte', 'dark').center({ offsetX: 200, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.2, ease: 'jitter' }).loop('float', { distance: 10, speed: 1.2 }),
+        text('INTEGRATED WITH SVGL')
+          .center({ offsetY: 120 })
+          .size(32).weight(600).color('#111').letterSpacing(4)
+          .in('slideUpBlur', 0.8, { delay: 0.5 })
+      )
+  ]
+})`
+  },
+  {
+    name: 'OpenAI Intro',
+    code: `createVideo({
+  size: '1080p',
+  fps: 60,
+  theme: 'obsidian',
+  background: '#050505',
+  scenes: [
+    scene(5)
+      .add(
+        ...logo.lockup('openai', 'OpenAI', 'light', {
+          logoSize: 72,
+          textSize: 112,
+          gap: 26,
+          color: '#ffffff',
+          weight: 600,
+          letterSpacing: 2
+        })
+      )
+  ]
+})`
   },
 ]
 
@@ -170,7 +239,37 @@ function looksLikeJsonSchema(code: string): boolean {
   return trimmed.startsWith('{') && trimmed.includes('"sections"')
 }
 
+function looksLikeCreativeSpec(code: string): boolean {
+  const trimmed = code.trim()
+  return trimmed.startsWith('{') && trimmed.includes('"format"') && trimmed.includes('velox-creative-spec-v1')
+}
+
+function isValidExpressionSource(src: string): boolean {
+  try {
+    // eslint-disable-next-line no-new-func
+    new Function('"use strict"; return (' + src + ')')
+    return true
+  } catch {
+    return false
+  }
+}
+
+function buildPlaygroundExecutorBody(cleaned: string): string {
+  // Single-expression scripts: return ( createVideo({...}) )
+  if (isValidExpressionSource(cleaned)) {
+    return '"use strict"; return (' + cleaned + ');'
+  }
+  // Multi-line with const / let / statements: must end with return createVideo(...)
+  return '"use strict";\n' + cleaned + '\n'
+}
+
 function evalVeloxCode(code: string): VeloxVideo {
+  if (isVeloxMarkup(code)) {
+    return createVideoFromMarkup(code)
+  }
+  if (looksLikeCreativeSpec(code)) {
+    return createVideoFromCreativeSpec(JSON.parse(code))
+  }
   if (looksLikeJsonSchema(code)) {
     const schema = JSON.parse(code) as LlmVideoSpec
     return createVideoFromSchema(schema)
@@ -178,17 +277,54 @@ function evalVeloxCode(code: string): VeloxVideo {
 
   const cleaned = code
     .split('\n')
-    .filter(line => !line.trim().startsWith('import '))
+    // Strip import lines: match `import ` and compact `import{`/`import*` (no space after keyword)
+    .filter(line => !/^\s*import\b/.test(line))
     .join('\n')
     .replace(/export\s+default\s+/, '')
     .trim()
 
+  const body = buildPlaygroundExecutorBody(cleaned)
+
   // eslint-disable-next-line no-new-func
   const fn = new Function(
-    'createVideo', 'scene', 'text', 'shape', 'themes', 'resolveTheme', 'createVideoFromSchema',
-    `"use strict"; return (${cleaned})`
+    'createVideo', 'scene', 'text', 'shape', 'logo', 'image', 'group', 'themes', 'resolveTheme', 'createVideoFromSchema',
+    'createVideoFromCreativeSpec', 'isCreativeSpec', 'createVideoFromMarkup', 'isVeloxMarkup',
+    'layout', 'backdrops', 'typography', 'creativeCards', 'motion',
+    body,
   )
-  return fn(createVideo, scene, text, shape, themes, resolveTheme, createVideoFromSchema)
+  const video = fn(
+    createVideo,
+    scene,
+    text,
+    shape,
+    logo,
+    image,
+    group,
+    themes,
+    resolveTheme,
+    createVideoFromSchema,
+    createVideoFromCreativeSpec,
+    isCreativeSpec,
+    createVideoFromMarkup,
+    isVeloxMarkup,
+    layout,
+    backdrops,
+    typography,
+    creativeCards,
+    motion,
+  )
+  if (
+    video == null ||
+    typeof video !== 'object' ||
+    !('config' in video) ||
+    !Array.isArray((video as VeloxVideo).config?.scenes)
+  ) {
+    throw new Error(
+      'Your code must produce a Velox video. Use a single createVideo({ ... }) expression, ' +
+        'or multi-line code with const/let that finishes with: return createVideo({ ... }).',
+    )
+  }
+  return video as VeloxVideo
 }
 
 // ─── Format time ─────────────────────────────────────────────────────────────
@@ -202,6 +338,7 @@ function fmtTime(frame: number, fps: number) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function PlaygroundClient() {
+  const isDev = process.env.NODE_ENV === 'development'
   const [exampleIdx, setExampleIdx] = useState(0)
   const [code, setCode] = useState(EXAMPLES[0].code)
   const [error, setError] = useState<string | null>(null)
@@ -288,9 +425,11 @@ export function PlaygroundClient() {
         canvas.height = h
       }
 
-      // Draw first frame then start loop
-      drawCurrentFrame(0)
-      setIsPlaying(true)
+      preloadImages(cfg).then(() => {
+        // Draw first frame then start loop
+        drawCurrentFrame(0)
+        setIsPlaying(true)
+      })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
       setActiveTab('output')
@@ -345,6 +484,63 @@ export function PlaygroundClient() {
             ))}
           </select>
         </div>
+        {isDev && <button className="pg-render-btn" style={{ background: 'blue' }} onClick={async () => {
+          for (let i = 0; i < EXAMPLES.length; i++) {
+            const ex = EXAMPLES[i]
+            setExampleIdx(i)
+            setCode(ex.code)
+            
+            // Wait a tick for React to update
+            await new Promise(r => setTimeout(r, 1000)) // Increased to 1s to ensure stability
+            
+            try {
+              const video = evalVeloxCode(ex.code)
+              const cfg = video.config
+              const canvas = canvasRef.current!
+              canvas.width = cfg.size[0]
+              canvas.height = cfg.size[1]
+              
+              await preloadImages(cfg)
+              
+              const totalFrames = getTotalFrames(cfg)
+              const stream = canvas.captureStream(cfg.fps || 30)
+              const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' })
+              const chunks: Blob[] = []
+              
+              recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+              
+              const recordingPromise = new Promise<void>(resolve => {
+                recorder.onstop = async () => {
+                  const blob = new Blob(chunks, { type: 'video/webm' })
+                  const fd = new FormData()
+                  fd.append('video', blob)
+                  fd.append('name', ex.name)
+                  await fetch('/api/export', { method: 'POST', body: fd })
+                  console.log('Saved', ex.name)
+                  resolve()
+                }
+              })
+              
+              recorder.start()
+              
+              // Draw frames
+              for (let f = 0; f < totalFrames; f++) {
+                const ctx = canvas.getContext('2d')!
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                await drawFrame(ctx, cfg, f, canvas.width, canvas.height)
+                await new Promise(r => setTimeout(r, 1000 / (cfg.fps || 30))) // real-time pace for stream
+              }
+              
+              recorder.stop()
+              await recordingPromise
+            } catch(e) {
+               console.error('Failed on', ex.name, e)
+            }
+          }
+          alert('All 9 videos exported to /examples/')
+        }}>
+          <span className="pg-render-icon">🎬</span> Export All
+        </button>}
         <button className="pg-render-btn" onClick={handleRender}>
           <span className="pg-render-icon">▶</span> Render
         </button>
@@ -358,7 +554,7 @@ export function PlaygroundClient() {
             <span className="pg-pane-dot pg-dot-red" />
             <span className="pg-pane-dot pg-dot-yellow" />
             <span className="pg-pane-dot pg-dot-green" />
-            <span className="pg-pane-title">{looksLikeJsonSchema(code) ? 'video.schema.json' : 'video.ts'}</span>
+            <span className="pg-pane-title">{isVeloxMarkup(code) ? 'video.vml' : looksLikeJsonSchema(code) || looksLikeCreativeSpec(code) ? 'legacy-video.json' : 'video.ts'}</span>
           </div>
           <textarea
             className="pg-editor"

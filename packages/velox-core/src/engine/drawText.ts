@@ -1,6 +1,9 @@
 /**
  * Text drawing engine.
  * Uses standard Canvas 2D API — works in Node (@napi-rs/canvas) and browser.
+ *
+ * All text is word-wrapped by default: if `el.maxWidth` is not set, the renderer
+ * falls back to `canvasWidth * 0.88` so text never overflows the safe zone.
  */
 import type { TextElementConfig, TextListElementConfig, VeloxGradient } from '../types'
 import type { AnimationState } from './animations'
@@ -38,6 +41,35 @@ function applyGradientFill(
   ctx.fillStyle = grad
 }
 
+// ─── Word-Wrap ────────────────────────────────────────────────────────────────
+
+/**
+ * Break `text` into lines that each fit within `maxWidth` pixels.
+ * Respects explicit `\n` line breaks in the source string.
+ */
+function wrapLines(ctx: Ctx, text: string, maxWidth: number): string[] {
+  const result: string[] = []
+
+  for (const paragraph of text.split('\n')) {
+    const words = paragraph.split(' ')
+    let line = ''
+
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        line = candidate
+      } else {
+        if (line) result.push(line)
+        // If a single word is wider than maxWidth, push it as-is (unavoidable)
+        line = word
+      }
+    }
+    if (line) result.push(line)
+  }
+
+  return result.length ? result : ['']
+}
+
 // ─── Main Text Draw ───────────────────────────────────────────────────────────
 
 export function drawText(
@@ -49,7 +81,7 @@ export function drawText(
   canvasWidth: number,
   canvasHeight: number
 ): void {
-  const {
+  let {
     content,
     fontSize = 48,
     fontWeight = 400,
@@ -57,11 +89,15 @@ export function drawText(
     color = '#ffffff',
     gradient,
     letterSpacing = 0,
-    lineHeight = 1.25,
+    lineHeight = 1.4,
     textTransform = 'none',
     fontStyle,
     textAlign = 'center',
+    maxHeight,
   } = el
+
+  // Safe-zone default: 88% of canvas width
+  const maxWidth = el.maxWidth ?? Math.round(canvasWidth * 0.88)
 
   const displayText = textTransform === 'uppercase' ? content.toUpperCase()
     : textTransform === 'lowercase' ? content.toLowerCase()
@@ -82,32 +118,63 @@ export function drawText(
     ctx.rotate((state.rotation * Math.PI) / 180)
   }
 
-  ctx.font = buildFont(fontSize, fontWeight, fontFamily, fontStyle === 'italic')
+  // Dynamic Font Scaler to prevent massive overflow
+  let lines: string[] = []
+  let lineH = 0
+  let totalHeight = 0
+  const maxAllowedHeight = maxHeight ?? (canvasHeight * 0.88)
+  
+  while (fontSize >= 18) { // Don't shrink below 18 to avoid cramped illegible text
+    ctx.font = buildFont(fontSize, fontWeight, fontFamily, fontStyle === 'italic')
+    lines = wrapLines(ctx, displayText, maxWidth)
+    lineH = fontSize * lineHeight
+    totalHeight = lines.length * lineH
+    
+    if (totalHeight <= maxAllowedHeight) {
+      break
+    }
+    fontSize -= 2
+  }
+
+  const shouldCenterBlock = lines.length > 3 && textAlign === 'center'
+
+  // Force left-align for massive blocks of code/text to avoid cramped centered strips
+  if (shouldCenterBlock) {
+    textAlign = 'left'
+  }
+
   ctx.textAlign = textAlign as CanvasTextAlign
   ctx.textBaseline = 'middle'
 
-  // Split lines
-  const lines = displayText.split('\n')
-  const lineH = fontSize * lineHeight
+  // Clip to maxHeight if specified
+  if (maxHeight) {
+    ctx.save()
+    ctx.beginPath()
+    const clipX = textAlign === 'center' || shouldCenterBlock ? -maxWidth / 2 : 0
+    ctx.rect(clipX, -maxHeight / 2, maxWidth, maxHeight)
+    ctx.clip()
+  }
 
   lines.forEach((line, li) => {
+    // Centre the block of lines vertically around the draw point
     const lineY = (li - (lines.length - 1) / 2) * lineH
 
     // Clip reveal (typewriter / revealLeft)
     if (state.clipReveal < 1) {
       const measured = ctx.measureText(line)
-      const w = measured.width + letterSpacing * (line.length - 1)
+      const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
       const clipW = w * state.clipReveal
       ctx.save()
       ctx.beginPath()
-      ctx.rect(-w / 2, lineY - fontSize, clipW, fontSize * 2)
+        const clipX = shouldCenterBlock ? -maxWidth / 2 : -w / 2
+        ctx.rect(clipX, lineY - fontSize, clipW, fontSize * 2)
       ctx.clip()
     }
 
     // Gradient fill on text
     if (gradient) {
       const measured = ctx.measureText(line)
-      const w = measured.width
+      const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
       applyGradientFill(ctx, gradient, -w / 2, lineY - fontSize / 2, w, fontSize)
     } else {
       ctx.fillStyle = color
@@ -116,20 +183,26 @@ export function drawText(
     // Draw with letter spacing
     if (letterSpacing !== 0) {
       let cx = 0
+      ctx.save()
       if (textAlign === 'center') {
         const total = line.split('').reduce((acc, ch) => acc + ctx.measureText(ch).width + letterSpacing, 0)
-        cx = -total / 2
+        // Subtract the extra trailing letterSpacing
+        cx = -(total - letterSpacing) / 2
+        ctx.textAlign = 'left' 
       }
       for (const ch of line) {
-        ctx.fillText(ch, cx, lineY)
+        ctx.fillText(ch, cx + (shouldCenterBlock ? -maxWidth / 2 : 0), lineY)
         cx += ctx.measureText(ch).width + letterSpacing
       }
+      ctx.restore()
     } else {
-      ctx.fillText(line, 0, lineY)
+      ctx.fillText(line, shouldCenterBlock ? -maxWidth / 2 : 0, lineY)
     }
 
     if (state.clipReveal < 1) ctx.restore()
   })
+
+  if (maxHeight) ctx.restore()
 
   ctx.restore()
 }
@@ -158,8 +231,13 @@ export function drawTextList(
     staggerInterval = 0.15,
   } = el
 
+  // Default max width: from drawX position to 6% right margin
+  const maxWidth = el.maxWidth ?? Math.round(canvasWidth * 0.88) - drawX
+
   ctx.font = buildFont(fontSize, fontWeight, fontFamily)
   ctx.textBaseline = 'middle'
+
+  let cursorY = drawY
 
   items.forEach((item, i) => {
     const itemDelay = i * staggerInterval * fps
@@ -175,15 +253,27 @@ export function drawTextList(
       }
     }
 
-    const y = drawY + i * (fontSize + gap)
     const prefix = bullet ? `${bullet} ` : ''
+    const prefixWidth = ctx.measureText(prefix).width
+    const textMaxWidth = Math.max(maxWidth - prefixWidth, 100)
+
+    // Word-wrap each list item
+    const wrappedLines = wrapLines(ctx, item, textMaxWidth)
+    const lineH = fontSize * 1.3
 
     ctx.save()
     ctx.globalAlpha = opacity
     ctx.translate(0, offsetY)
     ctx.fillStyle = color
     ctx.textAlign = 'left'
-    ctx.fillText(prefix + item, drawX, y)
+
+    wrappedLines.forEach((line, li) => {
+      const y = cursorY + li * lineH
+      ctx.fillText((li === 0 ? prefix : '  ') + line, drawX, y)
+    })
+
     ctx.restore()
+
+    cursorY += wrappedLines.length * lineH + gap
   })
 }

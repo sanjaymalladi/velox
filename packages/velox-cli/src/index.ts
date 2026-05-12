@@ -4,7 +4,7 @@ import { renderCommand } from './commands/render'
 import { previewCommand } from './commands/preview'
 import { newCommand } from './commands/new'
 
-const VERSION = '2.0.0'
+const { version: VERSION } = require('../package.json') as { version: string }
 
 console.log(chalk.bold.hex('#6C63FF')('\n  ⚡ velox') + chalk.gray(` v${VERSION}\n`))
 
@@ -31,8 +31,8 @@ program
   .command('render <file>')
   .description('Render video to file')
   .option('-o, --output <path>', 'output file path')
-  .option('-f, --format <format>', 'output format: mp4 | webm | gif', 'mp4')
-  .option('-q, --quality <number>', 'quality 0-100', '80')
+  .option('-f, --format <format>', 'output format: mp4 | gif | png-sequence', 'mp4')
+  .option('-q, --quality <number>', 'quality 0-100 (higher is better)', '80')
   .action((file: string, opts) => renderCommand(file, {
     output: opts.output,
     format: opts.format,

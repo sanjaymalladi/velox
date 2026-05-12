@@ -142,11 +142,9 @@ function serializableConfig(config: VeloxVideoConfig): any {
 // ── Browser engine bundle (inlined, no bundler required) ──────────────────
 
 function getBrowserEngine(config: VeloxVideoConfig): string {
-  // We inline a minimal browser-compatible version of drawFrame
-  // The full engine is in velox-core — here we emit the serialized config
-  // and initialise the canvas drawing using the same logic re-implemented with no imports.
-  // For a production setup we'd ship a pre-bundled ESM. For now we piggyback on the
-  // serialized config + bundle the drawFrame logic inline via Function().
+  // This preview script is intentionally lightweight and does not fully mirror
+  // every edge of the canonical core renderer. Export fidelity should always be
+  // validated with native render output.
   return `
 // ── Velox Browser Engine ──────────────────────────────────────────
 (function() {

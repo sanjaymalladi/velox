@@ -26,7 +26,7 @@ Thumbs.db
 
 # Velox CLI temp preview sessions
 packages/velox-cli/.velox/
-
+REPO_ANALYSIS.md
 # AI / editor artifacts
 implementation_plan.md
 .kilo/

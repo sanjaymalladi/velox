@@ -1,5 +1,5 @@
 import { Element } from '../core/Element'
-import type { ShapeElementConfig, ShapeConfig, VeloxColor, VeloxGradient, ChartDataPoint } from '../types'
+import type { ShapeElementConfig, ShapeConfig, VeloxColor, VeloxGradient, ChartDataPoint, LineChartSeries } from '../types'
 
 class ShapeElement extends Element<ShapeElementConfig> {
   constructor(shapeConfig: ShapeConfig) {
@@ -18,6 +18,14 @@ class ShapeElement extends Element<ShapeElementConfig> {
   thickness(px: number): this { this.config.shape.thickness = px; return this }
   radius(px: number): this { this.config.shape.borderRadius = px; return this }
   speed(s: number): this { this.config.shape.speed = s; return this }
+  shadow(options: { color?: string; blur?: number; offsetX?: number; offsetY?: number } = {}): this {
+    this.config.shape.shadow = options
+    return this
+  }
+  gradient(angle: string, ...stops: string[]): this {
+    this.config.shape.gradient = { type: 'linear', angle, stops }
+    return this
+  }
 }
 
 /**
@@ -86,6 +94,47 @@ export const shape = {
       data: config.data,
       showLabels: config.showLabels ?? true,
       showValues: config.showValues ?? true,
+    })
+  },
+
+  /** Animated D3 line chart. */
+  lineChart(config: {
+    series: LineChartSeries[]
+    showLabels?: boolean
+    showValues?: boolean
+    curve?: 'linear' | 'smooth' | 'step'
+  }): ShapeElement {
+    return new ShapeElement({
+      shapeType: 'lineChart',
+      series: config.series,
+      showLabels: config.showLabels ?? true,
+      showValues: config.showValues ?? true,
+      curve: config.curve ?? 'smooth',
+    })
+  },
+
+  /** Animated D3 donut chart. */
+  donutChart(config: {
+    data: ChartDataPoint[]
+    innerRadius?: number
+    showLabels?: boolean
+    showValues?: boolean
+  }): ShapeElement {
+    return new ShapeElement({
+      shapeType: 'donutChart',
+      data: config.data,
+      innerRadius: config.innerRadius ?? 0.58,
+      showLabels: config.showLabels ?? true,
+      showValues: config.showValues ?? true,
+    })
+  },
+
+  /** Flubber-powered organic path morph. */
+  morphBlob(paths: string[], options?: { color?: string }): ShapeElement {
+    return new ShapeElement({
+      shapeType: 'morphBlob',
+      paths,
+      color: options?.color ?? '#a78bfa',
     })
   },
 

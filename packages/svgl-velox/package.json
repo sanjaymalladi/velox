@@ -1,0 +1,23 @@
+{
+  "name": "@velox-video/svgl",
+  "version": "1.0.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsx src/build.ts"
+  },
+  "dependencies": {
+    "node-html-parser": "^6.1.13",
+    "svg-path-properties": "^1.1.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5"
+  }
+}

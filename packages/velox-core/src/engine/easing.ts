@@ -2,6 +2,7 @@
  * Velox Easing Engine — Pure math, no dependencies.
  * Works identically in Node.js (rendering) and the Browser (preview).
  */
+import { backOut as popBackOut, circOut as popCircOut, cubicBezier as popCubicBezier } from 'popmotion'
 
 // ─── Basic Easings ────────────────────────────────────────────────────────────
 
@@ -89,10 +90,13 @@ export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
   }
 }
 
+export const jitterSnappy = cubicBezier(0.4, 0, 0.2, 1)
+
 // ─── Resolver ────────────────────────────────────────────────────────────────
 
 export type EaseName = 'linear' | 'ease' | 'easeIn' | 'easeOut' | 'easeInOut'
-  | 'spring' | 'bouncy' | 'elastic' | 'bounce'
+  | 'spring' | 'bouncy' | 'elastic' | 'bounce' | 'jitter' | 'tactile'
+  | 'premium' | 'cinematic' | 'magnetic'
 
 export function resolveEase(name: EaseName | undefined): (t: number) => number {
   switch (name) {
@@ -101,8 +105,13 @@ export function resolveEase(name: EaseName | undefined): (t: number) => number {
     case 'easeIn':    return easeIn
     case 'easeOut':   return easeOut
     case 'easeInOut': return easeInOut
-    case 'spring':    return (t) => springValue(t, { stiffness: 170, damping: 26 })
-    case 'bouncy':    return (t) => springValue(t, { stiffness: 300, damping: 20 })
+    case 'jitter':    return jitterSnappy
+    case 'premium':   return popCubicBezier(0.16, 1, 0.3, 1)
+    case 'cinematic': return popCircOut
+    case 'magnetic':  return popBackOut
+    case 'spring':    return (t) => springValue(t, { stiffness: 150, damping: 22 })
+    case 'bouncy':    return (t) => springValue(t, { stiffness: 200, damping: 15 })
+    case 'tactile':   return (t) => springValue(t, { stiffness: 180, damping: 24 }) // Smoother tactile
     case 'elastic':   return elastic
     case 'bounce':    return bounce
     default:          return easeOut

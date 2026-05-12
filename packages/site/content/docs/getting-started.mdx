@@ -9,92 +9,32 @@ Velox makes it easy to create professional motion graphics programmatically. Fol
 
 ## Installation
 
-### Global Installation
-
-Install the Velox CLI globally using npm or pnpm:
+### CLI + Core
 
 ```bash
-npm install -g @velox-video/cli
+npm install -D velox-video @velox-video/core
 # or
-pnpm install -g @velox-video/cli
+pnpm add -D velox-video @velox-video/core
 ```
 
-### Local Installation
+You can also run the CLI directly with `npx velox-video`.
 
-For project-specific usage:
+## Create Your First Video
 
-```bash
-npm install @velox-video/cli
-# or
-pnpm add @velox-video/cli
-```
-
-## Create Your First Project
-
-Create a new project instantly with the Velox CLI:
-
-```bash
-npx velox-video new my-video
-cd my-video
-```
-
-This will create a new project with the following structure:
-
-```
-my-video/
-├── src/
-│   └── index.ts      # Your animation code
-├── package.json
-├── tsconfig.json
-├── velox.config.ts   # Velox configuration
-└── README.md
-```
-
-## Development Workflow
-
-### 1. Write Your Animation
-
-Create your animation in `src/index.ts`:
+Create `video.ts`:
 
 ```typescript
-import { canvas, rect, color, animate, text, group } from '@velox-video/core'
+import { createVideoFromMarkup } from '@velox-video/core'
 
-export default canvas({
-  width: 1920,
-  height: 1080,
-  fps: 30,
-  duration: 5.0,
-  background: '#0f0f0f',
-  children: [
-    group({
-      children: [
-        rect({
-          width: 200,
-          height: 200,
-          fill: color('red'),
-          x: animate({
-            from: 0,
-            to: 100,
-            duration: 2.0,
-            easing: 'easeInOut',
-          }),
-          y: animate({
-            from: 0,
-            to: 100,
-            duration: 2.0,
-            delay: 0.5,
-          }),
-        }),
-        text({
-          content: 'Hello Velox!',
-          font: 'bold 48px sans-serif',
-          fill: color('white'),
-          x: animate({ from: 0, to: 200, duration: 1.0 }),
-        }),
-      ],
-    }),
-  ],
-})
+export default createVideoFromMarkup(`
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
+  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <center motion="heroCinematic">
+      <hero kicker="HELLO" title="Your first Velox video" subtitle="VML is safe for LLMs and easy to edit." />
+    </center>
+  </scene>
+</video>
+`)
 ```
 
 ### 2. Preview Your Animation
@@ -102,7 +42,7 @@ export default canvas({
 Run the local studio against your project:
 
 ```bash
-npx velox-video preview src/index.ts
+npx velox-video preview video.ts
 ```
 
 This will start a development server with Hot Module Replacement (HMR). Any changes you make to your animation code will be automatically reflected in the preview.
@@ -121,91 +61,14 @@ Export your project to a high-quality video file:
 
 ```bash
 # Render with default settings
-npx velox-video render src/index.ts --output my-animation.mp4
+npx velox-video render video.ts --output my-animation.mp4
 
 # Render with high quality
-npx velox-video render src/index.ts --quality high --output my-animation.mp4
+npx velox-video render video.ts --quality high --output my-animation.mp4
 
 # Render to GIF
-npx velox-video render src/index.ts --format gif --output animation.gif
+npx velox-video render video.ts --format gif --output animation.gif
 ```
-
-## Interactive Code Playground
-
-Try these interactive examples to learn Velox:
-
-**Example 1: Basic Animation**
-```typescript
-import { canvas, rect, color, animate } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  fps: 30,
-  duration: 5.0,
-  children: [
-    rect({
-      width: 200,
-      height: 200,
-      fill: color('blue'),
-      x: animate({ from: 0, to: 200, duration: 3.0 }),
-    }),
-  ],
-})
-```
-
-**Example 2: Multiple Elements**
-```typescript
-import { canvas, circle, color, animate, group } from '@velox-video/core'
-
-export default canvas({
-  width: 1920,
-  height: 1080,
-  children: [
-    group({
-      children: [
-        circle({
-          radius: 50,
-          fill: color('red'),
-          x: animate({ from: 100, to: 500, duration: 2.0 }),
-        }),
-        circle({
-          radius: 30,
-          fill: color('green'),
-          x: animate({ from: 100, to: 500, duration: 2.0, delay: 0.5 }),
-        }),
-        circle({
-          radius: 40,
-          fill: color('yellow'),
-          x: animate({ from: 100, to: 500, duration: 2.0, delay: 1.0 }),
-        }),
-      ],
-    }),
-  ],
-})
-```
-
-**Try It Yourself:**
-
-```typescript
-// Modify this code and see the output:
-import { canvas, rect, color, animate } from '@velox-video/core'
-
-export default canvas({
-  width: 1280,
-  height: 720,
-  children: [
-    rect({
-      width: 150,
-      height: 150,
-      fill: color('purple'),
-      x: animate({ from: 0, to: 400, duration: 2.0 }),
-    }),
-  ],
-})
-```
-
-**Expected output:** A purple square animating from left to right over 2 seconds.
 
 ## Common Commands
 

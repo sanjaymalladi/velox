@@ -55,3 +55,8 @@ export class ImageElement extends Element<ImageElementConfig> {
 export function image(src: string): ImageElement {
   return new ImageElement(src)
 }
+
+image.stock = (query: string): ImageElement => {
+  const slug = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'stock'
+  return new ImageElement(`stock://${slug}`)
+}

@@ -1,5 +1,6 @@
 import path from 'path'
 import { createJiti } from 'jiti'
+import { validateVeloxVideoConfig } from '@velox-video/core'
 import type { VeloxVideoConfig } from '@velox-video/core'
 
 export async function loadVideoConfig(filePath: string): Promise<VeloxVideoConfig> {
@@ -18,12 +19,16 @@ export async function loadVideoConfig(filePath: string): Promise<VeloxVideoConfi
 
     // VeloxVideo instance (has .config property)
     if (exported && typeof exported === 'object' && 'config' in exported) {
-      return exported.config as VeloxVideoConfig
+      const config = exported.config as VeloxVideoConfig
+      validateVeloxVideoConfig(config)
+      return config
     }
 
     // Plain config object (advanced usage)
     if (exported && typeof exported === 'object' && 'scenes' in exported) {
-      return exported as VeloxVideoConfig
+      const config = exported as VeloxVideoConfig
+      validateVeloxVideoConfig(config)
+      return config
     }
 
     throw new Error(

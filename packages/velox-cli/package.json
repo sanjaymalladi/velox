@@ -1,7 +1,7 @@
 {
   "name": "velox-video",
   "version": "2.0.0",
-  "description": "Velox CLI — zero-dependency native motion graphics rendering engine",
+  "description": "Preview and render Velox motion graphics from TypeScript or VML",
   "author": "sanjaymalladi <sanjaymalladi16@gmail.com>",
   "repository": {
     "type": "git",
@@ -12,6 +12,10 @@
     "velox-video": "./dist/index.js"
   },
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -46,5 +50,14 @@
     "tsup": "^8.3.0",
     "typescript": "^5.4.5"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "canvas",
+    "renderer",
+    "cli",
+    "llm",
+    "vml"
+  ]
 }

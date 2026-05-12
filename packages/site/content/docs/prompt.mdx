@@ -1,143 +1,618 @@
 ---
 title: Prompt
-description: System prompt template for LLM-assisted Velox code generation.
+description: VML-first LLM prompt path, with raw TypeScript kept as the advanced API reference.
 ---
 
-# Prompt
+# Prompt & API reference for LLMs
 
-Use this system prompt when you want an LLM to generate compact, valid Velox code using the current high-level API.
+## Recommended LLM path: Velox Markup
 
-## Complete System Prompt
+For small/local LLMs, generate **Velox Markup (VML)** first. VML is the main LLM authoring format because hierarchy expresses layout cleanly while the compiler prevents invalid TypeScript chains like `shape.rect().stroke()`, `group().size()`, `logo.lockup().pos()`, `.pos({ x, y })`, or `scene().add(el).size()`.
 
-```text
-You are an expert TypeScript developer specializing in the Velox motion graphics engine.
-Velox is a code-first motion graphics library for creating 2D animations, charts, text effects,
-diagram scenes, and LLM-friendly explainer videos programmatically in TypeScript.
+Use the full VML system prompt in the **Markup Prompt** page. The playground accepts VML directly:
 
-CORE RULES:
-- Import from '@velox-video/core'
-- Export a single default video config
-- Prefer high-level APIs when possible: createExplainerVideo(), createStoryVideo(), cards, diagrams, shots
-- Use createVideo() + scene() only when a custom scene is necessary
-- Time is always in seconds, not frames
-- Do not use React components or JSX
-- Do not invent APIs outside the documented Velox surface
-
-PREFERRED LLM-FIRST PATTERNS:
-1. For short structured videos, prefer:
-   createExplainerVideo({
-     title,
-     duration,
-     aspectRatio,
-     theme,
-     sections: [...]
-   })
-
-2. Available section types:
-   hook, problem, solution, process, stats, quote, timeline, comparison, cta
-
-3. Available helpers:
-   - heroTitle()
-   - bulletList()
-   - statCard()
-   - quoteCard()
-   - flowchart()
-   - cards.metric()
-   - cards.quote()
-   - diagrams.flowchart()
-   - shots.titleReveal()
-   - shots.bulletSection()
-   - shots.statsSection()
-   - shots.processDiagram()
-   - shots.quoteBreak()
-   - shots.comparison()
-
-4. Aspect ratio presets:
-   '16:9', '9:16', '1:1', '4:5', '21:9', '1080p', 'portrait', 'square'
-
-5. Theme presets:
-   darkNeon, corporate, warmCinema, brutalist, pastel, presentation, explainer, finance, tech, social, education
-
-LOW-LEVEL PRIMITIVES:
-- createVideo({ size, fps, background, scenes })
-- scene(duration).background(...).add(...)
-- text('Hello').center().size(72).weight(800).color('#fff').in('slideUp', 0.6)
-- text.list([...]).pos(x, y).stagger('slideUp', 0.14)
-- shape.rect(w, h).color('#fff').radius(24)
-- shape.circle(d)
-- shape.line(length).thickness(4)
-- shape.gradient(angle, ...stops)
-- shape.particles(count, { color, speed })
-- shape.barChart({ data })
-- shape.progressBar(value)
-
-ANIMATION RULES:
-- Use built-in entrance, exit, and loop methods
-- Good entrance defaults: fadeIn, slideUp, slideDown, slideLeft, slideRight, zoomIn, expandX, growUp, spring, bounceIn
-- Use delays sparingly and keep timing readable
-- Favor polished, minimal motion over noisy choreography
-
-OUTPUT STANDARDS:
-- Produce complete, runnable TypeScript
-- Keep the code compact
-- Prefer reusable sections over pixel-by-pixel layout logic
-- Use explicit aspectRatio or size
-- Use the smallest amount of code that still creates a polished result
+```xml
+<video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="5" background="aurora:violet">
+    <center motion="cinematic">
+      <hero kicker="AI SYSTEMS" title="From Prompt to Workflow" subtitle="Valid video without brittle chains" />
+    </center>
+  </scene>
+  <scene duration="5" background="mesh:ocean">
+    <column gap="32" placement="center">
+      <kicker color="theme.accent">THE LOOP</kicker>
+      <barChart width="700" height="320" motion="growUp">
+        <bar label="Input" value="80" color="theme.accent" />
+        <bar label="Plan" value="64" color="#38bdf8" />
+        <bar label="Render" value="92" color="#22c55e" />
+      </barChart>
+    </column>
+  </scene>
+</video>
 ```
 
-## Prompt Templates For Specific Use Cases
+Raw TypeScript is still supported, but it is the advanced path for users who need manual control. Legacy JSON/Creative Spec support may remain internally for old examples, but do not recommend it as the model-facing format.
 
-### Explainer Video
+---
 
-```text
-Create a polished Velox explainer video.
+Velox videos are built from **`createVideo({ ... })`**, **`scene(seconds)`**, and **elements** (`text`, `shape`, `logo`, `image`, `group`, layout helpers). There is **no React/JSX**, **no DOM**, **no CSS layout engine** — only this fluent API and the canvas renderer behind it.
 
-Requirements:
-- Duration: 60 seconds
-- Aspect ratio: 9:16
-- Theme: tech
-- Structure: hook, problem, process, stats, cta
-- Keep the code compact and prefer createExplainerVideo()
+Use this document to avoid hallucinated helpers (`centerX`, **`pos({ x, y })`**, **`scene(...).add(el).size`** … **`shape.gradient().opacity()`**, **`shape.rect().stroke()`**, **`group().size()`**, **`logo.lockup().pos()`**, etc.). **§18** is the exhaustive chain-method matrix verified against the repo.
+
+
+---
+
+## 1. How a script must look
+
+### CLI / `velox render` / `velox preview`
+
+- Start from **`import`** lines from **`@velox-video/core`** (only APIs that exist there).
+- End the file with **`export default`** followed by **one** video instance:
+
+```typescript
+import { createVideo, scene, text } from '@velox-video/core';
+
+export default createVideo({
+  size: '1080p',
+  fps: 30,
+  scenes: [
+    scene(5).add(text('Hello').center().size(80)),
+  ],
+});
 ```
 
-### Diagram Scene
+- Use **`const` / `let` freely**; finish with **`export default createVideo(...)`** or **`export default video`** if you assigned to a variable.
+- Prefer **explicit semicolons** at the end of statements so small models do not concatenate lines incorrectly.
 
-```text
-Create a Velox video scene that explains a workflow visually.
+### Docs playground (browser)
 
-Requirements:
-- Use diagrams.flowchart() or flowchart()
-- Keep labels concise
-- Use a clean presentation theme
-- Make the scene readable in portrait aspect ratio
+- **`import`** lines are stripped before evaluation (including **`import{`** without a space — globals are injected; see §13).
+- **`export default`** at the start of the snippet is rewritten — prefer **bare `createVideo({...})`** or end with **`return createVideo(...)`** when using **`const`** (§1 opening examples).
+- Either **one expression** that evaluates to a video:
+
+```javascript
+createVideo({ size: '720p', fps: 30, scenes: [scene(4).add(text('Hi').center())] });
 ```
 
-## Effective Prompting Tips
+- Or **multiple statements** — must finish with **`return createVideo({ ... });`** (semicolon recommended).
 
-- Ask for structured sections instead of raw animation choreography.
-- Specify duration and aspect ratio up front.
-- Prefer one visual idea per section.
-- Tell the model to use the smallest amount of code needed for a polished result.
+---
 
-## Common Mistakes To Avoid In Prompts
+## 2. Top-level `createVideo({ ... })`
 
-- Do not ask for React components or JSX.
-- Do not ask the model to invent undocumented APIs.
-- Do not mix frame-based and second-based timing.
-- Do not force low-level positioning unless the scene truly needs it.
+| Field | Type | Meaning |
+| ----- | ---- | ------- |
+| **`size`** | preset name or `[width, height]` | `'1080p'`, `'720p'`, `'4k'`, `'portrait'` (1080×1920), `'square'`, `'16:9'`, `'9:16'`, `'1:1'`, `'4:5'`, `'21:9'`, or explicit `[w, h]`. |
+| **`fps`** | `24 \| 30 \| 60` | Frame rate; animation durations are still in **seconds**, not frames. |
+| **`theme`** | string key or theme object | Resolved via **`themes`** (§8). Sets defaults like **`font`** and fallback **`background`** from the theme. |
+| **`background`** | string or gradient object | **Global** backdrop for the whole canvas (§7). Usually a CSS color (`'#000'`) or **`grid(color, pixelStep)`** string — **not** a shorthand for images. |
+| **`font`** | string | Font stack applied where elements do not override (e.g. `'Inter, sans-serif'`). |
+| **`scenes`** | `scene(...)` builders | Required non-empty array. |
+| **`audio`** | `{ src, volume? }` | Optional root-level audio (see **`scene().audio`** for per-scene). |
 
-## Example Prompts
+Invalid at root: imaginary keys like **`layers`**, **`tracks`**, **`keyframes`** — they do nothing.
 
-```text
-Create a 45-second 16:9 product explainer in Velox using createExplainerVideo().
-Theme: presentation.
-Sections: hook, problem, solution, stats, cta.
-Focus on clean cards, minimal motion, and easy-to-read copy.
+---
+
+## 3. `scene(durationSeconds)`
+
+| Method | Meaning |
+| ------ | ------- |
+| **`.background(value)`** | **Scene-specific** backdrop (§7). Overrides compositing for that scene’s draw; can be omitted to show through from the **global** background. |
+| **`.transition(type, durationSeconds, options?)`** | Transition **into this scene** from the previous (`crossDissolve`, `wipe`, `slide`, `zoom`, `glitch`, `flash`). **`durationSeconds < scene duration`**. |
+| **`.add(...elements)`** | Append elements or **`...spread`** arrays (e.g. **`...logo.lockup(...)`**). |
+| **`.audio(src, options?)`** | Per-scene audio: **`volume`**, **`startFrom`** (seconds). |
+
+**Time:** **`scene(5)`** = 5 seconds. **`.in(..., 0.8)`** on an element = 0.8 **seconds** of entrance — never interpret as frames unless you multiply by **`fps`** yourself (don’t).
+
+### Chaining after **`.add()`** (common mistake)
+
+**`.add(...)`** returns **`SceneBuilder`**, not the element you passed in.
+
+**Wrong:** `scene(5).add(shape.progressBar(72)).size(600, 16)` — **`.size`** is called on **`scene`**, not on the **`ShapeElement`**. There is **no** **`scene.size()`**.
+
+**Right:** finish building each element, then pass it into **`add`**:
+
+```typescript
+scene(5).add(
+  shape.progressBar(72, { trackColor: '#444', color: '#0f0' })
+    .size(600, 16)
+    .center()
+    .in('growUp', 5.5),
+);
 ```
 
+Same for **`text`**, **`logo`**, **`image`**, etc.: **`scene(...).add(text('Hi').size(70).center())`**, never **`scene(...).add(text('Hi')).size(70)`**.
+
+---
+
+## 4. Layering: what “background” actually does
+
+Draw order per frame:
+
+1. Canvas cleared.
+2. **`createVideo({ background })`** — **global** fill (solid, **`grid(...)`**, or linear gradient object).
+3. For the active scene(s): **`scene.background`** is drawn **over** that global layer for that scene’s pixels (if set).
+4. All **`scene.elements`** are drawn on top.
+
+**Gradient objects:** `{ type: 'linear', angle: '135deg', stops: ['#a','#b'] }` — produced by **`shape.gradient(angle, ...stops)`** or presets like **`backdrops.aurora()`**.
+
+**Grid strings:** **`'grid(rgba(0,0,0,0.05), 40)'`** — color + cell size in pixels. Helper: **`backdrops.grid(color, size)`**.
+
+The renderer expects the literal pattern **`grid(<color>, <step px>)`** (see **`drawFrame`**). Prefer **`backdrops.grid('#0a0a0a', 30)`** or a clearly comma-separated string like **`'grid(#0a0a0a, 30)'`** so formatting stays unambiguous.
+
+If **`scene.background`** is **unset**, the renderer **does not** repaint the scene area — what you still see underneath is the **global** **`createVideo`** background.
+
+---
+
+## 5. Positioning — only these APIs exist
+
+There is **`center`**, **`pos`**, and **nothing named `centerX` / `centerY` / `anchor`**.
+
+### Shared by every **`Element`** (all visuals extend this)
+
+| Method | Purpose |
+| ------ | ------- |
+| **`.center({ offsetX?, offsetY? })`** | Anchor so the **center** of the element is at canvas **center**, with optional pixel shifts. |
+| **`.pos(x, y)`** | **Absolute** position: **`x,y`** are pixel coordinates from the **top-left** of the canvas (or **group origin** for children). |
+| **`.pos(namedAnchor, undefined?, { offsetX?, offsetY? })`** | Named positions: **`'topLeft'`**, **`'topRight'`**, **`'bottomLeft'`**, **`'bottomRight'`**, **`'topCenter'`**, **`'bottomCenter'`**, **`'leftCenter'`**, **`'rightCenter'`**, **`'center'`** — with optional offsets. |
+| **`.opacity(0..1)`** | Element opacity. |
+| **`.in(anim, seconds, opts?)`** | Entrance: **`delay`**, **`ease`** in opts. |
+| **`.out(anim, seconds, opts?)`** | Exit: optional **`at`** (seconds into scene). |
+| **`.loop(anim, opts?)`** | Continuous loop while visible. |
+
+**Invalid:** **`centerX`**, **`centerY`**, **`x()`**, **`y()`**, **`translate()`**, **`flex()`**, **`margin()`** — **not implemented**.
+
+### Positioning traps (CSS / web patterns that fail here)
+
+| Wrong mental model | Velox reality |
+| ------------------ | ------------- |
+| **`.pos({ x: 0.5, y: 0.2 })`** — object form | **`pos`** only accepts **`pos(number, number)`** or **`pos(NamedPosition, …)`**. **No** **`{ x, y }`** object — usually a **runtime error**. |
+| **`0.5` / `0.3`** as normalized screen coords | **`pos`** uses **pixels**, not **0–1**. Use **`center({ offsetX, offsetY })`** or **`pos(px, px)`** derived from **`createVideo`** size (e.g. portrait **1080×1920**). |
+| **`center()` plus `pos()`** like CSS stacking | **`position`** is one field — **last** **`center`** / **`pos`** wins (§18). |
+
+---
+
+## 6. Factories vs values (critical for LLMs)
+
+| Expression | What it is | Chainable? |
+| ---------- | ---------- | ---------- |
+| **`shape.rect(...)`**, **`shape.circle(...)`**, **`shape.line(...)`**, **`shape.particles(...)`**, **`shape.noise(...)`**, **`shape.barChart(...)`**, **`shape.progressBar(...)`** | **`ShapeElement`** (extends **`Element`**) | **Yes** — **`.center()`**, **`.opacity()`**, **`.color()`**, **`.in()`**, etc. |
+| **`shape.gradient('135deg', '#a', '#b')`** | Plain **`VeloxGradient`** object for **backgrounds** | **No** — there is **no** **`.opacity()`**, **no** **`.center()`**. Use as **`scene(4).background(shape.gradient(...))`** or **`createVideo({ background: shape.gradient(...) })`**. |
+| **`backdrops.aurora()`**, **`backdrops.meshGradient()`** | Same — they return **`shape.gradient(...)`** internally | **No** chaining. |
+| **`backdrops.grid()`** | Returns a **`grid(...)` string** | String only — pass to **`.background()`**. |
+
+**Wrong:** `shape.gradient('180deg', '#000', '#fff').opacity(0.5)` — **will throw** — **`gradient`** is not an element.
+
+**Right:** opacity on the **whole scene** by choosing semi-transparent stops, or put a semi-transparent **`shape.rect`** element on top.
+
+---
+
+## 7. Shapes (`shape.*`) — complete reference (fluent API vs renderer)
+
+LLMs often assume a CSS/SVG-like API (**`.stroke()`**, **`.border()`**, **`.dash()`**). Velox **`ShapeElement`** does **not** expose those methods. **`shape.rect(...).radius(...).color(...).stroke` is not a function** — that is **correct**: **`stroke`** was never defined on **`ShapeElement`**; it is **not** an omission from one engine path, it is absent from **`packages/velox-core/src/elements/Shape.ts`** everywhere.
+
+### 7.1 What exists on **every** `ShapeElement` (after `shape.rect`, `shape.circle`, …)
+
+These are the **only** shape-specific chain methods implemented on **`ShapeElement`**:
+
+| Method | Meaning |
+| ------ | ------- |
+| **`.color(css)`** | Sets **`VeloxColor`** on the shape config. **One** accessor — there is **no** separate **`.fill()`** vs **`.stroke()`**. |
+| **`.size(width, height?)`**, **`.width(px)`**, **`.height(px)`** | Bounding box used when drawing. |
+| **`.radius(px)`** | Rounded corners → **`borderRadius`** for **`shape.rect`** only. |
+| **`.thickness(px)`** | Stroke thickness — **primarily for `shape.line`** (canvas **`stroke`**). Rectangles/circles use **`fill()`**, not **`stroke()`**, in the renderer (§7.3). |
+| **`.speed(n)`** | **`shape.particles`** animation speed. |
+
+Then **`Element`** applies (§5): **`.center()`**, **`.pos()`**, **`.opacity()`**, **`.in()`**, **`.out()`**, **`.loop()`**.
+
+### 7.2 What does **not** exist (these throw)
+
+| Invalid | Reason |
+| ------- | ------ |
+| **`.stroke()`**, **`.strokeWidth()`** | Not implemented on **`ShapeElement`**. |
+| **`.border()`**, **`.outline()`** | Not implemented — outline rects are not a built-in primitive (§7.5). |
+| **`.fill()`** | Use **`.color()`** for fill color on filled shapes. |
+| **`.dash()`**, **`.lineDash()`** | Not implemented. |
+| **`shape.gradient(...).anything`** | **`shape.gradient`** returns background **data**, not an element (§6). |
+
+### 7.3 How drawing works (`engine/drawShape.ts`)
+
+| Factory | Renderer behavior | **`.color()`** |
+| ------- | ------------------- | --------------- |
+| **`shape.rect`** | **`roundRect` + `ctx.fill()`** — **filled** shape, **no stroke pass**. | Fill color. |
+| **`shape.circle`** | **`arc` + `fill()`** — **filled**. | Fill color. |
+| **`shape.line`** | **`stroke()`** horizontal segment — **`.thickness()`** → line width; **`.color()`** → **`strokeStyle`**. | Use this when you need a visible **stroke**. |
+
+So **`shape.rect(...).color(...)`** is valid; **`shape.rect(...).stroke(...)`** fails because **there is no `.stroke` method**, not because radius/color broke.
+
+### 7.4 Shape factories (`shape.` namespace)
+
+| Call | Returns |
+| ---- | ------- |
+| **`shape.rect(w, h?)`**, **`shape.circle(d)`**, **`shape.line(len?)`** | **`ShapeElement`** |
+| **`shape.particles(count, opts?)`**, **`shape.noise(opts?)`** | **`ShapeElement`** |
+| **`shape.barChart({ data, showLabels?, showValues? })`** | **`ShapeElement`** — points **`{ label, value, color? }`** |
+| **`shape.progressBar(value, { trackColor?, color? })`** | **`ShapeElement`** — **`value`** ∈ **[0, 100]** |
+| **`shape.gradient(angle, ...stops)`** | **`VeloxGradient`** only — **not** chainable as an element (§6). |
+
+### 7.5 Outlines / frames without `.stroke()`
+
+1. **Double rect:** larger **`shape.rect`** (border color) behind + smaller **`shape.rect`** (inner fill), same **`center()`**.
+2. **Perimeter:** four **`shape.line`** instances + **`.thickness()`** / **`.color()`**.
+3. **Cards:** **`creativeCards.glass`** presets instead of manual strokes.
+
+---
+
+## 8. `text` and `text.list`
+
+### `text('Content')`
+
+Extra methods (after **`Element`**): **`size`**, **`weight`**, **`color`**, **`gradient(from, to, angle?)`**, **`font`**, **`letterSpacing`**, **`lineHeight`**, **`uppercase`**, **`italic`**, **`align('left'\|'center'\|'right')`**, **`wrap(maxWidthPx)`**, **`maxHeight(px)`**.
+
+### `text.list(['a','b'])`
+
+**`stagger(animation, intervalSeconds)`** sets per-item stagger — **only on lists**, not on plain **`text()`**.
+
+---
+
+## 9. `image`, `logo`, `group`, `layout`
+
+### `image(src)`
+
+**`src`** URL/path or **`stock://...`** from **`image.stock('query')`** (placeholder gradient — no network fetch in core).
+
+Chain: **`size`**, **`fill`**, **`fit`**, **`blur`**, **`brightness`**, **`saturate`**, **`radius`**, **`kenBurns(...)`**, plus **`Element`** (§5).
+
+### `logo(name, 'light'|'dark')`
+
+SVGL-backed logos by **slug name**. **`size(w, h?)`**, **`Element`** methods.
+
+### `logo.lockup(name, label, theme, options?)`
+
+Returns **`Element[]`** (a **plain array**: **`[logoElement, textElement]`**), **not** a single **`Element`**.
+
+**Therefore:**
+
+- **`logo.lockup(...).pos`** — **invalid**. Arrays do **not** have **`.pos()`**, **`.center()`**, **`.in()`**, etc. Only **each element** inside the array does — but you must not chain off the array.
+- **Correct:** spread into **`scene(...).add(...logo.lockup(...))`** so both elements are added.
+- **Position the whole lockup as one unit:** wrap in **`group([...logo.lockup(...)])`** then **`.stack()`** / **`.row()`** / **`.column()`** and **`.center()`** on the **group**, or use **`layout.center(group([...logo.lockup(...)]).stack())`** (exact nesting depends on your layout).
+
+**Built-in positioning:** **`options.x`** and **`options.y`** shift the lockup relative to canvas center (see **`Logo.ts`** — defaults **`0`**). Prefer **`x` / `y`** over inventing **`.pos`** on the array.
+
+---
+
+### `group([...])` and **`layout.*`** (`GroupBuilder`)
+
+**`group(children)`** returns a **`GroupBuilder`** (`packages/velox-core/src/elements/Group.ts`). It arranges **child elements**; size comes from **those children** (measured for layout), not from a box you set on the group.
+
+**Implemented on `GroupBuilder` only:**
+
+| Method | Role |
+| ------ | ---- |
+| **`.row({ gap?, align? })`** | Horizontal row |
+| **`.column({ gap?, align? })`** | Vertical column |
+| **`.stack()`** | Children stacked at origin (overlay) |
+
+**Inherited from `Element` (§5):** **`.center()`**, **`.pos()`**, **`.opacity()`**, **`.in()`**, **`.out()`**, **`.loop()`**.
+
+**Not implemented — calling these throws:**
+
+| Invalid | Why |
+| ------- | --- |
+| **`.size()`**, **`.width()`**, **`.height()`** | **Groups have no `size` / `width` / `height` chain methods.** Bounds are derived when laying out children; there is no API to set an explicit group bounding box like **`shape.rect(w,h).size(...)`**. |
+| **`group(...).radius()`**, **`.color()`** | Groups are containers, not colored rects — put a **`shape.rect`** behind the group if you need a visible frame. |
+
+**`layout`** helpers only wrap **`group`**:
+
+- **`layout.row(children, opts)`** → **`group(children).row(opts)`**
+- **`layout.column(children, opts)`** → **`group(children).column(opts)`**
+- **`layout.stack(children)`** → **`group(children).stack()`**
+- **`layout.center(child)`** → **`group([child]).stack().center()`**
+- **`layout.safeFrame(child, { x?, y? })`** → centered group with optional offsets
+
+To control **how wide** content is, set **`wrap()`** on **`text`**, **`size()`** on **`shape`** / **`image`** / **`logo`**, not **`group(...).size()`**.
+
+---
+
+## 10. Presets: `typography`, `creativeCards`, `motion`
+
+- **`typography.hero`**, **`typography.kicker`**
+- **`creativeCards.glass`**, **`creativeCards.glassList`**, **`creativeCards.metric`**
+- **`motion.cinematicIn`**, **`motion.pop`**, **`motion.float`**, **`motion.stagger`**
+
+These return **`Element`** / arrays of elements — compose like any other element.
+
+---
+
+## 11. Themes — only these keys resolve via `themes`
+
+Built-in **`themes`** record keys (strings passed to **`theme:`**):
+
+**`geist`**, **`notion`**, **`linear`**, **`obsidian`**, **`sandstone`**, **`corporateBlue`**, **`mintMinimal`**, **`monochromeGrid`**.
+
+Aliases like **`presentation`** / **`tech`** appear in **LLM JSON/schema** helpers — they are **not** guaranteed as **`theme:`** strings in raw **`createVideo`** unless resolved through those helpers. Prefer an explicit key from the list above for hand-written code.
+
+---
+
+## 12. Animations & easing (exact identifiers)
+
+**Entrance:** `fadeIn`, `slideUp`, `slideDown`, `slideLeft`, `slideRight`, `zoomIn`, `zoomInBlur`, `flipIn`, `typewriter`, `expandX`, `growUp`, `spring`, `bounceIn`, `glitchIn`, `revealLeft`, `slideUpBlur`, `maskRevealUp`, `tactileIn`, `drawIn`
+
+**Exit:** `fadeOut`, `slideUpOut`, `slideDownOut`, `slideLeftOut`, `slideRightOut`, `zoomOut`, `zoomOutBlur`, `flipOut`, `shrinkX`, `glitchOut`
+
+**Loop:** `pulse`, `float`, `rotate`, `shimmer`, `glow`, `shake`, `breathing`
+
+**Ease:** `ease`, `linear`, `spring`, `bouncy`, `jitter`, `tactile`
+
+**Transitions:** `crossDissolve`, `wipe`, `slide`, `zoom`, `glitch`, `flash`
+
+Anything outside these lists — **unsupported**.
+
+---
+
+## 13. Playground injected globals
+
+When **`import`** is omitted, these identifiers exist:
+
+`createVideo`, `scene`, `text`, `shape`, `logo`, `image`, `group`, `themes`, `resolveTheme`, `createVideoFromSchema`, `layout`, `backdrops`, `typography`, `creativeCards`, `motion`.
+
+Everything else (**`d3`**, **`fetch`**, **`document`**) — **not part of Velox** unless your host app injects them.
+
+---
+
+## 14. Optional LLM bundle (imports required on CLI)
+
+These live in **`@velox-video/core`** but are **not** playground globals:
+
+`heroTitle`, `bulletList`, `statCard`, `quoteCard`, `flowchart`, `cards`, `diagrams`, `shots`, `createExplainerVideo`, `createStoryVideo`, `createVideoFromSchema`.
+
+Note: **`cards`** here is the **LLM helpers** namespace — **`creativeCards`** in the playground is the **preset** export (**`glass`**, **`metric`**, …).
+
+---
+
+## 15. JSON schema mode
+
+If pasted JSON starts with **`{`** and contains **`"sections"`**, the playground treats it as **`LlmVideoSpec`** and runs **`createVideoFromSchema`**. Prefer real code for creative control.
+
+---
+
+## 16. Cannot do — anti-pattern checklist
+
+- **`shape.rect` / `shape.circle` + `.stroke()`** — **`.stroke()` does not exist**. Rect/circle are **fills**. Use **`shape.line`** for strokes, or double-rect frame (§7).
+- **`shape.gradient(...).anything`** — **`gradient`** returns **data**, not an element (§6).
+- **`centerX`**, **`centerY`**, **`anchor('middle')`** — use **`center({ offsetX, offsetY })`** or **`pos`** (§5).
+- **React components**, **JSX**, **HTML/CSS layout**.
+- **`duration` in `.in()` as frames** — always **seconds**.
+- **Imaginary **`ease`: **`easeInOutQuad`** etc.** — only **`EaseType`** values (§12).
+- **`theme: 'presentation'`** expecting it to resolve — use **`themes`** keys (§11) or **`resolveTheme`** with a real key.
+- **Layers/z-index/CSS `filter`** — partial (**`blur`** on **`image`** only); no universal **`dropShadow`** on **`text`**.
+- **`logo.lockup(...).pos()`**, **`logo.lockup(...).center()`** — **invalid** — **`lockup`** returns a **plain `Element[]`**, not an element; use **`...spread`**, **`group([...logo.lockup(...)])`**, or **`options.x` / `options.y`** on **lockup** (§9).
+- **`fetch`** / runtime URLs for **`stock`** images — **`image.stock`** is **deterministic placeholders**, not stock APIs.
+
+---
+
+## 17. Copy-paste system prompt (full summary)
+
+````text
+You generate Velox TypeScript only — no React/JSX.
+
+VIDEO ROOT:
+createVideo({ size, fps?, theme?, background?, font?, scenes, audio? })
+scene(seconds).background?(solid | grid('grid(...)') | VeloxGradient | backdrops.*).transition?(...).add(...elements).audio?(...)
+
+POSITIONING (ONLY):
+center({ offsetX?, offsetY? }), pos(x,y), pos(NamedPosition, _, { offsetX?, offsetY? }).
+Never centerX, centerY, anchor(), translate(), flex.
+
+ELEMENT BASE (every visual):
+opacity, in, out, loop, center, pos.
+
+SHAPES — READ CAREFULLY:
+• shape.rect | circle | line | particles | noise | barChart | progressBar → ShapeElement — chain ONLY:
+  color, size, width, height, radius, thickness, speed — plus inherited center/pos/opacity/in/out/loop.
+• shape.gradient(angle, ...stops) returns BACKGROUND DATA — not ShapeElement — cannot chain element methods.
+
+THERE IS NO shape(...).stroke(), strokeWidth(), border(), outline(), dash(), or separate fill().
+• shape.rect and shape.circle are FILLED paths (canvas fill). color() sets fill color.
+• shape.line uses canvas stroke(); thickness() sets stroke width; color() sets stroke color.
+
+If you need an outline box: double stacked rects or four shape.line edges — never invent stroke().
+
+GROUP (group / layout.*):
+• GroupBuilder chain: ONLY row({gap?, align?}), column(...), stack(), plus inherited center/pos/opacity/in/out/loop.
+• NO group().size(), .width(), .height() — bounds come from children; use text.wrap, shape.size, image.size, etc.
+
+LOGO LOCKUP:
+• logo.lockup(...) returns Element[] (array) — NEVER chain .pos, .center, .in on the array — spread into add() or wrap with group([...logo.lockup(...)])
+
+TIME: seconds for scene(), .in(), delays — never frames unless converting manually.
+
+STYLE: semicolon-terminated statements.
+CLI: export default createVideo(...);
+Playground multi-line: return createVideo(...);
+
+THEME KEYS: geist, notion, linear, obsidian, sandstone, corporateBlue, mintMinimal, monochromeGrid.
+
+INVALID: stroke() on rects, group().size(), logo.lockup().pos(), shape.gradient().opacity(), invented easing names, JSX.
+````
+
+---
+
+## 18. Canonical API matrix (verified against `@velox-video/core`)
+
+Use this as the **single checklist** against `packages/velox-core/src`. If something is not listed here as a **chain method**, assume **it does not exist** unless you add it to the library.
+
+### 18.1 Shared by **every** element class (`Element`)
+
+These come from **`core/Element.ts`** and apply to **`TextElement`**, **`TextListElement`**, **`ImageElement`**, **`LogoBuilder`**, **`ShapeElement`**, **`GroupBuilder`**:
+
+| Method | Role |
+| ------ | ---- |
+| **`.center({ offsetX?, offsetY? })`** | Canvas-centered anchor + offsets |
+| **`.pos(x, y)`** | Absolute pixels |
+| **`.pos(NamedPosition, _, { offsetX?, offsetY? })`** | Named anchors (§5) |
+| **`.opacity(n)`** | 0–1 |
+| **`.in(animation, seconds, opts?)`** | Entrance |
+| **`.out(animation, seconds, opts?)`** | Exit |
+| **`.loop(animation, opts?)`** | Loop while visible |
+
+**Not on `Element`:** **`size`** (except per-class), **`stroke`**, **`width`/`height`** as generic element API.
+
+---
+
+### 18.2 `text()` → **`TextElement`**
+
+**Extra** (only these, from `elements/Text.ts`):
+
+**`size`**, **`weight`**, **`color`**, **`gradient(from, to, angle?)`**, **`font`**, **`letterSpacing`**, **`lineHeight`**, **`uppercase`**, **`italic`**, **`align`**, **`wrap`**, **`maxHeight`**.
+
+**Not on plain `text()`:** anything else (no **`bullet`**, **`stagger`** — those belong to **`text.list`**).
+
+---
+
+### 18.3 `text.list()` → **`TextListElement`**
+
+**Extra:** **`size`**, **`weight`**, **`color`**, **`font`**, **`gap`**, **`bullet`**, **`wrap`**, **`stagger(animation, intervalSeconds)`**.
+
+**Explicitly absent:** **`gradient`**, **`italic`**, **`uppercase`**, **`align`**, **`lineHeight`**, **`maxHeight`** on **`TextListElement`** — do not chain these from **`text.list`**; use **`text(...)`** for rich typography.
+
+---
+
+### 18.4 `image()` → **`ImageElement`**
+
+**Extra:** **`size`**, **`fill`**, **`fit`**, **`blur`**, **`brightness`**, **`saturate`**, **`radius`**, **`kenBurns`**.
+
+Also **`image.stock(query)`** → **`ImageElement`** with **`stock://...`** placeholder rendering.
+
+---
+
+### 18.5 `logo()` → **`LogoBuilder`**
+
+**Extra:** **`size(w, h?)`** only (+ **`Element`**).
+
+**Important gap:** **`LogoElementConfig`** allows **`blur`** in types / renderer paths, but **`LogoBuilder` exposes no `.blur()`** method — **do not generate `logo(...).blur(...)`** until the fluent API adds it.
+
+---
+
+### 18.6 `shape.*` → **`ShapeElement`**
+
+**Extra:** **`color`**, **`size`**, **`width`**, **`height`**, **`thickness`**, **`radius`**, **`speed`**.
+
+**`shape` namespace:** **`rect`**, **`circle`**, **`line`**, **`particles`**, **`noise`**, **`barChart`**, **`progressBar`** → **`ShapeElement`**. **`gradient`** → **`VeloxGradient` data only** (§6–§7).
+
+**Renderer vs fluent gap:** **`ShapeConfig`** can carry **`gradient`** / **`shadow`** for rects in **`drawShape`**, but **`ShapeElement` has no `.gradient()` / `.shadow()` chain methods** — only **`.color()`** etc. Do not invent **`.gradient()`** on **`shape.rect(...)`**.
+
+---
+
+### 18.7 `group()` → **`GroupBuilder`**
+
+**Extra:** **`row(opts?)`**, **`column(opts?)`**, **`stack()`** (+ **`layout`** forwards to these).
+
+**Absent:** **`size`**, **`width`**, **`height`**, **`radius`**, **`color`** as group-level chains (§9).
+
+---
+
+### 18.8 `layout` object (`layout.ts`)
+
+| Helper | Equivalent |
+| ------ | ----------- |
+| **`layout.row(children, opts?)`** | **`group(children).row(opts?)`** |
+| **`layout.column(children, opts?)`** | **`group(children).column(opts?)`** |
+| **`layout.stack(children)`** | **`group(children).stack()`** |
+| **`layout.center(child)`** | **`group([child]).stack().center()`** |
+| **`layout.safeFrame(child, { x?, y? })`** | **`group([child]).stack().center({ offsetX, offsetY })`** |
+
+---
+
+### 18.9 Returns that are **not** a single element
+
+| Expression | Returns | Implication |
+| ---------- | ------- | ----------- |
+| **`logo.lockup(...)`** | **`Element[]`** | Never **`logo.lockup(...).pos()`**. Use **`scene(...).add(...logo.lockup(...))`** or **`group([...logo.lockup(...)])`**. Do **not** pass the raw array as **one** argument to **`add()`** without spread — use **`...`**. |
+
+---
+
+### 18.10 `scene()` → **`SceneBuilder`** (not an element)
+
+Methods: **`background`**, **`transition`**, **`add`**, **`audio`**.
+
+**`.add(...elements)`** expects **`Element`** instances (each has **`toConfig()`**). Spread arrays of elements where needed.
+
+---
+
+### 18.11 Presets (`presets.ts`)
+
+| Export | Typical return |
+| ------ | ---------------- |
+| **`typography.hero`** | **`GroupBuilder`** (column of texts) |
+| **`typography.kicker`** | **`TextElement`** |
+| **`creativeCards.glass/glassList/metric`** | **`GroupBuilder`** |
+| **`motion.cinematicIn/pop/float`** | same element **`T`** |
+| **`motion.stagger`** | **`T[]`** |
+
+---
+
+### 18.12 `@velox-video/core` exports **missing** from the docs playground
+
+The playground injects only:
+
+`createVideo`, `scene`, `text`, `shape`, `logo`, `image`, `group`, `themes`, `resolveTheme`, `createVideoFromSchema`, `layout`, `backdrops`, `typography`, `creativeCards`, `motion`.
+
+**Also exported** from the package (CLI / Node imports) but **not** auto-injected in the browser sandbox:
+
+**Utilities:** **`random`**, **`randomRange`**
+
+**LLM helpers:** **`heroTitle`**, **`bulletList`**, **`statCard`**, **`quoteCard`**, **`flowchart`**, **`cards`** (LLM diagram builders — **different name** from **`creativeCards`**), **`diagrams`**, **`shots`**, **`createExplainerVideo`**, **`createStoryVideo`** (`createVideoFromSchema` is playground-injected — listed above).
+
+**Low-level engine** (embedding hosts): **`drawFrame`**, **`getTotalFrames`**, **`buildSceneTimeline`**, **`resolveSize`**, **`preloadImages`**, **`setImageCache`**, **`getAnimationState`**, easing helpers, **`validateVeloxVideoConfig`**, etc.
+
+---
+
+### 18.13 Truth table — common hallucinations
+
+| Expression | Valid? |
+| ---------- | ------ |
+| **`shape.gradient(...).opacity()`** | **No** — not an element |
+| **`shape.rect(...).stroke(...)`** | **No** |
+| **`group(...).size(...)`** | **No** |
+| **`logo.lockup(...).pos(...)`** | **No** — array |
+| **`text.list(...).gradient(...)`** | **No** |
+| **`logo(...).blur(...)`** | **No** — no fluent **`blur`** on **`LogoBuilder`** today |
+| **`scene(...).add(foo).size(...)`** | **No** — **`add`** returns **`SceneBuilder`** |
+| **`.pos({ x: 0.5, y: 0.2 })`** | **No** — **no object form** |
+
+| Export | Returns | Chain? |
+| ------ | ------- | ------ |
+| **`backdrops.aurora({ mood?, angle? })`** | **`VeloxGradient`** (via **`shape.gradient`**) | **No** — pass to **`.background()`** |
+| **`backdrops.meshGradient({ palette?, angle? })`** | **`VeloxGradient`** | **No** |
+| **`backdrops.grid(color?, size?)`** | **`grid(...)` string** | **No** |
+| **`backdrops.gridPulse(...)`** | same as grid helper | **No** |
+
+---
+
+## Prompt templates
+
+### Product explainer (portrait)
+
 ```text
-Create a 60-second 9:16 social explainer in Velox.
-Use createExplainerVideo() and a process section with flowchart steps:
-Input, Plan, Execute, Review.
-Keep the code compact and production-ready.
+Velox TypeScript only. Playground: no imports; end with return createVideo(...) if using const;
+9:16, 60fps, theme obsidian;
+scenes use backdrops.meshGradient / aurora, typography.hero, creativeCards.glassList, motion.cinematicIn;
+semicolons; no centerX; never chain shape.gradient(); never use stroke() on shape.rect — see §7.
+```
+
+### CLI file
+
+```text
+Emit a full file: import from '@velox-video/core'; export default createVideo({ ... });
+use shape elements only where needed; scene backgrounds use shape.gradient or backdrops;
+use themes.<key> only from the documented list.
+```
+
+### Data + metrics
+
+```text
+Use layout.row + creativeCards.metric; portrait-safe widths; motion.stagger;
+global background optional grid(...).
 ```

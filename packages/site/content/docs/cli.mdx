@@ -75,24 +75,20 @@ Supported formats:
 
 ## LLM-First Workflow
 
-For local or hosted models, the shortest reliable path is to use the high-level schema API:
+For local or hosted models, the shortest reliable path is VML:
 
 ```ts
-import { createExplainerVideo } from '@velox-video/core'
+import { createVideoFromMarkup } from '@velox-video/core'
 
-export default createExplainerVideo({
-  title: 'How AI Agents Work',
-  duration: 60,
-  aspectRatio: '9:16',
-  theme: 'tech',
-  sections: [
-    { type: 'hook', heading: 'From Prompt to Workflow' },
-    { type: 'problem', heading: 'Teams Lose Time', points: ['Manual work', 'Context switching'] },
-    { type: 'process', heading: 'The Loop', steps: ['Input', 'Plan', 'Execute', 'Review'] },
-    { type: 'stats', heading: 'Impact', stats: [{ label: 'Time Saved', value: '68%' }] },
-    { type: 'cta', heading: 'Start With Structure' },
-  ],
-})
+export default createVideoFromMarkup(`
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
+  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
+    <center motion="heroCinematic">
+      <hero kicker="CASE STUDY" title="LLM-safe video" subtitle="VML avoids invalid TypeScript chains." />
+    </center>
+  </scene>
+</video>
+`)
 ```
 
 ## Troubleshooting
@@ -108,5 +104,5 @@ export default createExplainerVideo({
 
 - Review the [Preview](./preview) workflow
 - Learn the [Rendering](./rendering) model
-- Use the [Prompt](./prompt) page for LLM generation
+- Use the [Markup Prompt](./markup-prompt) page for LLM generation
 - Try the [Playground](./playground) for quick experiments

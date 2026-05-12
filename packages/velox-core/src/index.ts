@@ -8,9 +8,32 @@ export type { SceneBuilder } from './core/Scene'
 export { text } from './elements/Text'
 export { image } from './elements/Image'
 export { shape } from './elements/Shape'
+export { logo } from './elements/Logo'
+export { group } from './elements/Group'
+export { layout } from './layout'
+export { backdrops } from './backdrops'
+export { typography, cards as creativeCards, motion } from './presets'
 
 export { random, randomRange } from './utils/random'
 export { themes, resolveTheme } from './themes'
+export { colors } from './color'
+export {
+  CREATIVE_SPEC_FORMAT,
+  validateCreativeSpec,
+} from './creativeSpec'
+export type {
+  CreativeBackground,
+  CreativeBlock,
+  CreativeMotion,
+  CreativePlacement,
+  CreativeScale,
+  CreativeScene,
+  CreativeSpec,
+  CreativeStyle,
+} from './creativeSpec'
+export { createVideoFromCreativeSpec, isCreativeSpec } from './creativeCompiler'
+export { createVideoFromMarkup, isVeloxMarkup } from './markupCompiler'
+export type { MarkupNode } from './markup'
 export {
   heroTitle,
   bulletList,
@@ -27,19 +50,22 @@ export {
 export type {
   AspectRatioPreset,
   LlmThemeName,
+  NarrativeSectionType,
   VideoSection,
   LlmVideoSpec,
   HeroTitleProps,
   BulletListProps,
   StatCardProps,
   FlowchartProps,
+  SectionStyle,
 } from './llm'
 
 // ─── Native Rendering Engine ──────────────────────────────────────────────────
-export { drawFrame, getTotalFrames, buildSceneTimeline, resolveSize } from './engine/drawFrame'
+export { drawFrame, getTotalFrames, buildSceneTimeline, resolveSize, preloadImages, setImageCache } from './engine/drawFrame'
 export { getAnimationState } from './engine/animations'
 export type { AnimationState } from './engine/animations'
 export { resolveEase, lerp, clamp, frameProgress, springValue } from './engine/easing'
+export { validateRawVideoInput, validateVeloxVideoConfig } from './validation'
 
 // ─── Re-export all types ──────────────────────────────────────────────────────
 export type {
@@ -50,5 +76,6 @@ export type {
   TransitionType, TransitionOptions,
   BaseElementConfig, TextElementConfig, TextListElementConfig,
   ImageElementConfig, ShapeElementConfig, ShapeConfig, ElementConfig,
-  ChartDataPoint, SceneConfig, VeloxTheme, VeloxVideoConfig,
+  GroupElementConfig, ChartDataPoint, SceneConfig, VeloxTheme, VeloxVideoConfig,
+  MotionQuality, SceneCamera, SceneMood, SceneOverlay,
 } from './types'
