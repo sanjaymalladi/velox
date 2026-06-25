@@ -7,7 +7,8 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "@velox-video/core": ["../velox-core/src/index.ts"]
+      "@velox-video/core": ["../velox-core/src/index.ts"],
+      "@velox-video/core/node-render": ["../velox-core/src/node-render.ts"]
     }
   },
   "include": ["src/**/*", "tsup.config.ts"]

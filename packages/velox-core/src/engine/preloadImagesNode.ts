@@ -1,16 +1,16 @@
 import { createRequire } from 'module'
-import { fileURLToPath } from 'node:url'
 import type { VeloxVideoConfig } from '../types'
 import { preloadRasterInNodeWithLoader, type LoadImageFn } from './preloadRasterInNode'
 import type { CachedImage } from './preloadShared'
 
 /**
  * Node/native entry for published `@velox-video/core/node-render` (ESM `.mjs` only).
- * Uses `import.meta.url` — do not bundle this file into a CJS app; use
- * `preloadRasterInNodeWithLoader` + your own `createRequire` anchor instead.
+ * Keep the require anchor CJS-safe so the shared workspace lint pass can compile it too.
  */
 function getCanvasLoadImage(): LoadImageFn {
-  const requireFn = createRequire(fileURLToPath(import.meta.url))
+  const requireFn = typeof __filename === 'string'
+    ? createRequire(__filename)
+    : createRequire(`${process.cwd()}/noop.js`)
   const specifier = `${String.fromCharCode(64)}napi-rs/canvas`
   const mod = requireFn(specifier) as { loadImage: LoadImageFn }
   return mod.loadImage

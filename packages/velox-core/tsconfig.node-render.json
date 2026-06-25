@@ -4,5 +4,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": ["src/node-render.ts", "src/engine/preloadImagesNode.ts"]
+  "include": ["src/node-render.ts", "src/engine/preloadImagesNode.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
