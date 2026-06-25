@@ -1,0 +1,15 @@
+{
+  "name": "Creative Mode",
+  "description": "HyperFrames frame.md preset — Cream + saturated candy accents, Archivo Black display, JetBrains Mono data",
+  "colors": {
+    "canvas": "#FFFBF5",
+    "canvas-soft": "#FFFBF5",
+    "primary": "#111111",
+    "accent": "#FF2D95",
+    "ink": "#111111",
+    "body": "#111111",
+    "body-muted": "#555555",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

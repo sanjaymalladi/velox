@@ -1,108 +1,104 @@
 ---
 title: CLI
-description: Command reference for scaffolding, previewing, and rendering Velox videos.
+description: velox lint, render, list, and add — the full command reference for VML reels and TypeScript projects.
 ---
 
-# CLI Reference
+# CLI
 
-The Velox CLI is intentionally small. It covers the core workflow: scaffold a project, preview it locally, and render a final artifact.
-
-## Installation
+Install globally or as a dev dependency:
 
 ```bash
-npm install -g velox-video
-# or
-pnpm add -g velox-video
+pnpm add -D velox-video
+pnpm velox --help
 ```
 
 ## Commands
 
 ### `velox new <name>`
 
-Scaffold a new project directory with a starter template.
+Scaffold a TypeScript starter project.
 
 ```bash
-velox new my-video
-velox new my-video --template llm-explainer
+velox new my-video -t product-launch
 ```
 
-Available templates currently include:
-
-- `news-intro`
-- `product-launch`
-- `data-story`
-- `kinetic-text`
-- `particle-system`
-- `llm-explainer`
+Templates: `news-intro`, `product-launch`, `data-story`.
 
 ### `velox preview <file>`
 
-Start the local preview studio with hot reload.
+Opens **Velox Studio** with hot reload. Works with `.vml` and `.ts` entry files.
 
 ```bash
-velox preview video.ts
+velox preview reel.vml
 ```
-
-What it does:
-
-- Loads the same `video.ts` entrypoint used for final render
-- Opens the browser automatically
-- Watches the source file and pushes config updates over WebSocket
-- Lets you scrub, play, and export from the preview UI
 
 ### `velox render <file>`
 
-Render a final artifact from the current entry file.
+Export video to disk.
 
 ```bash
-velox render video.ts --output result.mp4
-velox render video.ts --format gif
-velox render video.ts --format png-sequence --output frames
+velox render reel.vml -o out/reel.mp4
+velox render reel.vml --draft
+velox render reel.vml -f gif -o preview.gif
+velox render reel.vml --scale 0.5 --fps 24
 ```
 
-Supported formats:
+| Option | Description |
+|--------|-------------|
+| `-o, --output <path>` | Output file path |
+| `-f, --format <fmt>` | `mp4` · `gif` · `png-sequence` |
+| `-q, --quality <n>` | 0–100 encoder quality |
+| `--draft` | Fast low-res export |
+| `--scale <n>` | Resolution multiplier 0.25–1 |
+| `--fps <n>` | Cap export frame rate |
 
-- `mp4`
-- `gif`
-- `png-sequence`
+### `velox lint <file>`
 
-## Recommended Workflow
+Validate VML before spending render time.
 
-1. Scaffold or write a `video.ts` file.
-2. Run `velox preview video.ts` while iterating.
-3. Tune layout, timing, and typography.
-4. Run `velox render video.ts --output result.mp4` for final output.
-
-## LLM-First Workflow
-
-For local or hosted models, the shortest reliable path is VML:
-
-```ts
-import { createVideoFromMarkup } from '@velox-video/core'
-
-export default createVideoFromMarkup(`
-<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <center motion="heroCinematic">
-      <hero kicker="CASE STUDY" title="LLM-safe video" subtitle="VML avoids invalid TypeScript chains." />
-    </center>
-  </scene>
-</video>
-`)
+```bash
+velox lint reel.vml
+velox lint reel.vml --strict
+velox lint reel.vml --frames   # hints for spot-frame checks
 ```
 
-## Troubleshooting
+### `velox list <type>`
 
-| Issue | Fix |
-|-------|-----|
-| `velox` not found | Reinstall the CLI globally or use `npx velox-video` |
-| Preview loads but looks wrong | Check size, fps, and scene timing first |
-| Render fails | Run the same file through `preview` first to isolate config issues |
-| Output path is confusing | Pass an explicit `--output` value |
+```bash
+velox list themes       # all theme="…" ids
+velox list blocks       # catalog block ids
+velox list animations   # motion primitives
+velox list templates    # velox new starters
+```
 
-## Next Steps
+### `velox add <block>`
 
-- Review the [Preview](./preview) workflow
-- Learn the [Rendering](./rendering) model
-- Use the [Markup Prompt](./markup-prompt) page for LLM generation
-- Try the [Playground](./playground) for quick experiments
+Copy a catalog snippet into `./blocks` for paste-in use.
+
+```bash
+velox add code-typing
+velox add stat-counter -d snippets
+```
+
+## Recommended workflow
+
+```bash
+velox lint reel.vml --strict
+velox render reel.vml --draft -o out/draft.mp4
+velox render reel.vml -o out/final.mp4
+```
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `VELOX_*` | Template variables in markup (`{{productName}}` → `VELOX_PRODUCTNAME`) |
+| Stock API keys | See markup compiler docs for Pexels/Unsplash providers |
+
+Keep secrets out of committed VML — inject via env in CI.
+
+## What to avoid
+
+- Rendering before lint on LLM-generated markup
+- Hard-coded absolute paths to assets — use relative `music="track.mp3"`
+- Mixing multiple `theme` values — one root theme per `<video>`

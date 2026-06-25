@@ -52,7 +52,15 @@ export function splitWords(s: string): string[] {
   return s.trim().split(/\s+/).filter(Boolean)
 }
 
-export type CaptionStyle = 'plain' | 'pill' | 'karaoke' | 'wordPop' | 'highlightKeywords'
+export type CaptionStyle =
+  | 'plain'
+  | 'pill'
+  | 'karaoke'
+  | 'wordPop'
+  | 'highlightKeywords'
+  | 'slam'
+  | 'clipWipe'
+  | 'weightShift'
 
 /**
  * Produce per-line/per-word timings for karaoke from a caption cue inside a scene.
@@ -78,10 +86,15 @@ export function buildCaptionWordSpans(
 export function pickCaptionEntrance(style: CaptionStyle): EntranceAnimation {
   switch (style) {
     case 'wordPop':
+    case 'slam':
       return 'tactileIn'
+    case 'clipWipe':
+      return 'revealLeft'
     case 'karaoke':
     case 'highlightKeywords':
       return 'slideUp'
+    case 'weightShift':
+      return 'fadeIn'
     default:
       return 'fadeIn'
   }

@@ -15,7 +15,8 @@ export { backdrops } from './backdrops'
 export { typography, cards as creativeCards, motion } from './presets'
 
 export { random, randomRange } from './utils/random'
-export { themes, resolveTheme } from './themes'
+export { themes, resolveTheme, resolveAesthetic, aestheticIds } from './themes'
+export type { VeloxAesthetic, CardSurfaceStyle, TypeStyle } from './aesthetics/types'
 export { colors } from './color'
 export {
   CREATIVE_SPEC_FORMAT,
@@ -67,13 +68,16 @@ export {
   buildSceneTimeline,
   buildSceneStartsSeconds,
   resolveSize,
-  preloadImages,
   setImageCache,
 } from './engine/drawFrame'
+export { preloadImages } from './engine/preloadImagesBrowser'
 export { getAnimationState } from './engine/animations'
 export type { AnimationState } from './engine/animations'
 export { resolveEase, lerp, clamp, frameProgress, springValue } from './engine/easing'
 export { validateRawVideoInput, validateVeloxVideoConfig } from './validation'
+export { lintVeloxMarkup } from './lint'
+export type { LintIssue, LintResult } from './lint'
+export { applyVmlVariables, findUnresolvedVariables } from './variables'
 export {
   encodeVeloxStockRef,
   encodeVeloxCardRef,

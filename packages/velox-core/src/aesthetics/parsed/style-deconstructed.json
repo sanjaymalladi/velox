@@ -1,0 +1,13 @@
+{
+  "name": "Deconstructed",
+  "description": "Industrial punk energy — Space Grotesk slam, burnt orange accent, glitch-ready.",
+  "colors": {
+    "primary": "#1a1a1a",
+    "on-primary": "#f0f0f0",
+    "accent": "#D4501E",
+    "canvas": "#1a1a1a",
+    "ink": "#f0f0f0",
+    "muted": "#a3a3a3"
+  },
+  "typography": {}
+}

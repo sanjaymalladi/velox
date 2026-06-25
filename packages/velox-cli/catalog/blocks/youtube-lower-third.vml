@@ -1,0 +1,5 @@
+<column slot="caption" gap="8">
+  <shape width="720" height="72" radius="12" color="rgba(0,0,0,0.88)" />
+  <text value="Subscribe · Your Channel" size="28" weight="700" color="#ffffff" motion="slideIn" delay="0.2" />
+</column>
+<captions slot="caption" text="New videos every week." style="weightShift" start="0.8" />

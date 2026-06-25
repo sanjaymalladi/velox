@@ -421,10 +421,10 @@ function connectWS() {
     hmrDot.className = 'hmr-dot active'
     hmrStatus.textContent = 'Live'
   }
-  ws.onmessage = (e) => {
+  ws.onmessage = async (e) => {
     const msg = JSON.parse(e.data)
     if (msg.type === 'config') {
-      initVideo(msg.config)
+      await bootFromConfig(msg.config)
       hmrDot.className = 'hmr-dot active'
       hmrStatus.textContent = 'Updated'
       setTimeout(() => { hmrStatus.textContent = 'Live' }, 1500)
@@ -445,6 +445,20 @@ function connectWS() {
 }
 
 // ── Init Video ─────────────────────────────────────────────────────────────
+async function bootFromConfig(cfg) {
+  overlay.style.display = 'flex'
+  const overlayText = overlay.querySelector('.loading-text')
+  if (overlayText) overlayText.textContent = 'Loading assets…'
+  try {
+    const booted = await VeloxEngine.boot(cfg)
+    drawFrameFn = booted.drawFrame
+    initVideo(booted.config)
+  } catch (err) {
+    console.error('Velox engine boot failed:', err)
+    if (overlayText) overlayText.textContent = 'Engine failed to load'
+  }
+}
+
 function initVideo(cfg) {
   config = cfg
   const [w, h] = cfg.size
@@ -647,13 +661,8 @@ document.addEventListener('keydown', (e) => {
 })
 
 // ── Startup ────────────────────────────────────────────────────────────────
-// drawFrameFn is injected via the config script tag from the server
-window.addEventListener('velox-ready', (e) => {
-  drawFrameFn = e.detail.drawFrame
-  initVideo(e.detail.config)
-})
-
 connectWS()
 </script>
+<script src="/preview-engine.js"></script>
 </body>
 </html>

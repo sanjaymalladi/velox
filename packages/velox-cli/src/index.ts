@@ -3,6 +3,9 @@ import chalk from 'chalk'
 import { renderCommand } from './commands/render'
 import { previewCommand } from './commands/preview'
 import { newCommand } from './commands/new'
+import { lintCommand } from './commands/lint'
+import { addCommand, listBlocksCommand } from './commands/add'
+import { aestheticIds } from '@velox-video/core'
 
 const { version: VERSION } = require('../package.json') as { version: string }
 
@@ -33,11 +36,32 @@ program
   .option('-o, --output <path>', 'output file path')
   .option('-f, --format <format>', 'output format: mp4 | gif | png-sequence', 'mp4')
   .option('-q, --quality <number>', 'quality 0-100 (higher is better)', '80')
+  .option('--draft', 'fast preview export: 50% resolution, max 30fps')
+  .option('--scale <number>', 'output resolution scale 0.25–1 (e.g. 0.5 for half res)')
+  .option('--fps <number>', 'cap export fps (skips frames, keeps duration)')
   .action((file: string, opts) => renderCommand(file, {
     output: opts.output,
     format: opts.format,
-    quality: parseInt(opts.quality, 10),
+    quality: opts.quality !== undefined ? parseInt(opts.quality, 10) : undefined,
+    draft: Boolean(opts.draft),
+    scale: opts.scale !== undefined ? parseFloat(opts.scale) : undefined,
+    fps: opts.fps !== undefined ? parseInt(opts.fps, 10) : undefined,
   }))
+
+// ── velox lint <file> ───────────────────────────────────────────────────────
+program
+  .command('lint <file>')
+  .description('Validate VML markup before rendering')
+  .option('--frames', 'hint spot-frame check after lint')
+  .option('--strict', 'treat warnings as errors')
+  .action((file: string, opts) => lintCommand(file, opts))
+
+// ── velox add <block> ───────────────────────────────────────────────────────
+program
+  .command('add <block>')
+  .description('Install a catalog block snippet into ./blocks')
+  .option('-d, --dir <path>', 'output directory', 'blocks')
+  .action((block: string, opts) => addCommand(block, opts))
 
 // ── velox list ──────────────────────────────────────────────────────────────
 program
@@ -61,9 +85,14 @@ program
       loop.forEach(a => console.log(chalk.white(`    • ${a}`)))
 
     } else if (type === 'themes') {
-      const themes = ['darkNeon', 'corporate', 'warmCinema', 'brutalist', 'pastel']
-      console.log(chalk.cyan('\n  Built-in themes:'))
-      themes.forEach(t => console.log(chalk.white(`    • ${t}`)))
+      console.log(chalk.cyan('\n  Built-in aesthetics (use theme="…" in <video>):'))
+      aestheticIds.forEach((t) => console.log(chalk.white(`    • ${t}`)))
+
+    } else if (type === 'blocks') {
+      listBlocksCommand().catch((err) => {
+        console.error(err)
+        process.exit(1)
+      })
 
     } else if (type === 'templates') {
       console.log(chalk.cyan('\n  Starter templates:'))
@@ -71,7 +100,7 @@ program
         console.log(chalk.white(`    • ${t}`))
       )
     } else {
-      console.log(chalk.red(`Unknown type "${type}". Try: animations, themes, templates`))
+      console.log(chalk.red(`Unknown type "${type}". Try: animations, themes, templates, blocks`))
     }
     console.log()
   })

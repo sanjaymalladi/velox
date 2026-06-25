@@ -1,0 +1,24 @@
+{
+  "name": "Framer-design-analysis",
+  "description": "\"A confident dark-canvas builder marketing site that treats the page like a working artboard — pure black surfaces, white display type set in GT Walsheim Medium with aggressive negative tracking, and a single confident blue (#0099ff) reserved for hyperlinks and selection states. The page rhythm is broken by oversized vibrant gradient atmosphere panels — magenta, violet, orange spotlights — that act as living showcase tiles, not decoration. Every CTA is a white pill on dark; every card is a translucent or charcoal surface; every section title pulls letter-spacing tight enough to feel like a poster.\"",
+  "colors": {
+    "primary": "#ffffff",
+    "on-primary": "#000000",
+    "accent-blue": "#0099ff",
+    "ink": "#ffffff",
+    "ink-muted": "#999999",
+    "canvas": "#090909",
+    "surface-1": "#141414",
+    "surface-2": "#1c1c1c",
+    "hairline": "#262626",
+    "hairline-soft": "#1a1a1a",
+    "inverse-canvas": "#ffffff",
+    "inverse-ink": "#000000",
+    "gradient-magenta": "#d44df0",
+    "gradient-violet": "#6a4cf5",
+    "gradient-orange": "#ff7a3d",
+    "gradient-coral": "#ff5577",
+    "semantic-success": "#22c55e"
+  },
+  "typography": {}
+}

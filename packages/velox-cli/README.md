@@ -29,6 +29,10 @@ velox preview reel.vml
 velox render video.ts --output result.mp4
 velox render reel.vml --output reel.mp4
 
+# Validate + discover themes
+velox lint reel.vml
+velox list themes
+
 # Render GIF
 velox render video.ts --format gif --output result.gif
 

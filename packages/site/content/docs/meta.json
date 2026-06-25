@@ -5,12 +5,12 @@
   "pages": [
     "index",
     "getting-started",
+    "themes",
+    "transitions",
     "preview",
     "rendering",
     "cli",
     "markup-prompt",
-    "prompt",
-    "code-prompt",
     "playground"
   ]
 }

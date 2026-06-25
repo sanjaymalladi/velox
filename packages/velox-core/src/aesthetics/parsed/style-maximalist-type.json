@@ -1,0 +1,14 @@
+{
+  "name": "Maximalist Type",
+  "description": "Paula Scher poster energy — Anton display, red/yellow accents, kinetic launches.",
+  "colors": {
+    "primary": "#0a0a0a",
+    "on-primary": "#ffffff",
+    "accent": "#E63946",
+    "accent-yellow": "#FFD60A",
+    "canvas": "#0a0a0a",
+    "ink": "#ffffff",
+    "muted": "#d4d4d4"
+  },
+  "typography": {}
+}

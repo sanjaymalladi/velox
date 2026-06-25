@@ -4,6 +4,8 @@ LLM-friendly motion graphics primitives for deterministic Canvas video rendering
 
 Velox Core powers the `velox-video` CLI and playground. It defines videos as serializable TypeScript configs, renders with Canvas in browser/Node, and exposes a VML compiler so small LLMs can produce reliable motion graphics without inventing brittle method chains.
 
+It also now includes a broader production surface for reel-style content: reusable themes, transition-aware scenes, local placeholder media resolution, and lintable markup so generated videos can be checked before rendering.
+
 ## Install
 
 ```bash
@@ -49,6 +51,26 @@ Core now includes a reel production layer designed for AI-generated shorts:
 - Built-in transparent SVG assets/icons: `<asset name="phone-frame" />`, `<asset name="new-badge" />`, `<icon name="github" />`.
 - Media placeholders for CLI preprocessing: `<stock provider="wikipedia" query="..." />`, `<githubRepo />`, `<npmPackage />`, `<brandCard />`, `<website />`.
 - Audio timeline metadata: root `music`, `<audio>`, `<sfx>`, and `<beat>` compile to `audioPlan` for future muxing; current MP4 export is silent.
+
+## Themes And Transitions
+
+Velox ships with a theme catalog and transition presets that can be used from both markup and the TypeScript API:
+
+- Theme selection with `theme="..."` and programmatic theme helpers from `themes`.
+- Scene transitions such as `blurDissolve` and other reusable motion-aware scene handoffs.
+- Theme previews and generated docs pages are built from the same theme metadata used by the runtime.
+
+## Markup Checks
+
+The core package includes linting support for markup and video configs so invalid scenes can be caught earlier in the workflow.
+
+```ts
+import { lintVeloxMarkup } from '@velox-video/core'
+
+const result = lintVeloxMarkup(`<video><scene duration="4"/></video>`)
+```
+
+Use this before rendering generated `.vml` files or template output.
 
 ## TypeScript API
 
@@ -99,8 +121,8 @@ Common exports include:
 
 - `createVideo`, `scene`
 - `text`, `shape`, `image`, `logo`, `group`, `layout`
-- `backdrops`, `typography`, `creativeCards`, `motion`, `colors`
-- `createVideoFromMarkup`, `isVeloxMarkup`
+- `backdrops`, `typography`, `creativeCards`, `motion`, `colors`, `themes`
+- `createVideoFromMarkup`, `isVeloxMarkup`, `lintVeloxMarkup`
 - `drawFrame`, `getTotalFrames`, `preloadImages`, `setImageCache`
 - `encodeVeloxStockRef`, `encodeVeloxCardRef`, `decodeVeloxStockRef`, `decodeVeloxCardRef`
 - `parseSrt`, `splitWords`, `buildCaptionWordSpans`

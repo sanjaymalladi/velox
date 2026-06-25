@@ -7,7 +7,7 @@ import { logo } from './elements/Logo'
 import { group } from './elements/Group'
 import { layout } from './layout'
 import { backdrops } from './backdrops'
-import { typography, cards as creativeCards, motion } from './presets'
+import { themedTypography, themedCards, motion } from './presets'
 import {
   reelAnnouncement,
   reelLaunchCard,
@@ -27,17 +27,21 @@ import {
   type CaptionStyle,
 } from './captions'
 import { encodeVeloxCardRef, encodeVeloxStockRef, encodeVeloxWebCapture } from './mediaProviders'
+import { colors as colorUtils } from './color'
 
 import { applyReelSlot, isReelTemplate, type ReelTemplateId } from './reelTemplates'
-import { resolveTheme } from './themes'
+import { resolveAesthetic } from './themes'
+import type { VeloxAesthetic } from './aesthetics/types'
 import type { Element } from './core/Element'
 import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan } from './types'
 import { isVeloxMarkup, parseVeloxMarkup, type MarkupNode } from './markup'
+import { applyVmlVariables } from './variables'
 
 type AnyElement = Element<ElementConfig>
 type Background = VeloxColor | VeloxGradient
 interface CompileContext {
   theme: VeloxTheme
+  aesthetic: VeloxAesthetic
 }
 
 const placements = ['center', 'top', 'bottom', 'left', 'right', 'hero', 'safeTop', 'safeBottom']
@@ -161,8 +165,10 @@ function validateCommon(node: MarkupNode): void {
   if (m && !motions.includes(m)) fail(`<${node.tag}> motion="${m}" is invalid.`)
 }
 
-function background(value: string | undefined): Background | undefined {
+function background(value: string | undefined, ctx: CompileContext): Background | undefined {
   if (!value) return undefined
+  if (value === 'theme' || value === 'theme.canvas') return ctx.aesthetic.video.canvas
+  if (value === 'theme.scene') return ctx.aesthetic.video.sceneBackground
   if (value === 'creamGrid') return backdrops.creamGrid()
   if (value.startsWith('creamGrid(')) return backdrops.creamGrid(num(value.slice('creamGrid('.length, -1), 42, 'creamGrid.size'))
   if (value === 'warmPaper') return backdrops.warmPaper()
@@ -172,8 +178,9 @@ function background(value: string | undefined): Background | undefined {
   return value
 }
 
-function rootBackground(value: string | undefined): Background | undefined {
-  return background(value)
+function rootBackground(value: string | undefined, ctx: CompileContext): Background | undefined {
+  if (!value) return ctx.aesthetic.video.canvas
+  return background(value, ctx)
 }
 
 function place<T extends AnyElement>(el: T, placement: string | undefined): T {
@@ -257,9 +264,11 @@ function compileCaptionsMarkup(
   reelTemplate?: ReelTemplateId,
 ): AnyElement {
   const styleRaw = attr(node, 'style') ?? 'pill'
-  const styles: CaptionStyle[] = ['plain', 'pill', 'karaoke', 'wordPop', 'highlightKeywords']
+  const styles: CaptionStyle[] = [
+    'plain', 'pill', 'karaoke', 'wordPop', 'highlightKeywords', 'slam', 'clipWipe', 'weightShift',
+  ]
   if (!styles.includes(styleRaw as CaptionStyle))
-    fail('<captions> style must be plain, pill, karaoke, wordPop, highlightKeywords.')
+    fail('<captions> style must be plain, pill, karaoke, wordPop, highlightKeywords, slam, clipWipe, weightShift.')
 
   const style = styleRaw as CaptionStyle
 
@@ -293,20 +302,76 @@ function compileCaptionsMarkup(
     const dur = Math.max(0.25, cue.end - cue.start)
     const spans = buildCaptionWordSpans(cue.text, dur, style)
     const anim = pickCaptionEntrance(style)
-    const words = spans.map((span) => {
-      const fontSize = span.emphasize && style === 'highlightKeywords' ? 50 : style === 'wordPop' ? 44 : 38
+    const wordStep = dur > 0 ? Math.max(0.08, dur / Math.max(spans.length, 1)) : 0.12
+    const baseSize =
+      style === 'slam' ? 52 : style === 'wordPop' ? 34 : style === 'pill' ? 32 : 30
+
+    const cap = ctx.aesthetic.surfaces.captionBar
+    const pillH = style === 'pill' ? 68 : style === 'slam' ? 0 : 60
+    const wordGap = style === 'wordPop' ? 16 : style === 'slam' ? 0 : 8
+    const rowW = spans.reduce(
+      (sum, span) => sum + span.word.length * baseSize * (style === 'slam' ? 0.55 : 0.58),
+      0,
+    ) + Math.max(0, spans.length - 1) * wordGap
+    const pillW = Math.min(960, Math.max(280, Math.round(rowW + (style === 'pill' ? 56 : 32))))
+    const wordColor = style === 'pill' ? cap.text : color(undefined, ctx, ctx.theme.text)
+    const words = spans.map((span, wordIndex) => {
+      const size =
+        style === 'slam'
+          ? 56
+          : style === 'weightShift'
+            ? wordIndex % 2 === 0
+              ? 34
+              : 28
+            : span.emphasize && style === 'highlightKeywords'
+              ? 36
+              : baseSize
+      const weight =
+        style === 'weightShift'
+          ? wordIndex % 2 === 0
+            ? 800
+            : 500
+          : span.emphasize
+            ? 700
+            : 600
       return text(span.word)
-        .size(fontSize)
-        .weight(800)
-        .color(color(undefined, ctx, ctx.theme.text))
-        .in(anim, 0.45, { delay: cue.start + span.delay, ease: style === 'plain' ? 'ease' : 'tactile' })
+        .size(size)
+        .weight(weight)
+        .color(wordColor)
+        .captionMeta({ style, wordIndex, cueStartSec: cue.start, wordStepSec: wordStep, totalWords: spans.length })
+        .in(anim, style === 'slam' ? 0.22 : 0.38, {
+          delay: cue.start + span.delay,
+          ease: style === 'plain' || style === 'weightShift' ? 'ease' : 'tactile',
+        })
     })
-    cueRows.push(layout.row(words, { gap: 14, align: 'middle' }))
+
+    const wordRow =
+      style === 'slam'
+        ? layout.stack(words)
+        : layout.row(words, { gap: wordGap, align: 'middle' })
+
+    const bar =
+      style === 'pill'
+        ? (() => {
+            const bodyH = cap.borderMode === 'stripe' && cap.border !== 'transparent' ? pillH - 4 : pillH
+            const body = group([
+              shape.rect(pillW, bodyH).radius(cap.radius).color(cap.fill),
+              wordRow,
+            ]).stack()
+            if (cap.borderMode === 'stripe' && cap.border !== 'transparent') {
+              return layout.column(
+                [shape.rect(pillW, 4).color(cap.border), body],
+                { gap: 0, align: 'center' },
+              )
+            }
+            return body
+          })()
+        : wordRow
+
+    cueRows.push(bar)
   }
 
-  const col = layout
-    .column(cueRows, { gap: 20, align: 'center' })
-    .pos('bottomCenter', undefined, { offsetY: -130 })
+  const col = layout.column(cueRows, { gap: 14, align: 'center' })
   return finish(col, node, reelTemplate)
 }
 
@@ -395,15 +460,26 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         : layout.stack(children)
       return finish(stacked, node, reelTemplate)
     }
-    case 'hero':
-      return finish(typography.hero(requiredAttr(node, 'title'), {
+    case 'hero': {
+      const typo = themedTypography(ctx.aesthetic)
+      return finish(typo.hero(requiredAttr(node, 'title'), {
         kicker: attr(node, 'kicker'),
         subtitle: attr(node, 'subtitle'),
         color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined,
         accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
       }), node, reelTemplate)
-    case 'kicker':
-      return finish(typography.kicker(textContent(node) || requiredAttr(node, 'text'), attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined), node, reelTemplate)
+    }
+    case 'kicker': {
+      const typo = themedTypography(ctx.aesthetic)
+      return finish(
+        typo.kicker(
+          textContent(node) || requiredAttr(node, 'text'),
+          attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
+        ),
+        node,
+        reelTemplate,
+      )
+    }
     case 'text':
       return finish(text(textContent(node) || requiredAttr(node, 'value'))
         .size(num(attr(node, 'size'), scale(attr(node, 'scale'), 56), 'text.size'))
@@ -444,8 +520,8 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
             )
       let sized = base
         .size(
-          num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'stock.width'),
-          num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'stock.height'),
+          num(attr(node, 'width'), scale(attr(node, 'scale'), 600), 'stock.width'),
+          num(attr(node, 'height'), scale(attr(node, 'scale'), 760), 'stock.height'),
         )
         .radius(num(attr(node, 'radius'), 24, 'stock.radius'))
       if (provider !== 'generated' && attr(node, 'fit') === 'cover') sized = sized.fill()
@@ -474,8 +550,16 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         trackColor: attr(node, 'trackColor') ? color(attr(node, 'trackColor'), ctx, ctx.theme.muted) : undefined,
       })
         .size(num(attr(node, 'width'), 620, 'progress.width'), num(attr(node, 'height'), 18, 'progress.height')), node, reelTemplate)
-    case 'metric':
-      return finish(creativeCards.metric(requiredAttr(node, 'value'), requiredAttr(node, 'label'), { accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined }), node, reelTemplate)
+    case 'metric': {
+      const cards = themedCards(ctx.aesthetic)
+      return finish(
+        cards.metric(requiredAttr(node, 'value'), requiredAttr(node, 'label'), {
+          accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
+        }),
+        node,
+        reelTemplate,
+      )
+    }
     case 'metricRow':
       return finish(layout.row(node.children.filter((child) => child.tag === 'metric').map((child) => compileNode(child, ctx, reelTemplate)), { gap: num(attr(node, 'gap'), 24, 'metricRow.gap') }), node, reelTemplate)
     case 'barChart': {
@@ -528,17 +612,31 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
     }
     case 'glassList': {
       const items = node.children.filter((child) => child.tag === 'item').map((child) => textContent(child) || attr(child, 'text') || '')
-      return finish(creativeCards.glassList(items, { width: num(attr(node, 'width'), 620, 'glassList.width'), color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined }), node, reelTemplate)
+      const cards = themedCards(ctx.aesthetic)
+      return finish(
+        cards.glassList(items, {
+          width: num(attr(node, 'width'), 620, 'glassList.width'),
+          color: attr(node, 'color') ? color(attr(node, 'color'), ctx, ctx.theme.text) : undefined,
+        }),
+        node,
+        reelTemplate,
+      )
     }
-    case 'card':
-      return finish(creativeCards.glass(compileChildren(node, ctx, reelTemplate), {
-        width: num(attr(node, 'width'), 620, 'card.width'),
-        height: num(attr(node, 'height'), 300, 'card.height'),
-        radius: num(attr(node, 'radius'), 32, 'card.radius'),
-      }), node, reelTemplate)
+    case 'card': {
+      const cards = themedCards(ctx.aesthetic)
+      return finish(
+        cards.glass(compileChildren(node, ctx, reelTemplate), {
+          width: num(attr(node, 'width'), 620, 'card.width'),
+          height: num(attr(node, 'height'), 300, 'card.height'),
+          radius: num(attr(node, 'radius'), ctx.aesthetic.surfaces.card.radius || 32, 'card.radius'),
+        }),
+        node,
+        reelTemplate,
+      )
+    }
     case 'announcement':
       return finish(
-        reelAnnouncement({
+        reelAnnouncement(ctx.aesthetic, {
           title: requiredAttr(node, 'title'),
           subtitle: attr(node, 'subtitle'),
           badge: attr(node, 'badge'),
@@ -549,7 +647,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       )
     case 'launchCard':
       return finish(
-        reelLaunchCard({
+        reelLaunchCard(ctx.aesthetic, {
           title: requiredAttr(node, 'title'),
           subtitle: attr(node, 'subtitle'),
           cta: attr(node, 'cta'),
@@ -561,7 +659,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       )
     case 'breakingNews':
       return finish(
-        reelBreakingNews({
+        reelBreakingNews(ctx.aesthetic, {
           headline: requiredAttr(node, 'headline'),
           ticker: attr(node, 'ticker'),
           tone: attr(node, 'tone'),
@@ -571,7 +669,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       )
     case 'featureReveal':
       return finish(
-        reelFeatureReveal({
+        reelFeatureReveal(ctx.aesthetic, {
           title: requiredAttr(node, 'title'),
           bullets: node.children.filter((i) => i.tag === 'item').map((i) => textContent(i) || attr(i, 'text') || ''),
           caption: attr(node, 'caption'),
@@ -581,7 +679,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       )
     case 'problemSolution':
       return finish(
-        reelProblemSolution({
+        reelProblemSolution(ctx.aesthetic, {
           problem: requiredAttr(node, 'problem'),
           solution: requiredAttr(node, 'solution'),
         }),
@@ -589,19 +687,31 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         reelTemplate,
       )
     case 'beforeAfter':
-      return finish(reelBeforeAfter({ before: requiredAttr(node, 'before'), after: requiredAttr(node, 'after') }), node, reelTemplate)
+      return finish(
+        reelBeforeAfter(ctx.aesthetic, { before: requiredAttr(node, 'before'), after: requiredAttr(node, 'after') }),
+        node,
+        reelTemplate,
+      )
     case 'quoteCard':
-      return finish(reelSemanticQuoteCard({ quote: requiredAttr(node, 'quote'), author: attr(node, 'author'), role: attr(node, 'role') }), node, reelTemplate)
+      return finish(
+        reelSemanticQuoteCard(ctx.aesthetic, {
+          quote: requiredAttr(node, 'quote'),
+          author: attr(node, 'author'),
+          role: attr(node, 'role'),
+        }),
+        node,
+        reelTemplate,
+      )
     case 'ranking': {
       const items = node.children.filter((ch) => ch.tag === 'item').map((ch) => textContent(ch) || attr(ch, 'text') || '')
       if (!items.length) fail('<ranking> requires <item> children.')
-      return finish(reelRanking({ title: attr(node, 'title'), items }), node, reelTemplate)
+      return finish(reelRanking(ctx.aesthetic, { title: attr(node, 'title'), items }), node, reelTemplate)
     }
     case 'countdown':
-      return finish(reelCountdown({ value: requiredAttr(node, 'value'), label: attr(node, 'label') }), node, reelTemplate)
+      return finish(reelCountdown(ctx.aesthetic, { value: requiredAttr(node, 'value'), label: attr(node, 'label') }), node, reelTemplate)
     case 'finalCTA':
       return finish(
-        reelFinalCTA({
+        reelFinalCTA(ctx.aesthetic, {
           title: requiredAttr(node, 'title'),
           subtitle: attr(node, 'subtitle'),
           cta: requiredAttr(node, 'cta'),
@@ -624,11 +734,14 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       const pack = attr(node, 'pack') ?? 'simple-icons'
       const srcIcon = resolveSimpleGlyph(pack, nm)
       if (!srcIcon) fail(`Unsupported icon "${nm}" pack="${pack}".`)
-      return finish(
-        image(srcIcon).size(num(attr(node, 'size'), 96, 'icon.size'), num(attr(node, 'size'), 96, 'icon.size')),
-        node,
-        reelTemplate,
+      const onLight = colorUtils.isLight(ctx.aesthetic.video.canvas)
+      const wantDark = attr(node, 'theme') === 'dark' || (attr(node, 'theme') !== 'light' && onLight)
+      let icon = image(srcIcon).size(
+        num(attr(node, 'size'), 96, 'icon.size'),
+        num(attr(node, 'size'), 96, 'icon.size'),
       )
+      if (wantDark) icon = icon.brightness(0)
+      return finish(icon, node, reelTemplate)
     }
     case 'website':
       return finish(image(encodeVeloxWebCapture(requiredAttr(node, 'url'), attr(node, 'device'))), node, reelTemplate)
@@ -734,6 +847,7 @@ function collectAudioFromVideoRoot(root: MarkupNode, fps: VeloxFps): VeloxAudioP
       if (ch.tag === 'sfx') {
         sfx.push({
           name: requiredAttr(ch, 'name'),
+          src: attr(ch, 'src'),
           at: offset + num(attr(ch, 'at'), 0, 'sfx.at'),
           volume: attr(ch, 'volume') !== undefined ? num(attr(ch, 'volume'), 1, 'sfx.volume') : undefined,
         })
@@ -747,7 +861,7 @@ function collectAudioFromVideoRoot(root: MarkupNode, fps: VeloxFps): VeloxAudioP
   return { music: musicPlan, sfx, beats: beats.sort((a, b) => a - b) }
 }
 
-function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode): void {
+function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): void {
   const cam = attr(node, 'camera')
   if (cam) {
     if (!sceneCameras.includes(cam as SceneCamera))
@@ -759,6 +873,13 @@ function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode): void {
     if (!sceneMoods.includes(mood as SceneMood))
       fail(`<scene> mood="${mood}" is invalid. Use neutral, editorial, cinematic.`)
     s.mood(mood as SceneMood)
+  } else if (
+    reelTemplate &&
+    (reelTemplate === 'topTextBottomVisual' ||
+      reelTemplate === 'headlineThenProof' ||
+      reelTemplate === 'topVisualBottomText')
+  ) {
+    s.mood('editorial')
   }
   const transition = attr(node, 'transition')
   if (transition) {
@@ -769,25 +890,22 @@ function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode): void {
   }
   const vig = attr(node, 'vignette')
   const grain = attr(node, 'grain')
-  if (vig !== undefined || grain !== undefined) {
-    s.overlay({
-      vignetteOpacity: vig !== undefined ? num(vig, 0, 'scene.vignette') : undefined,
-      grainOpacity: grain !== undefined ? num(grain, 0, 'scene.grain') : undefined,
-    })
-  }
+  const vignetteOpacity = vig !== undefined ? num(vig, 0, 'scene.vignette') : ctx.aesthetic.video.vignette
+  const grainOpacity = grain !== undefined ? num(grain, 0, 'scene.grain') : ctx.aesthetic.video.grain
+  s.overlay({ vignetteOpacity, grainOpacity })
 }
 
 function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
   if (node.tag !== 'scene') fail('Only <scene> is allowed directly inside <video>.')
   const duration = num(attr(node, 'duration'), 5, 'scene.duration')
   const s = scene(duration)
-  applySceneVmlAttributes(s, node)
   const tplRaw = attr(node, 'template')
   if (tplRaw && !isReelTemplate(tplRaw))
     fail(
       `<scene> template="${tplRaw}" is invalid. Use none, topTextBottomVisual, splitLeftRight, centerCard, headlineThenProof…`,
     )
   const reelTemplate = tplRaw && isReelTemplate(tplRaw) ? (tplRaw as ReelTemplateId) : undefined
+  applySceneVmlAttributes(s, node, ctx, reelTemplate === 'none' ? undefined : reelTemplate)
 
   const sceneAudio = node.children.find((c) => c.tag === 'audio')
   if (sceneAudio) {
@@ -797,17 +915,19 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
     })
   }
 
-  const bg = background(attr(node, 'background'))
+  const bg = background(attr(node, 'background') ?? 'theme.scene', ctx)
   if (bg) s.background(bg)
   s.add(...compileSceneChildren(node, duration, ctx, reelTemplate === 'none' ? undefined : reelTemplate))
   return s
 }
 
-export function createVideoFromMarkup(markup: string): VeloxVideo {
-  const root = parseVeloxMarkup(markup)
-  const theme = resolveTheme(attr(root, 'theme') ?? 'obsidian') ?? resolveTheme('obsidian')!
+export function createVideoFromMarkup(markup: string, variables?: Record<string, string>): VeloxVideo {
+  const resolved = applyVmlVariables(markup, variables)
+  const root = parseVeloxMarkup(resolved)
+  const aesthetic = resolveAesthetic(attr(root, 'theme') ?? 'obsidian')
+  const ctx: CompileContext = { theme: aesthetic.theme, aesthetic }
   const sceneNodes = root.children.filter((c) => c.tag === 'scene')
-  const scenes = sceneNodes.map((child) => compileScene(child, { theme }))
+  const scenes = sceneNodes.map((child) => compileScene(child, ctx))
   if (scenes.length === 0) fail('<video> requires at least one <scene>.')
 
   const mqAttr = attr(root, 'motionQuality')
@@ -816,6 +936,12 @@ export function createVideoFromMarkup(markup: string): VeloxVideo {
     if (mqAttr !== 'standard' && mqAttr !== 'premium')
       fail(`video motionQuality="${mqAttr}" must be standard or premium.`)
     motionQuality = mqAttr as MotionQuality
+  } else {
+    const hasReelTemplate = sceneNodes.some((sn) => {
+      const t = attr(sn, 'template')
+      return t && isReelTemplate(t) && t !== 'none'
+    })
+    if (hasReelTemplate) motionQuality = 'premium'
   }
 
   const fps = num(attr(root, 'fps'), 60, 'video.fps') as VeloxFps
@@ -828,8 +954,8 @@ export function createVideoFromMarkup(markup: string): VeloxVideo {
   return createVideo({
     size: (attr(root, 'size') as VeloxSize | undefined) ?? 'portrait',
     fps,
-    theme,
-    background: rootBackground(attr(root, 'background')),
+    theme: aesthetic.theme,
+    background: rootBackground(attr(root, 'background'), ctx),
     motionQuality,
     scenes,
     ...(audioPlanRaw.music

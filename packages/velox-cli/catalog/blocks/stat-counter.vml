@@ -1,0 +1,8 @@
+<column slot="center" gap="28">
+  <metricRow gap="20">
+    <metric value="10×" label="Faster iteration" motion="magneticPop" delay="0.1" />
+    <metric value="30fps" label="Native export" motion="magneticPop" delay="0.25" />
+  </metricRow>
+  <countdown value="99.9%" label="Deterministic frames" motion="heroCinematic" delay="0.45" />
+</column>
+<captions slot="caption" text="Numbers that matter." style="slam" start="0.6" />

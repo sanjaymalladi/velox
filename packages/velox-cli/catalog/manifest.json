@@ -1,0 +1,37 @@
+[
+  {
+    "id": "code-typing",
+    "title": "Code typing terminal",
+    "description": "Monospace code block with typewriter reveal for dev reels.",
+    "file": "code-typing.vml",
+    "tags": ["dev", "code", "terminal"]
+  },
+  {
+    "id": "terminal-command",
+    "title": "CLI command demo",
+    "description": "Shell prompt + command line for workflow/product demos.",
+    "file": "terminal-command.vml",
+    "tags": ["dev", "cli", "terminal"]
+  },
+  {
+    "id": "social-x-card",
+    "title": "X post card",
+    "description": "Social proof overlay styled as an X/Twitter post card.",
+    "file": "social-x-card.vml",
+    "tags": ["social", "overlay"]
+  },
+  {
+    "id": "stat-counter",
+    "title": "Animated stat counter",
+    "description": "Hero metric with magnetic pop for launch metrics scenes.",
+    "file": "stat-counter.vml",
+    "tags": ["metrics", "launch"]
+  },
+  {
+    "id": "youtube-lower-third",
+    "title": "YouTube lower third",
+    "description": "Subscribe-style lower third for creator-style reels.",
+    "file": "youtube-lower-third.vml",
+    "tags": ["social", "youtube", "caption"]
+  }
+]

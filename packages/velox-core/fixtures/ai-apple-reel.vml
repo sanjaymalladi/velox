@@ -1,0 +1,80 @@
+<video size="portrait" fps="30" theme="dell-1996" motionQuality="premium">
+  <!-- AI reel — theme locked via dell-1996 aesthetic pack -->
+
+  <scene duration="6.0" template="centerCard" camera="slowPush" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <hero slot="center" kicker="INTRODUCING" title="Intelligence." subtitle="Reimagined for the age of AI." motion="heroCinematic" />
+    <captions slot="caption" text="Intelligence. Reimagined." style="plain" />
+  </scene>
+
+  <scene duration="6.5" template="topTextBottomVisual" camera="slowPush" mood="neutral" transition="wipe" transitionDuration="0.45" staggerStep="0.12">
+    <announcement slot="top" title="Artificial Intelligence" subtitle="Not a feature. A foundation." badge="CHAPTER 01" tone="neutral" motion="heroCinematic" />
+    <stock slot="visual" query="retro dell desktop computer beige" provider="generated" width="360" height="520" radius="0" motion="driftIn" delay="0.25" />
+    <captions slot="caption" text="A foundation for how we create, learn, and build." style="pill" start="0.5" />
+  </scene>
+
+  <scene duration="6.5" template="centerCard" camera="slowPush" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <problemSolution slot="center" problem="Information everywhere. Understanding nowhere." solution="Models that read, reason, and respond in context." motion="softReveal" />
+    <captions slot="caption" text="From noise to clarity." style="highlightKeywords" start="0.6" />
+  </scene>
+
+  <scene duration="6.8" template="threeBeatReveal" camera="parallaxDrift" mood="neutral" transition="wipe" transitionDuration="0.45" staggerStep="0.14">
+    <featureReveal slot="center" title="What changed" caption="Three shifts defining modern AI." motion="premiumSlide">
+      <item>Multimodal perception</item>
+      <item>Long-context reasoning</item>
+      <item>Agentic workflows</item>
+    </featureReveal>
+    <captions slot="caption" text="See. Think. Act." style="wordPop" start="0.9" />
+  </scene>
+
+  <scene duration="7.0" template="centerCard" camera="slowPush" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <column slot="center" gap="24">
+      <kicker>ADOPTION</kicker>
+      <text value="The curve is exponential." size="40" weight="900" color="theme.text" wrap="760" />
+      <lineChart width="760" height="300" curve="smooth" motion="drawIn">
+        <series label="Research" values="12,22,38,58,82" color="theme.accent" />
+        <series label="Production" values="6,14,32,64,96" color="theme.text" />
+      </lineChart>
+    </column>
+    <captions slot="caption" text="From labs to everyday products." style="pill" start="0.4" />
+  </scene>
+
+  <scene duration="6.0" template="centerCard" camera="handheld" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <quoteCard slot="center" quote="The most profound technology disappears into the work you already do." motion="softReveal" />
+    <captions slot="caption" text="Technology that feels invisible." style="plain" />
+  </scene>
+
+  <scene duration="6.5" template="splitLeftRight" camera="parallaxDrift" mood="neutral" transition="wipe" transitionDuration="0.45" staggerStep="0.12">
+    <launchCard slot="left" title="Built for creators" subtitle="Write intent. Ship motion." cta="VML → MP4" proof="Deterministic canvas. Native export." tone="neutral" motion="premiumSlide" />
+    <stock slot="right" query="vintage beige desktop computer crt" provider="generated" width="400" height="560" radius="0" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Design in markup. Render in seconds." style="wordPop" start="0.7" />
+  </scene>
+
+  <scene duration="6.5" template="centerCard" camera="slowPush" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <ranking slot="center" title="Breakthrough moments" motion="premiumSlide">
+      <item>Transformers scale language</item>
+      <item>Vision meets text</item>
+      <item>Tool-use agents emerge</item>
+      <item>On-device intelligence</item>
+    </ranking>
+    <captions slot="caption" text="Each leap compounds the next." style="highlightKeywords" />
+  </scene>
+
+  <scene duration="6.5" template="centerCard" camera="kenBurns" mood="neutral" transition="wipe" transitionDuration="0.45">
+    <column slot="center" gap="28">
+      <metricRow gap="24">
+        <metric value="10×" label="Faster iteration" motion="magneticPop" delay="0.1" />
+        <metric value="30fps" label="Native export" motion="magneticPop" delay="0.25" />
+      </metricRow>
+      <countdown value="2026" label="The era of generative video" motion="heroCinematic" delay="0.4" />
+    </column>
+    <captions slot="caption" text="Speed without sacrificing craft." style="pill" start="0.5" />
+  </scene>
+
+  <scene duration="6.75" template="centerCard" camera="slowPush" mood="neutral">
+    <finalCTA slot="center" title="The future is already here." subtitle="Paste markup. Preview instantly. Export in native quality." cta="Start with Velox" motion="magneticPop" />
+    <icon slot="overlay" name="github" size="72" motion="float" delay="0.5" />
+    <captions slot="caption" text="Paste. Preview. Export." style="plain" />
+    <sfx name="whoosh" at="0.4" volume="0.7" />
+    <beat at="1.2" />
+  </scene>
+</video>

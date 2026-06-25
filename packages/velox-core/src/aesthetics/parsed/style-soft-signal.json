@@ -1,0 +1,13 @@
+{
+  "name": "Soft Signal",
+  "description": "Warm humanist editorial — Playfair italic headlines, amber/rose/sage accents.",
+  "colors": {
+    "primary": "#FFF8EC",
+    "on-primary": "#2a2a2a",
+    "accent": "#F5A623",
+    "canvas": "#FFF8EC",
+    "ink": "#2a2a2a",
+    "muted": "#78716c"
+  },
+  "typography": {}
+}

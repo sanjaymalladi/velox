@@ -1,0 +1,614 @@
+[
+  {
+    "id": "apple",
+    "name": "Apple-design-analysis",
+    "description": "A photography-first interface that turns marketing into a museum gallery. Edge-to-edge product tiles alternate light and dark canvases, framed by SF Pro Display headlines with negative letter-spacing and a single Action Blue (#0066cc) interactive color. UI chrome recedes so the product can speak — no decorative gradients, no shadows on chrome, only the one signature drop-shadow under product imagery resting on a surface.",
+    "category": "brand",
+    "preview": "/themes/apple.png",
+    "colors": {
+      "canvas": "#000000",
+      "accent": "#2997ff",
+      "text": "#ffffff"
+    }
+  },
+  {
+    "id": "biennale-yellow",
+    "name": "Biennale Yellow",
+    "description": "HyperFrames frame.md preset — Warm parchment + solar yellow bloom, Instrument Serif display, indigo ink, 1px hairline rules",
+    "category": "frame",
+    "preview": "/themes/biennale-yellow.png",
+    "colors": {
+      "canvas": "#F5F0E6",
+      "accent": "#F4C430",
+      "text": "#1E2A5A"
+    }
+  },
+  {
+    "id": "blockframe",
+    "name": "BlockFrame",
+    "description": "HyperFrames frame.md preset — Maximalist neobrutalist — thick black borders, hard offset shadows, candy accents",
+    "category": "frame",
+    "preview": "/themes/blockframe.png",
+    "colors": {
+      "canvas": "#FFFDF5",
+      "accent": "#FF4D6D",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "blue-professional",
+    "name": "Blue Professional",
+    "description": "HyperFrames frame.md preset — Corporate parchment + cobalt primary, Space Grotesk display, Inter body",
+    "category": "frame",
+    "preview": "/themes/blue-professional.png",
+    "colors": {
+      "canvas": "#F6F9FC",
+      "accent": "#2563EB",
+      "text": "#0F172A"
+    }
+  },
+  {
+    "id": "bold-poster",
+    "name": "Bold Poster",
+    "description": "HyperFrames frame.md preset — Shrikhand tilted display + red accent on cream — magazine cover energy",
+    "category": "frame",
+    "preview": "/themes/bold-poster.png",
+    "colors": {
+      "canvas": "#FDF6E3",
+      "accent": "#E63946",
+      "text": "#1A1A1A"
+    }
+  },
+  {
+    "id": "broadside",
+    "name": "Broadside",
+    "description": "HyperFrames frame.md preset — Industrial newsprint poster — raw cream on ink, Barlow display, fire-orange register",
+    "category": "frame",
+    "preview": "/themes/broadside.png",
+    "colors": {
+      "canvas": "#F5F0E8",
+      "accent": "#E85D04",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "brutalism",
+    "name": "Brutalism",
+    "description": "Hard edges, heavy ink, loud primaries — poster energy for social reels.",
+    "category": "builtin",
+    "preview": "/themes/brutalism.png",
+    "colors": {
+      "canvas": "#f4f0e8",
+      "accent": "#facc15",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "capsule",
+    "name": "Capsule",
+    "description": "HyperFrames frame.md preset — Pill-shaped editorial — cream paper, candy palette, Bodoni Moda serif headlines",
+    "category": "frame",
+    "preview": "/themes/capsule.png",
+    "colors": {
+      "canvas": "#FFF8F0",
+      "accent": "#FF6B9D",
+      "text": "#1F2937"
+    }
+  },
+  {
+    "id": "cartesian",
+    "name": "Cartesian",
+    "description": "HyperFrames frame.md preset — Minimal sparse layout — warm parchment, ink display type, taupe accents, hairline rules",
+    "category": "frame",
+    "preview": "/themes/cartesian.png",
+    "colors": {
+      "canvas": "#F7F3ED",
+      "accent": "#8B7355",
+      "text": "#2C2C2C"
+    }
+  },
+  {
+    "id": "claude",
+    "name": "Claude-design-analysis",
+    "description": "A warm-canvas editorial interface for Anthropic's Claude product. The system anchors on a tinted cream canvas with serif display headlines, warm coral CTAs, and dark navy product surfaces (code editor mockups, model showcase cards). Brand voltage comes from the cream/coral pairing — deliberately warm and humanist where most AI brands use cool blue + slate. Type voice runs a slab-serif display (\"Copernicus\" / Tiempos Headline) for h1/h2 and a humanist sans for body. The signature Anthropic black-radial-spike mark anchors the wordmark.",
+    "category": "brand",
+    "preview": "/themes/claude.png",
+    "colors": {
+      "canvas": "#faf9f5",
+      "accent": "#cc785c",
+      "text": "#141413"
+    }
+  },
+  {
+    "id": "cobalt-grid",
+    "name": "Cobalt Grid",
+    "description": "HyperFrames frame.md preset — Editorial parchment + cobalt grid system, Newsreader display, Hanken Grotesk reading",
+    "category": "frame",
+    "preview": "/themes/cobalt-grid.png",
+    "colors": {
+      "canvas": "#FAF7F2",
+      "accent": "#1D4ED8",
+      "text": "#0C1222"
+    }
+  },
+  {
+    "id": "coral",
+    "name": "Coral",
+    "description": "HyperFrames frame.md preset — Bebas Neue uppercase headlines + coral on cream, Inter reading",
+    "category": "frame",
+    "preview": "/themes/coral.png",
+    "colors": {
+      "canvas": "#FFF5EE",
+      "accent": "#FF6F61",
+      "text": "#1A1A1A"
+    }
+  },
+  {
+    "id": "corporateBlue",
+    "name": "corporateBlue",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/corporateBlue.png",
+    "colors": {
+      "canvas": "#f8fafc",
+      "accent": "#2563eb",
+      "text": "#0f172a"
+    }
+  },
+  {
+    "id": "creamChecks",
+    "name": "creamChecks",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/creamChecks.png",
+    "colors": {
+      "canvas": "#f8f1e3",
+      "accent": "#b7791f",
+      "text": "#2f261c"
+    }
+  },
+  {
+    "id": "creative-mode",
+    "name": "Creative Mode",
+    "description": "HyperFrames frame.md preset — Cream + saturated candy accents, Archivo Black display, JetBrains Mono data",
+    "category": "frame",
+    "preview": "/themes/creative-mode.png",
+    "colors": {
+      "canvas": "#FFFBF5",
+      "accent": "#FF2D95",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor-design-analysis",
+    "description": "An AI-first code editor whose marketing site reads like a quietly-confident developer-tools brand with a warm-cream editorial canvas (`#f7f7f4`) instead of the typical dark IDE atmosphere. Near-black warm ink (`#26251e`) carries body and display alike — display sits at weight 400 with negative letter-spacing for a magazine feel rather than a bold tech voice. The single brand voltage is **Cursor Orange** (`#f54e00`) reserved for primary CTAs and the wordmark. A signature pastel timeline palette (peach, mint, blue, lavender, gold) marks AI-action stages (Thinking / Reading / Editing / Grepping / Done) — only inside in-product timeline visualizations. Cards use minimal hairlines, no shadows, generous 80px section rhythm. CursorGothic for display/body, JetBrains Mono on every code surface (which is roughly half the page).",
+    "category": "brand",
+    "preview": "/themes/cursor.png",
+    "colors": {
+      "canvas": "#f7f7f4",
+      "accent": "#f54e00",
+      "text": "#26251e"
+    }
+  },
+  {
+    "id": "cyberpunk",
+    "name": "Cyberpunk",
+    "description": "Neon magenta/cyan on near-black — glitch-friendly captions and charts.",
+    "category": "builtin",
+    "preview": "/themes/cyberpunk.png",
+    "colors": {
+      "canvas": "#050508",
+      "accent": "#f472b6",
+      "text": "#f0fdfa"
+    }
+  },
+  {
+    "id": "daisy-days",
+    "name": "Daisy Days",
+    "description": "HyperFrames frame.md preset — Sunny-garden pastels, 3px charcoal outlines, hard offset shadows, Fredoka + Quicksand",
+    "category": "frame",
+    "preview": "/themes/daisy-days.png",
+    "colors": {
+      "canvas": "#FFF9E6",
+      "accent": "#FF7675",
+      "text": "#2D3436"
+    }
+  },
+  {
+    "id": "dell-1996",
+    "name": "Dell 1996 Inspired",
+    "description": "An inspired interpretation of Dell.com's 1996 design language — a catalog-era enterprise web design built around a literal black page frame, vivid flat color-block \"ribbon cards\" tinted in sage, salmon, periwinkle, sky, peach and lime, chunky Helvetica-Black display titles, Times Roman body copy, and an entire visual vocabulary of pre-Photoshop hand-cut GIF stickers (NEW! bursts, award seals, beveled product photos).",
+    "category": "brand",
+    "preview": "/themes/dell-1996.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#e91d2a",
+      "text": "#000000"
+    }
+  },
+  {
+    "id": "editorial",
+    "name": "Editorial",
+    "description": "Magazine serif headlines on warm paper — luxury product storytelling.",
+    "category": "builtin",
+    "preview": "/themes/editorial.png",
+    "colors": {
+      "canvas": "#f7f3ee",
+      "accent": "#b45309",
+      "text": "#1c1917"
+    }
+  },
+  {
+    "id": "editorial-forest",
+    "name": "Editorial Forest",
+    "description": "HyperFrames frame.md preset — Green/pink/cream editorial triad, Source Serif 4 display, JetBrains Mono chrome, hairline rules",
+    "category": "frame",
+    "preview": "/themes/editorial-forest.png",
+    "colors": {
+      "canvas": "#F5F5F0",
+      "accent": "#E07A9F",
+      "text": "#1B4332"
+    }
+  },
+  {
+    "id": "figma",
+    "name": "Figma-design-analysis",
+    "description": "\"A confident black-and-white editorial frame interrupted by oversized, hand-cut pastel color blocks. The marketing canvas is rigorously monochrome — figmaSans variable type, pure white surfaces, pure black ink, pill-shaped CTAs — while each story section drops the page into a saturated lime, lavender, cream, mint, or pink panel that reads like a sticky note placed on a clean desk. The result is a design system that feels both technical and joyful — a tool for serious work, made by people who like color.\"",
+    "category": "brand",
+    "preview": "/themes/figma.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#000000",
+      "text": "#000000"
+    }
+  },
+  {
+    "id": "framer",
+    "name": "Framer-design-analysis",
+    "description": "\"A confident dark-canvas builder marketing site that treats the page like a working artboard — pure black surfaces, white display type set in GT Walsheim Medium with aggressive negative tracking, and a single confident blue (#0099ff) reserved for hyperlinks and selection states. The page rhythm is broken by oversized vibrant gradient atmosphere panels — magenta, violet, orange spotlights — that act as living showcase tiles, not decoration. Every CTA is a white pill on dark; every card is a translucent or charcoal surface; every section title pulls letter-spacing tight enough to feel like a poster.\"",
+    "category": "brand",
+    "preview": "/themes/framer.png",
+    "colors": {
+      "canvas": "#090909",
+      "accent": "#ffffff",
+      "text": "#ffffff"
+    }
+  },
+  {
+    "id": "geist",
+    "name": "geist",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/geist.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#0070f3",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "glassmorphism",
+    "name": "Glassmorphism",
+    "description": "Frosted glass cards on aurora gradients — soft blur, light borders, airy type.",
+    "category": "builtin",
+    "preview": "/themes/glassmorphism.png",
+    "colors": {
+      "canvas": "#0b1020",
+      "accent": "#38bdf8",
+      "text": "#f8fafc"
+    }
+  },
+  {
+    "id": "linear",
+    "name": "Linear-design-analysis",
+    "description": "\"A near-black product-focused marketing canvas built around #010102 (the deepest dark surface of any tool in this collection), light gray text (#f7f8f8), and the signature Linear lavender-blue (#5e6ad2) used as the single chromatic accent. The system reads as software-craft documentation: dense, technical, and quietly luxurious. Display type is set in the Linear custom sans (SF Pro Display fallback) at 500–700 with measured negative tracking. Cards live as charcoal panels (#0f1011) with hairline borders. The accent lavender appears on the brand mark, focus rings, and a few intentional CTAs — never decoratively. Page rhythm leans on product UI screenshots framed in dark panels rather than atmospheric color.\"",
+    "category": "brand",
+    "preview": "/themes/linear.png",
+    "colors": {
+      "canvas": "#010102",
+      "accent": "#5e6ad2",
+      "text": "#f7f8f8"
+    }
+  },
+  {
+    "id": "mintMinimal",
+    "name": "mintMinimal",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/mintMinimal.png",
+    "colors": {
+      "canvas": "#f4fbf8",
+      "accent": "#10b981",
+      "text": "#134e4a"
+    }
+  },
+  {
+    "id": "monochromeGrid",
+    "name": "monochromeGrid",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/monochromeGrid.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#000000",
+      "text": "#000000"
+    }
+  },
+  {
+    "id": "neubrutalism",
+    "name": "Neubrutalism",
+    "description": "Flat color blocks, thick outlines, offset shadows — playful SaaS marketing.",
+    "category": "builtin",
+    "preview": "/themes/neubrutalism.png",
+    "colors": {
+      "canvas": "#fef9c3",
+      "accent": "#f472b6",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "notion",
+    "name": "Notion-design-analysis",
+    "description": "Notion presents itself as the all-in-one workspace through a confident, illustration-rich brand voice — anchored by a deep navy hero band ({colors.brand-navy}) decorated with brand-colored sticky-note dots and mesh wire illustrations, a signature purple pill primary CTA ({colors.primary}), and a rich palette of pastel-tinted feature cards that echo the colorful database properties of the live product. The system uses a Notion-Sans (Inter-based) typeface across every UI surface, anchors a 4-tier pricing comparison (Free / Plus / Business / Enterprise), and presents the live workspace UI mockup directly inside the hero band. Coverage spans homepage, Enterprise, Product AI, Product Agents, Startups, and Pricing surfaces.",
+    "category": "brand",
+    "preview": "/themes/notion.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#5645d4",
+      "text": "#37352f"
+    }
+  },
+  {
+    "id": "obsidian",
+    "name": "obsidian",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/obsidian.png",
+    "colors": {
+      "canvas": "#050505",
+      "accent": "#a8a8a8",
+      "text": "#f5f5f5"
+    }
+  },
+  {
+    "id": "raycast",
+    "name": "Raycast-design-analysis",
+    "description": "|",
+    "category": "brand",
+    "preview": "/themes/raycast.png",
+    "colors": {
+      "canvas": "#07080a",
+      "accent": "#ffffff",
+      "text": "#f4f4f6"
+    }
+  },
+  {
+    "id": "runway",
+    "name": "Runway",
+    "description": "",
+    "category": "brand",
+    "preview": "/themes/runway.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#2563eb",
+      "text": "#404040"
+    }
+  },
+  {
+    "id": "sandstone",
+    "name": "sandstone",
+    "description": "",
+    "category": "legacy",
+    "preview": "/themes/sandstone.png",
+    "colors": {
+      "canvas": "#fdfbf7",
+      "accent": "#8b5a2b",
+      "text": "#2d2621"
+    }
+  },
+  {
+    "id": "sentry",
+    "name": "Sentri-Inspired-design-analysis",
+    "description": "An inspired interpretation of Sentri's design language — a developer-tools brand built on a deep purple-violet midnight canvas, electric lime accents, and a slightly subversive illustrated personality. The system pairs a custom display sans (chunky, playful, near-condensed) with the open Rubik family for UI copy and Monaco for code, then leans on dark-on-light pricing surfaces, sticker-style mascots, and a single-color CTA hierarchy where black-violet buttons read as the primary action against either polarity.",
+    "category": "brand",
+    "preview": "/themes/sentry.png",
+    "colors": {
+      "canvas": "#150f23",
+      "accent": "#150f23",
+      "text": "#1f1633"
+    }
+  },
+  {
+    "id": "shopify",
+    "name": "Shopifi-Inspired-design-analysis",
+    "description": "An inspired interpretation of Shopifi's design language — a cinematic commerce platform that runs two parallel design tracks. The marketing-hero and product-narrative pages live on near-black canvases with full-bleed photography of merchants, giant Neue Haas Grotesk display type at thin weights, and a single black-pill CTA stroked in white. The transactional pages (pricing, signup, dashboards) flip to a cream-mint canvas with pastel aloe and pistachio greens, the same pill button vocabulary, and Inter for UI body. The two tracks share typographic DNA but diverge sharply in canvas polarity — and that choice is the brand.",
+    "category": "brand",
+    "preview": "/themes/shopify.png",
+    "colors": {
+      "canvas": "#000000",
+      "accent": "#000000",
+      "text": "#000000"
+    }
+  },
+  {
+    "id": "spotify",
+    "name": "Spotify",
+    "description": "",
+    "category": "brand",
+    "preview": "/themes/spotify.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#2563eb",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "stripe",
+    "name": "Stripi-Inspired-design-analysis",
+    "description": "An inspired interpretation of Stripi's design language — a financial-infrastructure brand built on a deep navy ink, an electric indigo primary, and a recurring atmospheric gradient mesh that occupies the upper third of nearly every marketing page. The system pairs the proprietary Sohne family at thin (300) weights with negative letter-spacing for editorial-density display headlines, and uses tabular-figure body type where money and numerics matter. Buttons are tight-radius pills, cards live on near-white surfaces, and the dashboard track flips polarity to a familiar dark-app shell.",
+    "category": "brand",
+    "preview": "/themes/stripe.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#533afd",
+      "text": "#0d253d"
+    }
+  },
+  {
+    "id": "style-data-drift",
+    "name": "Data Drift",
+    "description": "Refik Anadol futurism — thin Inter, purple/cyan accents, particle-field mood.",
+    "category": "motion",
+    "preview": "/themes/style-data-drift.png",
+    "colors": {
+      "canvas": "#0a0a0a",
+      "accent": "#7c3aed",
+      "text": "#e0e0e0"
+    }
+  },
+  {
+    "id": "style-deconstructed",
+    "name": "Deconstructed",
+    "description": "Industrial punk energy — Space Grotesk slam, burnt orange accent, glitch-ready.",
+    "category": "motion",
+    "preview": "/themes/style-deconstructed.png",
+    "colors": {
+      "canvas": "#1a1a1a",
+      "accent": "#D4501E",
+      "text": "#f0f0f0"
+    }
+  },
+  {
+    "id": "style-folk-frequency",
+    "name": "Folk Frequency",
+    "description": "Cultural festive joy — Fredoka headlines, candy multi-accent, playful motion.",
+    "category": "motion",
+    "preview": "/themes/style-folk-frequency.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#FF1493",
+      "text": "#1a1a1a"
+    }
+  },
+  {
+    "id": "style-maximalist-type",
+    "name": "Maximalist Type",
+    "description": "Paula Scher poster energy — Anton display, red/yellow accents, kinetic launches.",
+    "category": "motion",
+    "preview": "/themes/style-maximalist-type.png",
+    "colors": {
+      "canvas": "#0a0a0a",
+      "accent": "#E63946",
+      "text": "#ffffff"
+    }
+  },
+  {
+    "id": "style-shadow-cut",
+    "name": "Shadow Cut",
+    "description": "Film noir cinematic — Oswald uppercase, blood-red accent, deep vignette.",
+    "category": "motion",
+    "preview": "/themes/style-shadow-cut.png",
+    "colors": {
+      "canvas": "#0a0a0a",
+      "accent": "#C1121F",
+      "text": "#f0f0f0"
+    }
+  },
+  {
+    "id": "style-soft-signal",
+    "name": "Soft Signal",
+    "description": "Warm humanist editorial — Playfair italic headlines, amber/rose/sage accents.",
+    "category": "motion",
+    "preview": "/themes/style-soft-signal.png",
+    "colors": {
+      "canvas": "#FFF8EC",
+      "accent": "#F5A623",
+      "text": "#2a2a2a"
+    }
+  },
+  {
+    "id": "style-swiss-pulse",
+    "name": "Swiss Pulse",
+    "description": "Clinical grid-locked precision — Helvetica headlines, electric blue accent, data-forward.",
+    "category": "motion",
+    "preview": "/themes/style-swiss-pulse.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#0066FF",
+      "text": "#1a1a1a"
+    }
+  },
+  {
+    "id": "style-velvet-standard",
+    "name": "Velvet Standard",
+    "description": "Premium enterprise luxury — wide-track uppercase, deep navy accent, slow glides.",
+    "category": "motion",
+    "preview": "/themes/style-velvet-standard.png",
+    "colors": {
+      "canvas": "#0a0a0a",
+      "accent": "#1a237e",
+      "text": "#f8fafc"
+    }
+  },
+  {
+    "id": "supabase",
+    "name": "Supabaze-Inspired-design-analysis",
+    "description": "An inspired interpretation of Supabaze's design language — an open-source database platform built on a clean white-and-near-black system with a single signature emerald-green CTA, a custom humanist sans display tier, and dense product UI mockups composited above the hero. The brand reads as quietly technical: minimal chrome, a near-monochrome palette, and the green primary acting as the only chromatic event on the page.",
+    "category": "brand",
+    "preview": "/themes/supabase.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#3ecf8e",
+      "text": "#171717"
+    }
+  },
+  {
+    "id": "tesla",
+    "name": "Tesla",
+    "description": "",
+    "category": "brand",
+    "preview": "/themes/tesla.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#2563eb",
+      "text": "#111111"
+    }
+  },
+  {
+    "id": "vercel",
+    "name": "Vercel-Inspired-design-analysis",
+    "description": "An inspired interpretation of Vercel's design language — a developer-platform brand whose surface is a stark black-and-ink duet on near-white canvas, broken at hero scale by a multi-color mesh gradient (cyan / blue / magenta / amber) that acts as the entire decorative system, paired with a custom geometric sans for headlines and a monospaced caption face for technical labels.",
+    "category": "brand",
+    "preview": "/themes/vercel.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#171717",
+      "text": "#171717"
+    }
+  },
+  {
+    "id": "voltagent",
+    "name": "Voltagent-Inspired-design-analysis",
+    "description": "An inspired interpretation of Voltagent's design language — a developer-focused AI agent engineering platform whose surface is an unrelenting near-black canvas broken only by a single electric-green brand accent, code-editor mockups inside the hero, and a precise grid of dark feature cards that read like a documentation site dressed as marketing.",
+    "category": "brand",
+    "preview": "/themes/voltagent.png",
+    "colors": {
+      "canvas": "#101010",
+      "accent": "#00d992",
+      "text": "#f2f2f2"
+    }
+  },
+  {
+    "id": "wise",
+    "name": "Wise-Inspired-design-analysis",
+    "description": "An inspired interpretation of Wise's design language — a global money-transfer brand whose surface combines an unusually heavy near-black display sans (weight 900 at 64–126 px) with a vivid lime-green brand accent, sage-tinted surface neutrals, and rounded white cards on a pale green-tinted canvas; the whole system reads more like a Scandinavian fintech magazine than a bank.",
+    "category": "brand",
+    "preview": "/themes/wise.png",
+    "colors": {
+      "canvas": "#ffffff",
+      "accent": "#9fe870",
+      "text": "#0e0f0c"
+    }
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "name": "Folk Frequency",
+  "description": "Cultural festive joy — Fredoka headlines, candy multi-accent, playful motion.",
+  "colors": {
+    "primary": "#ffffff",
+    "on-primary": "#1a1a1a",
+    "accent": "#FF1493",
+    "canvas": "#ffffff",
+    "ink": "#1a1a1a",
+    "muted": "#6b7280"
+  },
+  "typography": {}
+}

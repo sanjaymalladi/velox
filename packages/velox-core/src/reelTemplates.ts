@@ -1,6 +1,5 @@
 /**
- * Reel layout templates — map semantic slots to named positions + offsets
- * for portrait-style frames (defaults tuned for 1080×1920).
+ * Reel layout templates — portrait 1080×1920, tuned for dense vertical fill.
  */
 import type { NamedPosition } from './types'
 import type { Element } from './core/Element'
@@ -19,6 +18,9 @@ export type ReelTemplateId =
   | 'threeBeatReveal'
 
 export type ReelSlotId = 'top' | 'bottom' | 'visual' | 'caption' | 'overlay' | 'left' | 'right' | 'center' | 'full'
+
+const CAPTION_BOTTOM: SlotTransform = { named: 'bottomCenter', offset: { offsetY: -118 } }
+const OVERLAY_TOP_RIGHT: SlotTransform = { named: 'topCenter', offset: { offsetX: 300, offsetY: 220 } }
 
 const VALID: ReelTemplateId[] = [
   'none',
@@ -41,9 +43,6 @@ interface SlotTransform {
   offset?: { offsetX?: number; offsetY?: number }
 }
 
-/**
- * Position hint for a slot within a template (pixel offsets work across sizes).
- */
 export function slotPlacement(
   template: ReelTemplateId,
   slot: ReelSlotId | string | undefined,
@@ -53,60 +52,59 @@ export function slotPlacement(
 
   const s = (slot ?? 'center') as ReelSlotId
 
+  if (s === 'caption') return CAPTION_BOTTOM
+  if (s === 'overlay') return OVERLAY_TOP_RIGHT
+
   switch (template) {
     case 'topTextBottomVisual':
-      if (s === 'top' || s === 'caption') return { named: 'topCenter', offset: { offsetY: 160 } }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 72 } }
       if (s === 'bottom' || s === 'visual' || s === 'full')
-        return { named: 'bottomCenter', offset: { offsetY: -380 } }
-      if (s === 'overlay') return { named: 'topCenter', offset: { offsetY: 80 } }
-      return { named: 'center', offset: { offsetY: -120 } }
+        return { named: 'center', offset: { offsetY: 140 } }
+      return { named: 'center', offset: { offsetY: 48 } }
 
     case 'topVisualBottomText':
       if (s === 'top' || s === 'visual' || s === 'full')
-        return { named: 'topCenter', offset: { offsetY: 340 } }
-      if (s === 'bottom' || s === 'caption')
-        return { named: 'bottomCenter', offset: { offsetY: -200 } }
-      if (s === 'overlay') return { named: 'bottomCenter', offset: { offsetY: -420 } }
+        return { named: 'topCenter', offset: { offsetY: 300 } }
+      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -160 } }
       return { named: 'center', offset: {} }
 
     case 'splitLeftRight':
       if (s === 'left' || s === 'visual')
-        return { named: 'center', offset: { offsetX: -280 } }
-      if (s === 'right' || s === 'caption')
-        return { named: 'center', offset: { offsetX: 280 } }
-      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 120 } }
-      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -120 } }
+        return { named: 'center', offset: { offsetX: -248 } }
+      if (s === 'right')
+        return { named: 'center', offset: { offsetX: 248 } }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 72 } }
+      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -96 } }
       return { named: 'center', offset: {} }
 
     case 'centerCard':
-      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 110 } }
-      if (s === 'bottom' || s === 'caption') return { named: 'bottomCenter', offset: { offsetY: -130 } }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 68 } }
+      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -108 } }
       if (s === 'visual' || s === 'full' || s === 'center' || !slot)
-        return { named: 'center', offset: {} }
-      return { named: 'center', offset: {} }
+        return { named: 'center', offset: { offsetY: -24 } }
+      return { named: 'center', offset: { offsetY: -24 } }
 
     case 'fullBleedMedia':
-      if (s === 'caption' || s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -140 } }
-      if (s === 'top' || s === 'overlay') return { named: 'topCenter', offset: { offsetY: 120 } }
+      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -108 } }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 72 } }
       return { named: 'center', offset: {} }
 
     case 'headlineThenProof':
-      if (s === 'top' || s === 'caption') return { named: 'topCenter', offset: { offsetY: 220 } }
-      if (s === 'bottom' || s === 'visual') return { named: 'bottomCenter', offset: { offsetY: -280 } }
-      return { named: 'center', offset: { offsetY: -40 } }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 160 } }
+      if (s === 'bottom' || s === 'visual') return { named: 'bottomCenter', offset: { offsetY: -220 } }
+      return { named: 'center', offset: { offsetY: -56 } }
 
     case 'threeBeatReveal':
-      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 200 } }
-      if (s === 'center' || !slot || s === 'visual') return { named: 'center', offset: { offsetY: -40 } }
-      if (s === 'bottom' || s === 'caption') return { named: 'bottomCenter', offset: { offsetY: -220 } }
-      return { named: 'center', offset: {} }
+      if (s === 'top') return { named: 'topCenter', offset: { offsetY: 140 } }
+      if (s === 'center' || !slot || s === 'visual') return { named: 'center', offset: { offsetY: -56 } }
+      if (s === 'bottom') return { named: 'bottomCenter', offset: { offsetY: -180 } }
+      return { named: 'center', offset: { offsetY: -56 } }
 
     default:
       return {}
   }
 }
 
-/** Apply slot-based position when scene uses a reel template */
 export function applyReelSlot<T extends AnyElement>(
   el: T,
   template: ReelTemplateId | undefined,

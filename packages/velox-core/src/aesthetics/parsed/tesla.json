@@ -1,0 +1,15 @@
+{
+  "name": "Tesla",
+  "colors": {
+    "electric-blue": "#3e6ae1",
+    "pure-white": "#ffffff",
+    "light-ash": "#f4f4f4",
+    "carbon-dark": "#171a20",
+    "graphite": "#393c41",
+    "pewter": "#5c5e62",
+    "silver-fog": "#8e8e8e",
+    "cloud-gray": "#eeeeee",
+    "pale-silver": "#d0d1d2"
+  },
+  "typography": {}
+}

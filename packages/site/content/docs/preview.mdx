@@ -1,182 +1,52 @@
 ---
-title: Preview Studio
-description: Local iteration workflow for Velox videos.
+title: Preview
+description: Live Velox Studio preview with hot reload for VML and TypeScript video projects.
 ---
 
-# Preview Studio
+# Preview
 
-The Preview Studio is Velox's local development loop. It loads the same `video.ts` entrypoint used for final renders, watches the file for changes, and updates a browser-based player over WebSocket.
-
-## Features
-
-### Hot Module Replacement (HMR)
-
-Any changes you make to your video config are automatically reflected in the preview without requiring a full reload. This keeps iteration tight while you tune timing, layout, and animation.
-
-### Real-time Debugging
-
-- Browser-based canvas preview
-- File watching with automatic config reload
-- Runtime error reporting in the terminal and browser
-- Export actions from the preview UI
-- Frame scrubbing and playback controls
-
-### Interactive Controls
-
-- Play/Pause controls
-- Frame-by-frame navigation
-- Timeline scrubbing
-- Quick export from the preview UI
-
-## System Prompt Templates
-
-### For Preview Configuration
-```text
-You are configuring the Preview Studio. Key settings:
-- Host: localhost
-- Port: 3333
-- Auto-open browser: enabled
-- HMR enabled: required for development workflow
-```
-
-### For Studio Workflow
-```text
-You are using the Preview Studio. Workflow:
-1. Start studio with: velox-video preview <file.ts>
-2. Edit the Velox builder code in your editor
-3. See changes instantly via HMR
-4. Check motion, spacing, and typography
-5. Export when satisfied
-```
-
-## Example Entry File
-
-```typescript
-import { createVideo, scene, text, shape } from '@velox-video/core'
-
-export default createVideo({
-  size: '1080p',
-  fps: 30,
-  background: '#06060f',
-  scenes: [
-    scene(4)
-      .background(shape.gradient('160deg', '#0f0c29', '#302b63', '#24243e'))
-      .add(
-        text('Preview Loop')
-          .center({ offsetY: -24 })
-          .size(72)
-          .weight(800)
-          .color('#ffffff')
-          .in('slideUp', 0.6),
-        text('Edit this file and save')
-          .center({ offsetY: 52 })
-          .size(26)
-          .color('#a78bfa')
-          .in('fadeIn', 0.5, { delay: 0.35 }),
-      ),
-  ],
-})
-```
-
-## Studio Interface Components
-
-### Main Canvas Area
-
-- Browser-rendered preview of the current frame
-- Playback controls for checking timing and pacing
-- Scrubbing for frame-level inspection
-
-### Export Flow
-
-- Trigger export directly from the preview UI
-- Stream render progress over WebSocket
-- Write the artifact to the current working directory
-
-## Running the Studio
+`velox preview` starts a local **Velox Studio** session — a browser player wired to your entry file with hot reload.
 
 ```bash
-npx velox-video preview video.ts
+velox preview reel.vml
+velox preview video.ts
 ```
 
-The preview server currently binds to `http://localhost:3333` and opens the browser automatically.
+## What preview does
 
-## Development Workflow
+- Serves the current composition over HTTP
+- Recompiles when the source file changes
+- Shows the timeline, playback controls, and frame scrubber
+- Matches the same compile path used by `velox render` (WYSIWYG for layout and timing)
 
-### Step-by-Step Process
+Preview does **not** run the final H.264 encoder — use `velox render` for pixel-perfect export and audio mux.
 
-1. **Start the Studio**
-   ```bash
-   npx velox-video preview video.ts
-   ```
+## Workflow
 
-2. **Make Code Changes**
-   - Edit your `video.ts` file in your editor
-   - Save the file
+1. Start preview on your entry file.
+2. Edit VML or TypeScript; save to refresh.
+3. Scrub transitions and caption timing.
+4. When satisfied, `velox lint` then `velox render`.
 
-3. **Observe Changes**
-   - HMR automatically updates the preview
-   - No manual refresh needed
-   - The latest config is pushed to the player
+## Keyboard shortcuts
 
-4. **Test Variations**
-   - Try different text, spacing, and animation settings
-   - Compare alternate scene timings
-   - Use playback controls to analyze motion
+| Key | Action |
+|-----|--------|
+| Space | Play / pause |
+| ← / → | Previous / next frame |
+| Shift + ← / → | Jump faster |
+| E | Export (when supported in studio) |
 
-5. **Debug Issues**
-   - Check the terminal for reload failures
-   - Confirm the edited file is the watched entrypoint
-   - Reduce the scene to a smaller repro when needed
+## When to use preview vs draft render
 
-6. **Export Final Version**
-   - Export from the preview UI or stop the studio with `Ctrl+C`
-   - Run `velox render video.ts --output output.mp4`
-   - Verify the exported output
-
-## Interactive Debugging Techniques
-
-### Common Patterns
-
-**Pattern 1: Iterative Refinement**
-```bash
-npx velox-video preview video.ts
-npx velox-video render video.ts --output test.mp4
-```
-
-**Pattern 2: Timing Review**
-- Pause on transition boundaries
-- Scrub through entrances and exits
-- Compare neighboring scenes for overlap issues
-
-**Pattern 3: Layout Review**
-- Verify text clipping on long copy
-- Check contrast against the scene background
-- Confirm safe spacing near frame edges
-
-## Performance Optimization
-
-### In Studio Mode
-- Keep scenes small while iterating
-- Reduce particle counts or visual effects when debugging timing
-- Prefer shorter test clips before full-length renders
-
-### Testing Best Practices
-- Verify export quality matches preview intent
-- Check output dimensions and frame rate explicitly
-- Re-render after major timing changes rather than trusting preview alone
+| Need | Tool |
+|------|------|
+| Layout, copy, caption timing | `velox preview` |
+| Share a file with stakeholders | `velox render --draft` |
+| Final delivery | `velox render` at full quality |
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| HMR not working | Check terminal output and ensure the watched file is the file you are editing |
-| Studio slow | Reduce scene complexity or shorten the clip while iterating |
-| Preview looks wrong | Verify size, fps, and scene timing first |
-| Export failed | Re-run with `velox render` to isolate render-time issues |
-| Module errors | Run `pnpm install` and fix TypeScript or import issues |
-
-## Next Steps
-
-- Learn about [Rendering options](./rendering)
-- Explore [CLI commands](./cli)
-- Read the [Getting Started guide](./getting-started)
+- **Blank canvas** — check lint output; invalid markup may fail compile silently in older builds.
+- **Fonts look different** — preview and render share font loading, but system fallbacks can differ; pin webfont assets if needed.
+- **Preview won't start** — confirm port is free; try another terminal without stale node processes.

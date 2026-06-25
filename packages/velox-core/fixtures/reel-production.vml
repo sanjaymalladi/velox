@@ -1,0 +1,52 @@
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium" music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.55" staggerStep="0.14">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, stock refs, cards, charts, and beat metadata." badge="NEW" tone="success" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
+  </scene>
+
+  <scene duration="5.4" template="splitLeftRight" background="aurora:ocean" camera="parallaxDrift" mood="cinematic" transition="zoomSmooth" staggerStep="0.12">
+    <featureReveal slot="left" title="Production pieces included" caption="High-level tags instead of fragile offsets." motion="premiumSlide">
+      <item>caption styles</item>
+      <item>transparent SVG assets</item>
+      <item>stock provider refs</item>
+      <item>generated cards</item>
+    </featureReveal>
+    <stock slot="right" query="developer coding at night" provider="generated" width="440" height="620" radius="32" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Every block stays semantic for small models." style="wordPop" start="0.8" />
+    <beat at="1.0" />
+  </scene>
+
+  <scene duration="5.2" template="centerCard" background="mesh:violet" camera="kenBurns" mood="cinematic" transition="blurDissolve">
+    <card slot="visual" width="900" height="720" radius="40" motion="softReveal">
+      <column gap="26">
+        <kicker color="theme.accent">DATA STORY</kicker>
+        <lineChart width="720" height="260" curve="smooth" motion="drawIn">
+          <series label="Prompt" values="18,30,46,64,78" color="theme.accent" />
+          <series label="Render" values="8,18,36,62,92" color="#22c55e" />
+        </lineChart>
+        <donutChart size="260" motion="growUp">
+          <slice label="Layout" value="35" color="theme.accent" />
+          <slice label="Media" value="25" color="#38bdf8" />
+          <slice label="Motion" value="40" color="#22c55e" />
+        </donutChart>
+      </column>
+    </card>
+    <captions slot="caption" text="Charts are VML too, powered by D3." style="pill" start="0.4" />
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial" transition="zoomSmooth">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" motion="heroCinematic" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" delay="0.25" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" delay="0.45" />
+    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+    <sfx name="pop" at="0.6" />
+  </scene>
+
+  <scene duration="4.4" template="centerCard" background="#050505" camera="handheld" mood="cinematic" vignette="0.32" grain="0.08">
+    <finalCTA title="Paste VML. Render. Export." subtitle="The playground can now download your current custom video as WebM." cta="Try the export button" motion="magneticPop" />
+    <captions slot="caption" text="Paste VML, preview it, export it." style="karaoke" />
+  </scene>
+</video>

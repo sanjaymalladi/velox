@@ -27,15 +27,35 @@ export const reelAssetSrc: Record<string, string> = {
         stroke-linejoin="round" fill="none"/>
     </svg>`),
   'highlight-ring': svgDataUrl(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
-      <circle cx="120" cy="120" r="96" stroke="#fde047" stroke-width="14" fill="none" opacity="0.95"/>
-      <circle cx="120" cy="120" r="72" stroke="#fbbf24" stroke-width="6" fill="none" opacity="0.55"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="78" stroke="rgba(41,151,255,0.35)" stroke-width="2" fill="none"/>
+      <circle cx="100" cy="100" r="58" stroke="rgba(41,151,255,0.55)" stroke-width="1.5" fill="none" stroke-dasharray="8 6"/>
     </svg>`),
   'phone-frame': svgDataUrl(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="260" height="460" viewBox="0 0 260 460">
-      <rect x="26" y="18" rx="42" ry="42" width="208" height="424" fill="#111827"/>
-      <rect x="52" y="58" rx="10" ry="10" width="156" height="320" fill="#0f172a"/>
-      <circle cx="130" cy="410" r="18" fill="#334155"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="280" height="500" viewBox="0 0 280 500">
+      <defs>
+        <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#64748b"/>
+          <stop offset="0.45" stop-color="#1e293b"/>
+          <stop offset="1" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="screen" x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stop-color="#1e3a5f"/>
+          <stop offset="0.5" stop-color="#0f172a"/>
+          <stop offset="1" stop-color="#020617"/>
+        </linearGradient>
+        <radialGradient id="glow" cx="0.3" cy="0.15" r="0.65">
+          <stop offset="0" stop-color="rgba(41,151,255,0.45)"/>
+          <stop offset="1" stop-color="rgba(41,151,255,0)"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="140" cy="470" rx="72" ry="14" fill="rgba(0,0,0,0.35)"/>
+      <rect x="24" y="16" rx="38" ry="38" width="232" height="456" fill="url(#rim)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+      <rect x="44" y="52" rx="14" ry="14" width="192" height="360" fill="url(#screen)"/>
+      <rect x="44" y="52" rx="14" ry="14" width="192" height="360" fill="url(#glow)"/>
+      <rect x="60" y="72" width="72" height="8" rx="4" fill="rgba(255,255,255,0.12)"/>
+      <rect x="60" y="96" width="140" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+      <circle cx="140" cy="438" r="16" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
     </svg>`),
   'star-burst': svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260">

@@ -5,7 +5,7 @@ export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: <VeloxWordmark compact />,
-      url: '/',
+      url: '/docs',
       transparentMode: 'top',
     },
     githubUrl: 'https://github.com/sanjaymalladi/velox',
@@ -14,6 +14,10 @@ export function baseOptions(): BaseLayoutProps {
         text: 'Docs',
         url: '/docs',
         active: 'nested-url',
+      },
+      {
+        text: 'Themes',
+        url: '/docs/themes',
       },
       {
         text: 'CLI',

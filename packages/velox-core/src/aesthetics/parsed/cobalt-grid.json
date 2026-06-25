@@ -1,0 +1,15 @@
+{
+  "name": "Cobalt Grid",
+  "description": "HyperFrames frame.md preset — Editorial parchment + cobalt grid system, Newsreader display, Hanken Grotesk reading",
+  "colors": {
+    "canvas": "#FAF7F2",
+    "canvas-soft": "#FAF7F2",
+    "primary": "#0047AB",
+    "accent": "#1D4ED8",
+    "ink": "#0C1222",
+    "body": "#0C1222",
+    "body-muted": "#64748B",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

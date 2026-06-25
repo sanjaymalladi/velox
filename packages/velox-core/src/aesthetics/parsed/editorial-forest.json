@@ -1,0 +1,15 @@
+{
+  "name": "Editorial Forest",
+  "description": "HyperFrames frame.md preset — Green/pink/cream editorial triad, Source Serif 4 display, JetBrains Mono chrome, hairline rules",
+  "colors": {
+    "canvas": "#F5F5F0",
+    "canvas-soft": "#F5F5F0",
+    "primary": "#1B4332",
+    "accent": "#E07A9F",
+    "ink": "#1B4332",
+    "body": "#1B4332",
+    "body-muted": "#52796F",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

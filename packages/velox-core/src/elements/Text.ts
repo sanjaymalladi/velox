@@ -3,6 +3,7 @@ import type {
   TextElementConfig, TextListElementConfig,
   VeloxColor, VeloxGradient, EntranceAnimation,
 } from '../types'
+import type { CaptionStyle } from '../captions'
 
 // ─── Text ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,18 @@ export class TextElement extends Element<TextElementConfig> {
 
   /** Max pixel height before text is clipped. */
   maxHeight(px: number): this { this.config.maxHeight = px; return this }
+
+  /** Karaoke / caption-bar word metadata for the renderer. */
+  captionMeta(meta: {
+    style: CaptionStyle
+    wordIndex: number
+    cueStartSec: number
+    wordStepSec: number
+    totalWords: number
+  }): this {
+    this.config.caption = meta
+    return this
+  }
 }
 
 // ─── Text List ────────────────────────────────────────────────────────────────

@@ -10,6 +10,19 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./node-render": {
+      "types": "./dist/node-render.d.mts",
+      "import": "./dist/node-render.mjs",
+      "node": "./dist/node-render.mjs"
+    },
+    "./package.json": "./package.json"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -18,10 +31,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external @napi-rs/canvas",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external @napi-rs/canvas && tsup src/node-render.ts --format esm --dts --no-clean --external @napi-rs/canvas --tsconfig tsconfig.node-render.json",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external @napi-rs/canvas",
     "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "sync:aesthetics": "tsx ../../scripts/sync-aesthetics.ts"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.97",
@@ -32,7 +46,9 @@
     "@types/d3-scale": "^4.0.9",
     "@types/d3-shape": "^3.1.8",
     "@types/flubber": "^0.4.0",
+    "@types/node": "^22.15.21",
     "tsup": "^8.3.0",
+    "tsx": "^4.19.1",
     "typescript": "^5.4.5",
     "vitest": "^2.1.0"
   },
@@ -55,6 +71,8 @@
     "culori": "^4.0.2",
     "d3": "^7.9.0",
     "flubber": "^0.4.2",
-    "popmotion": "^11.0.5"
+    "popmotion": "^11.0.5",
+    "simplex-noise": "^4.0.3",
+    "stackblur-canvas": "^2.7.0"
   }
 }

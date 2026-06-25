@@ -1,116 +1,108 @@
 ---
 title: Getting Started
-description: Install Velox and run your first project.
+description: Install Velox, write a portrait reel in VML, lint it, and render native MP4 in under five minutes.
 ---
 
 # Getting Started
 
-Velox makes it easy to create professional motion graphics programmatically. Follow these steps to get up and running quickly.
+This guide walks through a **VML reel** — the fastest path for product videos and LLM-generated motion graphics.
 
-## Installation
+## Prerequisites
 
-### CLI + Core
+- **Node.js 18+**
+- **pnpm** (recommended) or npm
+
+System ffmpeg is optional — Velox bundles a static binary for audio mux when you install `velox-video`.
+
+## Install
 
 ```bash
-npm install -D velox-video @velox-video/core
-# or
-pnpm add -D velox-video @velox-video/core
+pnpm create velox-video@latest my-reel
+cd my-reel
+pnpm install
 ```
 
-You can also run the CLI directly with `npx velox-video`.
+Or add the CLI to an existing repo:
 
-## Create Your First Video
-
-Create `video.ts`:
-
-```typescript
-import { createVideoFromMarkup } from '@velox-video/core'
-
-export default createVideoFromMarkup(`
-<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <announcement slot="top" title="Your first Velox reel" subtitle="VML is safe for LLMs and easy to edit." badge="HELLO" motion="heroCinematic" />
-    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
-    <captions slot="caption" text="Your first Velox reel is just markup." style="karaoke" />
-  </scene>
-</video>
-`)
+```bash
+pnpm add -D velox-video
 ```
 
-You can also skip TypeScript and create `reel.vml` directly:
+## Project layout
+
+```
+my-reel/
+  reel.vml          # your markup (primary entry)
+  sfx/              # optional whoosh.mp3, click.wav, …
+  track.mp3         # optional background music
+  out/              # rendered exports
+```
+
+TypeScript projects use `video.ts` instead of `.vml` — same CLI commands, different file extension.
+
+## Your first reel
+
+Create `reel.vml`:
 
 ```xml
-<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial">
-    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" />
-    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" />
-    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+<video size="portrait" fps="30" theme="apple" motionQuality="premium">
+  <scene duration="6" template="centerCard" camera="slowPush"
+         transition="blurDissolve" transitionDuration="0.5">
+    <hero slot="center"
+          kicker="VELOX"
+          title="Motion graphics from markup."
+          subtitle="Lint, preview, render — one toolchain."
+          motion="heroCinematic" />
+    <captions slot="caption" text="Short caption line." style="pill" start="0.6" />
+  </scene>
+  <scene duration="5" template="centerCard" transition="wipe">
+  <finalCTA slot="center" title="velox render reel.vml" subtitle="That's the whole loop." />
   </scene>
 </video>
 ```
 
-### 2. Preview Your Animation
-
-Run the local studio against your project:
+## Lint before render
 
 ```bash
-npx velox-video preview video.ts
-# or
-npx velox-video preview reel.vml
+velox lint reel.vml
+velox lint reel.vml --strict   # warnings fail the command
 ```
 
-This will start a development server with Hot Module Replacement (HMR). Any changes you make to your animation code will be automatically reflected in the preview.
+Lint catches invalid tags, bad transition timing, missing `slot` attributes, and unknown theme ids.
 
-**Studio Features:**
-- Real-time preview with HMR
-- Playback controls (play, pause, stop)
-- Speed adjustment (0.1x to 4x)
-- Frame-by-frame navigation
-- Console logging
-- Performance metrics
-
-### 3. Render Your Video
-
-Export your project to a high-quality video file:
+## Render
 
 ```bash
-# Render with default settings
-npx velox-video render video.ts --output my-animation.mp4
-# or
-npx velox-video render reel.vml --output my-animation.mp4
-
-# Render with high quality
-npx velox-video render video.ts --quality high --output my-animation.mp4
-
-# Render to GIF
-npx velox-video render video.ts --format gif --output animation.gif
+velox render reel.vml -o out/reel.mp4
+velox render reel.vml --draft    # half resolution, capped fps — quick review
 ```
 
-## Common Commands
+Progress prints in-place; the output path is deterministic when you pass `-o`.
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `velox-video new <name>` | Create a new project | `velox-video new intro-video` |
-| `velox-video preview <file>` | Start development preview | `velox-video preview src/index.ts` |
-| `velox-video render <file>` | Render to MP4 (default) | `velox-video render src/index.ts` |
-| `velox-video render <file> --output out.mp4` | Custom output path | `velox-video render src/index.ts --output final.mp4` |
-| `velox-video render <file> --format gif` | Render to GIF | `velox-video render src/index.ts --format gif` |
-| `velox-video render <file> --quality high` | High quality render | `velox-video render src/index.ts --quality high` |
-| `velox-video studio` | Start studio without file | `velox-video studio` |
+## Add music and SFX
 
-## Reel Features To Try
+```xml
+<video music="track.mp3" musicVolume="0.35">
+  <scene duration="5">
+    <sfx name="whoosh" at="0.3" volume="0.8" />
+  </scene>
+</video>
+```
 
-- Use `template="topTextBottomVisual"` or `template="headlineThenProof"` on scenes.
-- Add `slot="top|visual|caption|overlay"` to important children.
-- Use semantic tags like `<announcement>`, `<breakingNews>`, `<ranking>`, `<finalCTA>`.
-- Add captions with `<captions text="..." style="karaoke" />`.
-- Use generated cards like `<githubRepo owner="..." repo="..." />` or `<npmPackage name="..." />`.
-- Add timeline metadata with `<sfx name="pop" at="0.4" />` and `<beat at="1.0" />`. MP4 audio muxing is staged; current exports are silent.
+Drop `sfx/whoosh.mp3` next to the VML file. See [Rendering → Audio](/docs/rendering#audio) for mux details.
 
-## Next Steps
+## Next steps
 
-- Explore [Preview Studio features](./docs/preview)
-- Learn about [Rendering options](./docs/rendering)
-- Check out [CLI commands](./docs/cli)
-- Try the [playground](./docs/playground) and export a quick WebM
-- Use the [recommended VML prompt](./docs/markup-prompt)
+- Pick a look on the [Themes reference](/docs/themes) or run `velox list themes`
+- Read [Transitions](/docs/transitions) for scene handoffs
+- Copy the [VML system prompt](/docs/markup-prompt) into your LLM workflow
+- Install catalog snippets with `velox add stat-counter`
+
+## Common mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Elements stack in the center | Set `template="…"` on `<scene>` and `slot="…"` on children |
+| Transition error on lint | `transitionDuration` must be **less than** scene `duration` |
+| Silent export with music | Ensure `track.mp3` exists; check render log for mux status |
+| Wrong colors everywhere | Set **one** `theme="…"` on `<video>`, use `color="theme.text"` |

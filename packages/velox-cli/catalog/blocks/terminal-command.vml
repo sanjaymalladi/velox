@@ -1,0 +1,6 @@
+<column slot="center" gap="16">
+  <shape width="920" height="320" radius="16" color="rgba(0,0,0,0.92)" motion="softReveal" />
+  <text value="$ velox render launch.vml -o launch.mp4" size="30" weight="600" color="#4ade80" font="monospace" motion="typewriter" delay="0.3" />
+  <text value="Loading assets… Rendering 1880 frames…" size="22" weight="400" color="rgba(255,255,255,0.55)" font="monospace" motion="fadeIn" delay="1.6" />
+</column>
+<captions slot="caption" text="Ship from the CLI." style="clipWipe" start="0.5" />

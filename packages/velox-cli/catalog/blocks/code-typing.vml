@@ -1,0 +1,7 @@
+<!-- Paste into a <scene> in your reel -->
+<column slot="center" gap="20">
+  <kicker>TERMINAL</kicker>
+  <text value="pnpm velox render reel.vml" size="28" weight="600" color="theme.text" font="monospace" motion="typewriter" delay="0.2" />
+  <text value="✓ Done in 42s → out.mp4" size="22" weight="500" color="theme.muted" font="monospace" motion="fadeIn" delay="1.8" />
+</column>
+<captions slot="caption" text="One command to MP4." style="pill" start="0.4" />
