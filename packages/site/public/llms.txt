@@ -1,0 +1,24 @@
+# Velox
+
+> Velox compiles Velox Markup (VML) and TypeScript into deterministic MP4 via native canvas render — themes, transitions, captions, and CLI export.
+
+Author product reels with `theme="…"` on `<video>`, scene templates, and semantic blocks. Lint with `velox lint`, render with `velox render`. Markdown copies of every doc page are at `/llms.mdx/docs/…`.
+
+## Start here
+
+- [Overview](/docs): Mental model and minimal VML reel
+- [Getting Started](/docs/getting-started): Install, lint, first render
+- [VML Prompt](/docs/markup-prompt): System prompt for LLM-authored markup
+- [Playground](/docs/playground): Browser preview of VML
+
+## Authoring
+
+- [Themes](/docs/themes): All 51 built-in aesthetics with previews and palette tokens
+- [Transitions](/docs/transitions): Scene-to-scene motion types and timing rules
+- [Rendering](/docs/rendering): MP4/GIF export, audio mux, quality flags
+- [Preview](/docs/preview): Velox Studio hot reload
+- [CLI](/docs/cli): `lint`, `render`, `list`, `add`
+
+## Optional
+
+- [GitHub](https://github.com/sanjaymalladi/velox): Source and issues

@@ -1,0 +1,16 @@
+---
+title: Themes
+description: Interactive theme explorer — pick a theme and preview hero, data, features, and CTA scenarios live.
+---
+
+Set **one** `theme` attribute on `<video>`. Velox applies typography, surfaces, caption bars, and default backgrounds to every scene.
+
+```xml
+<video theme="raycast" size="portrait" fps="30" background="theme.canvas">
+  <scene template="centerCard" duration="6" background="theme.canvas">
+    <hero slot="center" title="Your headline." subtitle="Proof line." />
+  </scene>
+</video>
+```
+
+Use `color="theme.text"`, `theme.muted`, and `theme.accent` on children. Run `velox list themes` in the CLI.
