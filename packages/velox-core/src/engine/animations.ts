@@ -18,7 +18,8 @@ export interface AnimationState {
   rotation: number   // degrees
   blur: number       // px
   skewX: number      // degrees
-  clipReveal: number // 0→1, for typewriter/revealLeft
+  clipReveal: number // 0→1, for typewriter/revealLeft/drawIn
+  clipRevealY?: number // 0→1, for maskRevealUp (vertical)
   p?: number         // raw progress (useful for drawIn paths)
   animationPhase?: 'hidden' | 'entrance' | 'loop' | 'exit' | 'done'
 }
@@ -61,7 +62,8 @@ function applyEntrance(
     case 'zoomIn':      return { ...state, opacity: p, scaleX: lerp(0.4, 1, p), scaleY: lerp(0.4, 1, p) }
     case 'zoomInBlur':  return { ...state, opacity: p, scaleX: lerp(0.6, 1, p), scaleY: lerp(0.6, 1, p), blur: lerp(12, 0, p) }
     case 'slideUpBlur': return { ...state, opacity: clamp(p * 2), y: lerp(80, 0, p), blur: lerp(16, 0, p) }
-    case 'maskRevealUp': return { ...state, opacity: clamp(p * 4), y: lerp(80, 0, p), clipReveal: p } // Will be handled in draw element
+    case 'maskRevealUp': return { ...state, opacity: clamp(p * 4), y: lerp(80, 0, p), clipRevealY: p }
+    case 'drawIn':      return { ...state, opacity: p, clipReveal: p, p }
     case 'spring': {
       const sp = springValue(raw, { stiffness: 170, damping: 26 })
       return { ...state, opacity: clamp(p * 3), y: lerp(50, 0, sp), scaleY: lerp(0.85, 1, sp) }

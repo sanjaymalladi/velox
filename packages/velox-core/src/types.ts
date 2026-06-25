@@ -126,6 +126,14 @@ export interface TextElementConfig extends BaseElementConfig {
   maxWidth?: number
   /** Max pixel height — excess lines are clipped. */
   maxHeight?: number
+  /** When set, renderer applies caption-bar styling (karaoke highlight, dim inactive words). */
+  caption?: {
+    style: 'plain' | 'pill' | 'karaoke' | 'wordPop' | 'highlightKeywords' | 'slam' | 'clipWipe' | 'weightShift'
+    wordIndex: number
+    cueStartSec: number
+    wordStepSec: number
+    totalWords: number
+  }
 }
 
 export interface TextListElementConfig extends BaseElementConfig {
@@ -231,8 +239,10 @@ export type ElementConfig =
   | GroupElementConfig
 
 export interface SfxCue {
-  /** Preset sfx id (CLI may map to bundled/user assets) */
+  /** Preset sfx id (CLI maps to bundled/user assets) */
   name: string
+  /** Optional explicit audio file (overrides name lookup) */
+  src?: string
   /** Seconds from global timeline start */
   at: number
   volume?: number

@@ -11,7 +11,11 @@ export interface LayoutOptions {
 function elementSize(el: ElementConfig): [number, number] {
   if (el.type === 'text') {
     const size = el.fontSize ?? 32
-    const width = el.maxWidth ?? Math.max(80, el.content.length * size * 0.56 + Math.max(0, el.content.length - 1) * (el.letterSpacing ?? 0))
+    const weight = el.fontWeight ?? 400
+    const charW = size * (weight >= 700 ? 0.62 : weight >= 600 ? 0.58 : 0.52)
+    const width =
+      el.maxWidth ??
+      Math.max(48, el.content.length * charW + Math.max(0, el.content.length - 1) * (el.letterSpacing ?? 0))
     return [width, size * (el.lineHeight ?? 1.2)]
   }
   if (el.type === 'textList') {
@@ -60,17 +64,19 @@ export class GroupBuilder extends Element<GroupElementConfig> {
         ? sizes.reduce((sum, [, h]) => sum + h, 0) + gap * Math.max(0, sizes.length - 1)
         : 0
 
+    const maxW = Math.max(...sizes.map(([w]) => w), 0)
+    const maxH = Math.max(...sizes.map(([, h]) => h), 0)
     let cursor = -totalMain / 2
     this.config.children = this.config.children.map((child, index) => {
       const [w, h] = sizes[index]
       if (kind === 'stack') return { ...child, position: { type: 'absolute', x: 0, y: 0 } }
       if (kind === 'row') {
-        const y = align === 'start' ? -h / 2 : align === 'end' ? h / 2 : 0
+        const y = align === 'start' ? -maxH / 2 + h / 2 : align === 'end' ? maxH / 2 - h / 2 : 0
         const next = { ...child, position: { type: 'absolute' as const, x: cursor + w / 2, y } }
         cursor += w + gap
         return next
       }
-      const x = align === 'start' ? w / 2 : align === 'end' ? -w / 2 : 0
+      const x = align === 'start' ? -maxW / 2 + w / 2 : align === 'end' ? maxW / 2 - w / 2 : 0
       const next = { ...child, position: { type: 'absolute' as const, x, y: cursor + h / 2 } }
       cursor += h + gap
       return next

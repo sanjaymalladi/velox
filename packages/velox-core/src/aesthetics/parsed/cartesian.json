@@ -1,0 +1,15 @@
+{
+  "name": "Cartesian",
+  "description": "HyperFrames frame.md preset — Minimal sparse layout — warm parchment, ink display type, taupe accents, hairline rules",
+  "colors": {
+    "canvas": "#F7F3ED",
+    "canvas-soft": "#F7F3ED",
+    "primary": "#2C2C2C",
+    "accent": "#8B7355",
+    "ink": "#2C2C2C",
+    "body": "#2C2C2C",
+    "body-muted": "#78716C",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

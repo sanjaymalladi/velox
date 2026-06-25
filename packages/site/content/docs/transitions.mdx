@@ -1,0 +1,64 @@
+---
+title: Transitions
+description: Animate the handoff between scenes with built-in transition types and overlap timing.
+---
+
+# Transitions
+
+Every `<scene>` except the last can define how the **next** scene enters. Transitions overlap the tail of the current scene — the timeline shortens by the transition duration so total runtime stays predictable.
+
+## Basic usage
+
+```xml
+<scene duration="6" transition="blurDissolve" transitionDuration="0.6">
+  ...
+</scene>
+<scene duration="5" transition="zoomSmooth" transitionDuration="0.5">
+  ...
+</scene>
+```
+
+| Attribute | Default | Meaning |
+|-----------|---------|---------|
+| `transition` | *(none)* | Effect type (see table below) |
+| `transitionDuration` | `0.55` | Overlap length in **seconds** |
+
+**Rule:** `transitionDuration` must be **strictly less than** scene `duration`. Lint enforces this.
+
+## Transition types
+
+| Type | Feel | Notes |
+|------|------|-------|
+| `crossDissolve` | Classic fade | Soft editorial handoff |
+| `blurDissolve` | Frosted crossfade | Great for SaaS reels |
+| `zoomSmooth` | Scale + fade | Product launch energy |
+| `wipe` | Directional reveal | Default direction: left |
+| `slide` | Push | Default direction: left |
+| `zoom` | Hard zoom | Punchy; keep duration short |
+| `glitch` | RGB split | Default intensity `1` |
+| `flash` | White flash | Default flash color white |
+
+## Pairing with camera and mood
+
+Transitions compose with per-scene `camera` and `mood`:
+
+```xml
+<scene duration="6" camera="slowPush" mood="cinematic"
+       transition="blurDissolve" transitionDuration="0.6">
+  <hero slot="center" title="Scene one." motion="heroCinematic" />
+</scene>
+<scene duration="5" camera="kenBurns" mood="editorial" transition="zoomSmooth">
+  <announcement slot="top" title="Scene two." />
+</scene>
+```
+
+## Timeline math
+
+If scene A is 6s with a 0.6s transition, scene B starts at **5.4s** on the master clock. Caption `start` times are always relative to the **scene's local** zero — not the global timeline.
+
+## Tips
+
+- Use **one transition style** per reel for cohesion; vary duration instead of type.
+- Portrait reels: `blurDissolve` or `zoomSmooth` at **0.4–0.6s** read clean on mobile.
+- Avoid transitions on every scene if pacing feels sluggish — a hard cut (no attribute) resets attention.
+- Run `velox lint` after changing durations — overlap mistakes are the most common authoring error.

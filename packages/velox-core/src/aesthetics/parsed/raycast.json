@@ -1,0 +1,31 @@
+{
+  "name": "Raycast-design-analysis",
+  "description": "|",
+  "colors": {
+    "primary": "#ffffff",
+    "primary-pressed": "#e8e8e8",
+    "on-primary": "#000000",
+    "ink": "#f4f4f6",
+    "body": "#cdcdcd",
+    "charcoal": "#d3d3d4",
+    "mute": "#9c9c9d",
+    "ash": "#6a6b6c",
+    "stone": "#434345",
+    "on-dark": "#ffffff",
+    "canvas": "#07080a",
+    "surface": "#0d0d0d",
+    "surface-elevated": "#101111",
+    "surface-card": "#121212",
+    "button-fg": "#18191a",
+    "hairline": "#242728",
+    "accent-blue": "#57c1ff",
+    "accent-red": "#ff6161",
+    "accent-green": "#59d499",
+    "accent-yellow": "#ffc533",
+    "hero-stripe-start": "#ff5757",
+    "hero-stripe-end": "#a1131a",
+    "key-bg-start": "#121212",
+    "key-bg-end": "#0d0d0d"
+  },
+  "typography": {}
+}

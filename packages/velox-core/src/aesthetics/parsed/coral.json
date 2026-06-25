@@ -1,0 +1,15 @@
+{
+  "name": "Coral",
+  "description": "HyperFrames frame.md preset — Bebas Neue uppercase headlines + coral on cream, Inter reading",
+  "colors": {
+    "canvas": "#FFF5EE",
+    "canvas-soft": "#FFF5EE",
+    "primary": "#FF6F61",
+    "accent": "#FF6F61",
+    "ink": "#1A1A1A",
+    "body": "#1A1A1A",
+    "body-muted": "#6B6B6B",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

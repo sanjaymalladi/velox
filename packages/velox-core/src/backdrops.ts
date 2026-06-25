@@ -14,11 +14,13 @@ type PaletteName = keyof typeof palettes
 
 export const backdrops = {
   aurora(options: { mood?: PaletteName; angle?: string } = {}): VeloxGradient {
-    return shape.gradient(options.angle ?? '145deg', ...(palettes[options.mood ?? 'midnight']))
+    const base = palettes[options.mood ?? 'midnight']
+    return shape.gradient(options.angle ?? '145deg', ...colors.ramp(base, 5))
   },
 
   meshGradient(options: { palette?: PaletteName; angle?: string } = {}): VeloxGradient {
-    return shape.gradient(options.angle ?? '160deg', ...(palettes[options.palette ?? 'violet']))
+    const base = palettes[options.palette ?? 'violet']
+    return shape.gradient(options.angle ?? '160deg', ...colors.ramp(base, 5))
   },
 
   grid(color = 'rgba(255,255,255,0.05)', size = 48): string {

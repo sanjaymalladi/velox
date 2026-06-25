@@ -1,0 +1,15 @@
+{
+  "name": "Bold Poster",
+  "description": "HyperFrames frame.md preset — Shrikhand tilted display + red accent on cream — magazine cover energy",
+  "colors": {
+    "canvas": "#FDF6E3",
+    "canvas-soft": "#FDF6E3",
+    "primary": "#C1121F",
+    "accent": "#E63946",
+    "ink": "#1A1A1A",
+    "body": "#1A1A1A",
+    "body-muted": "#5C5C5C",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

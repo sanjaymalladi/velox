@@ -18,111 +18,63 @@ import type {
 import { getAnimationState } from './animations'
 import type { AnimationState } from './animations'
 import { drawText, drawTextList } from './drawText'
+import { drawStockPlaceholder } from './drawStockPlaceholder'
 import { drawShape } from './drawShape'
 import { lerp, easeOut } from './easing'
-import { isPlaceholderImageSrc } from '../mediaProviders'
+import { supportsCanvasFilter, setCanvasFilter } from './canvasFilter'
+import { drawLayerWithBlur as browserDrawLayerWithBlur } from './cpuBlur'
+import { createNoise2D } from 'simplex-noise'
+
+type DrawLayerWithBlurFn = typeof browserDrawLayerWithBlur
+
+let nodeDrawLayerWithBlur: DrawLayerWithBlurFn | undefined
+
+/** Register Node CPU blur (import `@velox-video/core/node-render` before native export). */
+export function setNodeDrawLayerWithBlur(fn: DrawLayerWithBlurFn): void {
+  nodeDrawLayerWithBlur = fn
+}
+
+function drawLayerWithBlur(
+  targetCtx: Ctx,
+  width: number,
+  height: number,
+  alpha: number,
+  blurRadius: number,
+  drawLayer: (ctx: Ctx) => void,
+): void {
+  if (supportsCanvasFilter || typeof document !== 'undefined') {
+    browserDrawLayerWithBlur(targetCtx, width, height, alpha, blurRadius, drawLayer)
+    return
+  }
+  if (nodeDrawLayerWithBlur) {
+    nodeDrawLayerWithBlur(targetCtx, width, height, alpha, blurRadius, drawLayer)
+    return
+  }
+  targetCtx.save()
+  targetCtx.globalAlpha = alpha
+  drawLayer(targetCtx)
+  targetCtx.restore()
+}
 
 type Ctx = CanvasRenderingContext2D
 type CachedImage = { width?: number; height?: number; naturalWidth?: number; naturalHeight?: number }
-type NodeCanvasLoader = { loadImage: (input: string | Uint8Array) => Promise<CachedImage> }
 type LogoPathEntry = { d: string; fill?: string; stroke?: string; length?: number }
 type LogoPathData = { viewBox?: string; paths: LogoPathEntry[] }
 type RuntimeLogoElement = LogoElementConfig & { _paths?: LogoPathData; _resolvedSrc?: string }
 
 // ─── Image Cache ──────────────────────────────────────────────────────────────
 
-/**
- * Shared image cache. Keys are src strings; values are loaded image objects.
- * In the browser this is HTMLImageElement; in Node it's whatever @napi-rs/canvas
- * returns from loadImage (duck-typed as any).
- */
 const _imageCache = new Map<string, CachedImage>()
 const _loadingImageSrcs = new Set<string>()
 
 /**
- * Inject a pre-populated image cache (useful in the Node CLI renderer where
- * images must be loaded asynchronously before the sync render loop starts).
- * Call `await preloadImages(config)` to build the map, then pass it here.
+ * Shared image cache. Keys are src strings; values are loaded image objects.
+ * In the browser this is HTMLImageElement; in Node it's whatever @napi-rs/canvas
+ * returns from loadImage (duck-typed as CachedImage).
+ * Fill via `preloadImages()` (browser) or `preloadImagesInNode()` (Node, see `@velox-video/core/node-render`).
  */
 export function setImageCache(cache: Map<string, CachedImage>): void {
   cache.forEach((v, k) => _imageCache.set(k, v))
-}
-
-/**
- * Async helper: walks a VeloxVideoConfig, finds every image src, and loads
- * them into a Map that can be injected via setImageCache().
- * Works in both browser (new Image()) and Node (@napi-rs/canvas loadImage).
- */
-export async function preloadImages(config: VeloxVideoConfig): Promise<Map<string, CachedImage>> {
-  const srcs = new Set<string>()
-  const logoFetchQueue: { el: LogoElementConfig; promise: Promise<void> }[] = []
-
-  for (const scene of config.scenes) {
-    for (const el of scene.elements) {
-      if (el.type === 'image') srcs.add((el as ImageElementConfig).src)
-      if (el.type === 'logo') {
-        const logoEl = el as LogoElementConfig
-        const p = (async () => {
-          const name = logoEl.logo.toLowerCase().replace(/\s+/g, '')
-          const themeStr = logoEl.theme === 'dark' ? '_dark' : '_light'
-          let data
-          try {
-            // Load bundled SVGL path data. Rendering must not depend on the public SVGL API.
-            data = await import('@velox-video/svgl/dist/logos/' + name + themeStr + '.json')
-          } catch {
-            try {
-              data = await import('@velox-video/svgl/dist/logos/' + name + '.json')
-            } catch {
-              console.error('Failed to load bundled SVGL paths for', name)
-              return
-            }
-          }
-          ;(logoEl as RuntimeLogoElement)._paths = (data.default || data) as LogoPathData
-        })()
-        logoFetchQueue.push({ el: logoEl, promise: p })
-      }
-    }
-  }
-
-  // Wait for all logo registry lookups to finish so we have all src URLs
-  await Promise.all(logoFetchQueue.map(q => q.promise))
-
-  const cache = new Map<string, CachedImage>()
-  const preloadTargets = Array.from(srcs).filter((src) => !isPlaceholderImageSrc(src))
-  await Promise.all(
-    preloadTargets.map(async (src) => {
-      try {
-        if (typeof window !== 'undefined') {
-          // Browser
-          await new Promise<void>((resolve, reject) => {
-            const img = new Image()
-            img.crossOrigin = 'anonymous'
-            img.onload = () => { cache.set(src, img); resolve() }
-            img.onerror = reject
-            img.src = src
-          })
-        } else {
-          const { loadImage } = (await import('@napi-rs/canvas')) as NodeCanvasLoader
-          if (src.endsWith('.svg')) {
-            const res = await fetch(src)
-            let svgText = await res.text()
-            // Some SVGs (like Github SVGL) lack width/height which breaks @napi-rs/canvas. Inject them.
-            if (!svgText.match(/<svg[^>]*\s+width=/)) {
-               svgText = svgText.replace('<svg ', '<svg width="256" height="256" ')
-            }
-            const img = await loadImage(new TextEncoder().encode(svgText))
-            cache.set(src, img)
-          } else {
-            const img = await loadImage(src)
-            cache.set(src, img)
-          }
-        }
-      } catch (e) {
-        console.warn(`[velox] Could not preload image: ${src}`, e)
-      }
-    })
-  )
-  return cache
 }
 
 // ─── Size presets ─────────────────────────────────────────────────────────────
@@ -264,7 +216,7 @@ function applySceneCamera(
 
   switch (cam) {
     case 'slowPush': {
-      const s = 1 + 0.042 * t
+      const s = 1 + 0.068 * t
       ctx.scale(s, s)
       break
     }
@@ -301,12 +253,20 @@ function applySceneCamera(
 }
 
 function resolveSceneOverlay(scene: SceneConfig, motionQuality: MotionQuality | undefined): { vignette: number; grain: number } {
-  const explicit = scene.overlay ?? {}
+  const explicit = scene.overlay
+  // When the compiler sets overlay from aesthetic defaults, honour those values exactly.
+  if (explicit && (explicit.vignetteOpacity !== undefined || explicit.grainOpacity !== undefined)) {
+    return {
+      vignette: Math.max(0, Math.min(1, explicit.vignetteOpacity ?? 0)),
+      grain: Math.max(0, Math.min(1, explicit.grainOpacity ?? 0)),
+    }
+  }
+
   const premium = motionQuality === 'premium'
   const mood = scene.mood ?? 'neutral'
 
-  let vignette = explicit.vignetteOpacity
-  let grain = explicit.grainOpacity
+  let vignette = explicit?.vignetteOpacity
+  let grain = explicit?.grainOpacity
 
   if (vignette === undefined) {
     if (mood === 'editorial') vignette = premium ? 0.52 : 0.38
@@ -348,20 +308,28 @@ function drawVignetteOverlay(ctx: Ctx, width: number, height: number, opacity: n
   ctx.restore()
 }
 
-/** Cheap deterministic grain */
+/** Film grain — works in browser and Node (no CSS filter required). */
+let _grainNoise: ReturnType<typeof createNoise2D> | null = null
+
+function grainNoise(): ReturnType<typeof createNoise2D> {
+  if (!_grainNoise) _grainNoise = createNoise2D()
+  return _grainNoise
+}
+
 function drawGrainOverlay(ctx: Ctx, width: number, height: number, strength: number, frame: number): void {
   if (strength <= 0.001) return
   ctx.save()
   ctx.globalCompositeOperation = 'overlay'
   const step = premiumGrainStep(width, height, strength)
   const base = strength * 0.14
+  const noise = grainNoise()
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
-      const h = (x * 73856093) ^ (y * 19349663) ^ (frame * 83492791)
-      if (((h >>> 0) & 15) > 9) continue
-      const extra = ((h >>> 5) % 80) / 5000
+      const n = noise(x * 0.045 + frame * 0.11, y * 0.045 + frame * 0.07)
+      if (n < -0.15) continue
+      const extra = (n + 0.15) * 0.12
       ctx.globalAlpha = Math.min(0.42, base + extra)
-      ctx.fillStyle = (h & 1) === 0 ? '#ffffff' : '#000000'
+      ctx.fillStyle = n > 0 ? '#ffffff' : '#000000'
       ctx.fillRect(x, y, 1.5, 1.5)
     }
   }
@@ -384,14 +352,14 @@ function resolvePosition(
     case 'named': {
       const ox = pos.offsetX ?? 0, oy = pos.offsetY ?? 0
       switch (pos.name) {
-        case 'topLeft':      return { x: originX + 80 + ox, y: originY + 80 + oy }
-        case 'topRight':     return { x: originX + width - 80 + ox, y: originY + 80 + oy }
-        case 'bottomLeft':   return { x: originX + 80 + ox, y: originY + height - 80 + oy }
-        case 'bottomRight':  return { x: originX + width - 80 + ox, y: originY + height - 80 + oy }
-        case 'topCenter':    return { x: originX + width / 2 + ox, y: originY + 80 + oy }
-        case 'bottomCenter': return { x: originX + width / 2 + ox, y: originY + height - 80 + oy }
-        case 'leftCenter':   return { x: originX + 80 + ox, y: originY + height / 2 + oy }
-        case 'rightCenter':  return { x: originX + width - 80 + ox, y: originY + height / 2 + oy }
+        case 'topLeft':      return { x: originX + 54 + ox, y: originY + 54 + oy }
+        case 'topRight':     return { x: originX + width - 54 + ox, y: originY + 54 + oy }
+        case 'bottomLeft':   return { x: originX + 54 + ox, y: originY + height - 54 + oy }
+        case 'bottomRight':  return { x: originX + width - 54 + ox, y: originY + height - 54 + oy }
+        case 'topCenter':    return { x: originX + width / 2 + ox, y: originY + 54 + oy }
+        case 'bottomCenter': return { x: originX + width / 2 + ox, y: originY + height - 54 + oy }
+        case 'leftCenter':   return { x: originX + 54 + ox, y: originY + height / 2 + oy }
+        case 'rightCenter':  return { x: originX + width - 54 + ox, y: originY + height / 2 + oy }
         default:             return { x: originX + width / 2 + ox, y: originY + height / 2 + oy }
       }
     }
@@ -409,21 +377,14 @@ function drawImage(
   canvasWidth: number,
   canvasHeight: number,
   localFrame: number,
-  fps: number
+  fps: number,
+  sceneTotalFrames?: number
 ): void {
   const img = _imageCache.get(el.src)
+  const boxW = el.width ?? 780
+  const boxH = el.height ?? 440
   if (el.src.startsWith('stock://')) {
-    const [from, to] = el.src.includes('code') || el.src.includes('developer')
-      ? ['#111827', '#2563eb']
-      : ['#1f2937', '#7c3aed']
-    ctx.save()
-    ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
-    const g = ctx.createLinearGradient(0, 0, canvasWidth, canvasHeight)
-    g.addColorStop(0, from)
-    g.addColorStop(1, to)
-    ctx.fillStyle = g
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-    ctx.restore()
+    drawStockPlaceholder(ctx, el.src, drawX, drawY, boxW, boxH, state.opacity, el.borderRadius ?? 0)
     return
   }
   const isVeloxUnresolved =
@@ -438,9 +399,7 @@ function drawImage(
     g.addColorStop(0, from)
     g.addColorStop(1, to)
     ctx.fillStyle = g
-    const dw = el.width ?? 780
-    const dh = el.height ?? 440
-    ctx.fillRect(drawX - dw / 2, drawY - dh / 2, dw, dh)
+    ctx.fillRect(drawX - boxW / 2, drawY - boxH / 2, boxW, boxH)
     ctx.restore()
     return
   }
@@ -496,8 +455,7 @@ function drawImage(
     const opts = typeof kenBurns === 'object' ? kenBurns : {}
     const direction = opts.direction ?? 'in'
     const intensity = opts.intensity ?? 0.06
-    // Use scene progress from localFrame — rough estimate using fps (assume 5s scene)
-    const totalSceneFrames = 5 * fps
+    const totalSceneFrames = sceneTotalFrames ?? 5 * fps
     const t = Math.min(localFrame / totalSceneFrames, 1)
     const zoom = direction === 'in' ? 1 + t * intensity : 1 + (1 - t) * intensity
     const panX = direction === 'in' ? 0 : t * dw * 0.04
@@ -511,12 +469,14 @@ function drawImage(
   ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
 
   // Apply CSS-style filters
-  const filters: string[] = []
-  if (blur) filters.push(`blur(${blur}px)`)
-  if (brightness !== undefined) filters.push(`brightness(${brightness})`)
-  if (saturate !== undefined) filters.push(`saturate(${saturate})`)
-  if (state.blur > 0) filters.push(`blur(${state.blur}px)`)
-  ctx.filter = filters.length ? filters.join(' ') : 'none'
+  if (supportsCanvasFilter) {
+    const filters: string[] = []
+    if (blur) filters.push(`blur(${blur}px)`)
+    if (brightness !== undefined) filters.push(`brightness(${brightness})`)
+    if (saturate !== undefined) filters.push(`saturate(${saturate})`)
+    if (state.blur > 0) filters.push(`blur(${state.blur}px)`)
+    ctx.filter = filters.length ? filters.join(' ') : 'none'
+  }
 
   // Animation transform (for entrance animations)
   ctx.translate(state.x, state.y)
@@ -527,7 +487,7 @@ function drawImage(
   }
 
   // Border radius clip and Mask Reveal
-  const clipRevealY = (state as AnimationState & { clipRevealY?: number }).clipRevealY
+  const clipRevealY = state.clipRevealY
   if (borderRadius > 0 || state.clipReveal < 1 || clipRevealY !== undefined) {
     ctx.beginPath()
     const r = borderRadius || 0
@@ -637,7 +597,8 @@ function drawElement(
   width: number,
   height: number,
   originX: number = 0,
-  originY: number = 0
+  originY: number = 0,
+  sceneTotalFrames?: number
 ): void {
   const state = getAnimationState(el, localFrame, fps)
   if (state.opacity <= 0) return
@@ -646,7 +607,7 @@ function drawElement(
 
   switch (el.type) {
     case 'text':
-      drawText(ctx, el, x, y, state, width, height)
+      drawText(ctx, el, x, y, state, width, height, localFrame, fps)
       break
     case 'textList':
       drawTextList(ctx, el, x, y, localFrame, fps, width, height)
@@ -655,7 +616,7 @@ function drawElement(
       drawShape(ctx, el, x, y, state, localFrame)
       break
     case 'image':
-      drawImage(ctx, el as ImageElementConfig, x, y, state, width, height, localFrame, fps)
+      drawImage(ctx, el as ImageElementConfig, x, y, state, width, height, localFrame, fps, sceneTotalFrames)
       break
     case 'logo': {
       const logoEl = el as RuntimeLogoElement
@@ -668,7 +629,7 @@ function drawElement(
     }
     case 'group':
       for (const child of el.children) {
-        drawElement(ctx, child, localFrame, fps, width, height, x, y)
+        drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames)
       }
       break
   }
@@ -694,8 +655,11 @@ function drawScene(
   applySceneCamera(ctx, scene, localFrame, fps, width, height)
   drawBackground(ctx, scene.background, width, height, false)
 
+  const sceneFrames = Math.round(scene.duration * fps)
   for (const el of scene.elements) {
-    drawElement(ctx, el, localFrame, fps, width, height)
+    ctx.save()
+    drawElement(ctx, el, localFrame, fps, width, height, 0, 0, sceneFrames)
+    ctx.restore()
   }
   ctx.restore()
 
@@ -756,14 +720,75 @@ export function drawFrame(
       } else if (scene.transition.type === 'blurDissolve') {
         const blurOut = Math.sin((1 - tp) * (Math.PI / 2)) * 13
         const blurIn = Math.sin(tp * (Math.PI / 2)) * 13
+        if (supportsCanvasFilter) {
+          ctx.save()
+          setCanvasFilter(ctx, blurOut > 0.35 ? `blur(${blurOut}px)` : 'none')
+          drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1 - tp)
+          ctx.restore()
+          ctx.save()
+          setCanvasFilter(ctx, blurIn > 0.35 ? `blur(${blurIn}px)` : 'none')
+          drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, tp)
+          ctx.restore()
+        } else {
+          drawLayerWithBlur(ctx, width, height, 1 - tp, blurOut, (layerCtx) => {
+            drawScene(layerCtx, scene, localFrame, config.fps, width, height, mq, frame, 1)
+          })
+          drawLayerWithBlur(ctx, width, height, tp, blurIn, (layerCtx) => {
+            drawScene(layerCtx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
+          })
+        }
+      } else if (scene.transition.type === 'zoom') {
+        const e = easeOut(tp)
         ctx.save()
-        ctx.filter = blurOut > 0.35 ? `blur(${blurOut}px)` : 'none'
+        ctx.globalAlpha = 1 - tp
+        ctx.translate(width / 2, height / 2)
+        ctx.scale(lerp(1, 1.25, e), lerp(1, 1.25, e))
+        ctx.translate(-width / 2, -height / 2)
+        drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1)
+        ctx.restore()
+        ctx.save()
+        ctx.globalAlpha = tp
+        ctx.translate(width / 2, height / 2)
+        ctx.scale(lerp(0.75, 1, e), lerp(0.75, 1, e))
+        ctx.translate(-width / 2, -height / 2)
+        drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
+        ctx.restore()
+      } else if (scene.transition.type === 'wipe') {
+        const dir = scene.transition.options?.direction ?? 'left'
+        drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1)
+        ctx.save()
+        ctx.beginPath()
+        if (dir === 'left') ctx.rect(0, 0, width * tp, height)
+        else if (dir === 'right') ctx.rect(width * (1 - tp), 0, width * tp, height)
+        else if (dir === 'up') ctx.rect(0, 0, width, height * tp)
+        else ctx.rect(0, height * (1 - tp), width, height * tp)
+        ctx.clip()
+        drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
+        ctx.restore()
+      } else if (scene.transition.type === 'glitch') {
+        const intensity = scene.transition.options?.intensity ?? 1
+        const jitter = Math.sin(frame * 17.3) * (1 - tp) * 18 * intensity
+        ctx.save()
+        ctx.translate(jitter, Math.cos(frame * 11.7) * (1 - tp) * 6 * intensity)
+        ctx.globalAlpha = 1 - tp
+        drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1)
+        ctx.restore()
+        ctx.save()
+        ctx.translate(-jitter * 0.6, 0)
+        ctx.globalAlpha = tp
+        drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
+        ctx.restore()
+      } else if (scene.transition.type === 'flash') {
         drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1 - tp)
-        ctx.restore()
-        ctx.save()
-        ctx.filter = blurIn > 0.35 ? `blur(${blurIn}px)` : 'none'
         drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, tp)
-        ctx.restore()
+        if (tp > 0.35 && tp < 0.65) {
+          const flashP = Math.sin(((tp - 0.35) / 0.3) * Math.PI)
+          ctx.save()
+          ctx.fillStyle = scene.transition.options?.color ?? '#ffffff'
+          ctx.globalAlpha = flashP * 0.88
+          ctx.fillRect(0, 0, width, height)
+          ctx.restore()
+        }
       } else if (scene.transition.type === 'zoomSmooth') {
         const e = easeOut(tp)
         ctx.save()

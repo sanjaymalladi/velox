@@ -26,5 +26,24 @@ export const colors = {
     const parsed = toRgb(color)
     return parsed ? formatHex(parsed) : color
   },
+
+  /** True when a fill reads as a light surface (for chart grids, caption dimming, etc.). */
+  isLight(color: string): boolean {
+    try {
+      return chroma(color).luminance() > 0.55
+    } catch {
+      return false
+    }
+  },
+
+  /** Dim a text color for inactive caption words on any background. */
+  dimCaption(color: string, amount = 0.38): string {
+    try {
+      const base = chroma(color)
+      return base.alpha(amount).css()
+    } catch {
+      return `rgba(128,128,128,${amount})`
+    }
+  },
 }
 

@@ -1,0 +1,15 @@
+{
+  "name": "Broadside",
+  "description": "HyperFrames frame.md preset — Industrial newsprint poster — raw cream on ink, Barlow display, fire-orange register",
+  "colors": {
+    "canvas": "#F5F0E8",
+    "canvas-soft": "#F5F0E8",
+    "primary": "#111111",
+    "accent": "#E85D04",
+    "ink": "#111111",
+    "body": "#111111",
+    "body-muted": "#6B6B6B",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

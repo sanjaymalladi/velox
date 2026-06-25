@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import type { ElementConfig, ImageElementConfig, VeloxVideoConfig } from '@velox-video/core'
 import { decodeVeloxCardRef, validateVeloxVideoConfig } from '@velox-video/core'
 import { svgBrandCard, svgGithubRepoCard, svgNpmPackageCard, svgWebsitePlaceholder } from './svgCards'
+import { svgStockArt } from './svgStock'
 
 async function cachePath(rootDir: string, key: string, ext: string): Promise<string> {
   const dir = path.join(rootDir, '.velox', 'cache', 'media')
@@ -36,6 +37,22 @@ async function patchElement(el: ElementConfig, rootDir: string, log: string[]): 
   if (el.type === 'image') {
     const ie = el as ImageElementConfig
     const src = ie.src
+
+    if (src.startsWith('stock://')) {
+      const slug = src.slice('stock://'.length)
+      const query = slug.replace(/-/g, ' ')
+      const w = ie.width ?? 520
+      const h = ie.height ?? 640
+      try {
+        const svg = svgStockArt(query, w, h)
+        const outfile = await cachePath(rootDir, `stock-gen:${slug}`, 'svg')
+        await fs.writeFile(outfile, svg, 'utf8')
+        ie.src = path.resolve(outfile)
+        log.push(`[velox] Generated stock tile for "${query}"`)
+      } catch {
+        log.push(`[velox] stock:// tile generation failed for "${query}".`)
+      }
+    }
 
     if (src.startsWith('velox-stock:')) {
       const rest = src.slice('velox-stock:'.length)

@@ -1,0 +1,23 @@
+{
+  "name": "Spotify",
+  "colors": {
+    "spotify-green": "#1ed760",
+    "near-black": "#121212",
+    "dark-surface": "#181818",
+    "mid-dark": "#1f1f1f",
+    "white": "#ffffff",
+    "silver": "#b3b3b3",
+    "near-white": "#cbcbcb",
+    "light": "#fdfdfd",
+    "negative-red": "#f3727f",
+    "warning-orange": "#ffa42b",
+    "announcement-blue": "#539df5",
+    "dark-card": "#252525",
+    "mid-card": "#272727",
+    "border-gray": "#4d4d4d",
+    "light-border": "#7c7c7c",
+    "light-surface": "#eeeeee",
+    "spotify-green-border": "#1db954"
+  },
+  "typography": {}
+}

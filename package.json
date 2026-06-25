@@ -16,10 +16,13 @@
     "lint": "turbo lint",
     "site:dev": "pnpm --filter @velox-video/site dev",
     "site:build": "pnpm --filter @velox-video/site build",
-    "velox": "node packages/velox-cli/dist/index.js"
+    "velox": "node packages/velox-cli/dist/index.js",
+    "sync:aesthetics": "pnpm --filter @velox-video/core sync:aesthetics",
+    "generate:theme-previews": "node scripts/generate-theme-previews.cjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",
+    "tsx": "^4.19.1",
     "turbo": "^2.3.0",
     "typescript": "^5.4.5"
   },

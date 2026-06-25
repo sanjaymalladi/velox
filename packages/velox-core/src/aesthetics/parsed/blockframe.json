@@ -1,0 +1,15 @@
+{
+  "name": "BlockFrame",
+  "description": "HyperFrames frame.md preset — Maximalist neobrutalist — thick black borders, hard offset shadows, candy accents",
+  "colors": {
+    "canvas": "#FFFDF5",
+    "canvas-soft": "#FFFDF5",
+    "primary": "#111111",
+    "accent": "#FF4D6D",
+    "ink": "#111111",
+    "body": "#111111",
+    "body-muted": "#444444",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

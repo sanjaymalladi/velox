@@ -4,15 +4,30 @@
  * directly from a VeloxVideoConfig, with no browser, no FFmpeg, no system deps.
  */
 import path from 'path'
+import { createRequire } from 'module'
 import fs from 'fs-extra'
 import type { VeloxVideoConfig } from '@velox-video/core'
-import { drawFrame, getTotalFrames, resolveSize, preloadImages, setImageCache } from '@velox-video/core'
+import '@velox-video/core/node-render'
+import { drawFrame, getTotalFrames, resolveSize, setImageCache } from '@velox-video/core'
+import type { LoadImageFn } from '@velox-video/core/node-render'
+import { registerVeloxFonts } from './registerFonts'
+import { resolveRenderTuning, scaledDimensions } from './renderOptions'
+import { muxAudioPlan } from './muxAudio'
 
 export interface RenderOptions {
   outputPath: string
   format?: 'mp4' | 'gif' | 'png-sequence'
   quality?: number       // 0-100 user quality (higher = better)
-  onProgress?: (progress: number, frame: number, total: number) => void
+  /** Directory for resolving relative music/assets (VML file folder). */
+  sourceDir?: string
+  /** Output resolution scale 0.25–1 */
+  scale?: number
+  /** Cap export fps (skips frames, keeps duration) */
+  exportFps?: number
+  /** Fast draft: 50% res + max 30fps */
+  draft?: boolean
+  onProgress?: (progress: number, frame: number, total: number, rendered: number, renderTotal: number) => void
+  onPhase?: (phase: 'preload' | 'render') => void
 }
 
 function toQualityPercent(quality?: number): number {
@@ -32,26 +47,66 @@ function toGifQuality(quality?: number): number {
   return Math.round(30 - (percent / 100) * 29)
 }
 
+/** @napi-rs/canvas exposes Path as Path2D but does not install a global — charts/logos need it. */
+function ensureNodePath2D(requireLocal: NodeJS.Require): void {
+  if (typeof globalThis.Path2D !== 'undefined') return
+  const specifier = `${String.fromCharCode(64)}napi-rs/canvas`
+  const mod = requireLocal(specifier) as { Path?: typeof Path2D; Path2D?: typeof Path2D }
+  const PathCtor = mod.Path2D ?? mod.Path
+  if (!PathCtor) throw new Error('[@napi-rs/canvas] Path2D is unavailable in this environment.')
+  ;(globalThis as typeof globalThis & { Path2D: typeof Path2D }).Path2D = PathCtor
+}
+
 export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions): Promise<void> {
   const { outputPath, format = 'mp4', onProgress } = opts
   const [width, height] = resolveSize(config.size)
   const totalFrames = getTotalFrames(config)
+  const tuning = resolveRenderTuning(config, opts)
+  const [renderW, renderH] = scaledDimensions(width, height, tuning.scale)
+  const renderTotal = Math.ceil(totalFrames / tuning.frameStep)
 
-  const imgCache = await preloadImages(config)
+  const requireLocal = createRequire(path.join(__dirname, 'index.js'))
+  registerVeloxFonts()
+  ensureNodePath2D(requireLocal)
+  const specifier = `${String.fromCharCode(64)}napi-rs/canvas`
+  const { loadImage } = requireLocal(specifier) as { loadImage: LoadImageFn }
+  const { preloadRasterInNodeWithLoader } = await import('@velox-video/core/node-render')
+  opts.onPhase?.('preload')
+  const imgCache = await preloadRasterInNodeWithLoader(config, loadImage)
   setImageCache(imgCache)
+  opts.onPhase?.('render')
 
-  if (config.audioPlan && (config.audioPlan.sfx.length > 0 || config.audioPlan.beats.length > 0 || config.audioPlan.music)) {
-    console.warn(
-      '[velox] Timeline metadata detected (music / sfx / beats). Audio multiplexing into MP4 is planned; current export renders silent video.',
+  if (config.audioPlan && config.audioPlan.sfx.length > 0 && config.audioPlan.beats.length > 0) {
+    // beats are timeline metadata for future visual sync
+  }
+
+  const emitProgress = (rendered: number, sourceFrame: number) => {
+    onProgress?.(
+      (rendered + 1) / renderTotal,
+      sourceFrame,
+      totalFrames,
+      rendered,
+      renderTotal,
     )
   }
 
   if (format === 'mp4') {
-    await renderMp4(config, width, height, totalFrames, outputPath, opts)
+    await renderMp4(config, renderW, renderH, totalFrames, outputPath, opts, tuning, emitProgress)
+    const music = config.audio?.src ?? config.audioPlan?.music?.src
+    const vol = config.audio?.volume ?? config.audioPlan?.music?.volume ?? 0.35
+    const packageDir = path.join(__dirname, '..')
+    await muxAudioPlan(
+      outputPath,
+      config.audioPlan,
+      music,
+      vol,
+      opts.sourceDir ?? path.dirname(outputPath),
+      packageDir,
+    )
   } else if (format === 'gif') {
-    await renderGif(config, width, height, totalFrames, outputPath, opts)
+    await renderGif(config, renderW, renderH, totalFrames, outputPath, opts, tuning, emitProgress)
   } else if (format === 'png-sequence') {
-    await renderPngSequence(config, width, height, totalFrames, outputPath, opts)
+    await renderPngSequence(config, renderW, renderH, totalFrames, outputPath, opts, tuning, emitProgress)
   } else {
     throw new Error(`Unsupported render format "${format}".`)
   }
@@ -59,37 +114,49 @@ export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions
 
 // ─── MP4 Renderer ────────────────────────────────────────────────────────────
 
+import type { NativeRenderTuning } from './renderOptions'
+
 async function renderMp4(
   config: VeloxVideoConfig,
   width: number,
   height: number,
   totalFrames: number,
   outputPath: string,
-  opts: RenderOptions
+  opts: RenderOptions,
+  tuning: NativeRenderTuning,
+  emitProgress: (rendered: number, sourceFrame: number) => void,
 ): Promise<void> {
-  // Use require() so Node resolves from node_modules (not ESM resolver which breaks in CJS bundles)
   const { createCanvas } = require('@napi-rs/canvas')
   const HME = require('h264-mp4-encoder')
 
   const encoder = await HME.createH264MP4Encoder()
-  // H264 requires dimensions to be multiples of 2
-  encoder.width = Math.floor(width / 2) * 2
-  encoder.height = Math.floor(height / 2) * 2
-  encoder.frameRate = Math.round(config.fps || 30)
+  encoder.width = width
+  encoder.height = height
+  encoder.frameRate = tuning.exportFps
   encoder.quantizationParameter = toMp4Quantization(opts.quality)
   encoder.initialize()
 
-  const canvas = createCanvas(encoder.width, encoder.height)
-  const ctx = canvas.getContext('2d') as unknown as CanvasRenderingContext2D
+  const encW = encoder.width
+  const encH = encoder.height
+  type NodeCanvas = { data(): Buffer }
+  type NodeCtx = CanvasRenderingContext2D & { reset?: () => void }
 
-  for (let frame = 0; frame < totalFrames; frame++) {
-    drawFrame(ctx, config, frame, width, height)
+  const canvas = createCanvas(encW, encH) as NodeCanvas & { getContext(type: '2d', attrs?: { willReadFrequently?: boolean }): NodeCtx }
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
-    // Get raw RGBA pixel data
-    const imageData = ctx.getImageData(0, 0, width, height)
-    encoder.addFrameRgba(imageData.data as unknown as Uint8Array)
-
-    opts.onProgress?.(frame / totalFrames, frame, totalFrames)
+  const expectedBytes = encW * encH * 4
+  const step = tuning.frameStep
+  let rendered = 0
+  for (let frame = 0; frame < totalFrames; frame += step) {
+    ctx.reset?.()
+    drawFrame(ctx, config, frame, encW, encH)
+    const pixels = canvas.data()
+    if (pixels.length < expectedBytes) {
+      throw new Error(`Canvas pixel readback failed at frame ${frame} (${pixels.length} < ${expectedBytes})`)
+    }
+    encoder.addFrameRgba(new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength))
+    emitProgress(rendered, frame)
+    rendered++
   }
 
   encoder.finalize()
@@ -97,7 +164,6 @@ async function renderMp4(
   await fs.ensureDir(path.dirname(outputPath))
   await fs.writeFile(outputPath, Buffer.from(data))
 
-  // Cleanup encoder
   try { encoder.delete() } catch {}
 }
 
@@ -109,17 +175,18 @@ async function renderGif(
   height: number,
   totalFrames: number,
   outputPath: string,
-  opts: RenderOptions
+  opts: RenderOptions,
+  tuning: NativeRenderTuning,
+  emitProgress: (rendered: number, sourceFrame: number) => void,
 ): Promise<void> {
   const { createCanvas } = require('@napi-rs/canvas')
   const GIFEncoder = require('gif-encoder-2')
 
-  // GIFs are large — render at max 600px wide, 12fps
   const scale = Math.min(1, 600 / width)
   const gifW = Math.round(width * scale)
   const gifH = Math.round(height * scale)
-  const gifFps = Math.min(config.fps, 12)
-  const step = Math.round(config.fps / gifFps)
+  const gifFps = Math.min(tuning.exportFps, 12)
+  const step = Math.max(tuning.frameStep, Math.round(config.fps / gifFps))
 
   const encoder = new GIFEncoder(gifW, gifH, 'neuquant', true)
   const stream = encoder.createReadStream()
@@ -132,16 +199,25 @@ async function renderGif(
 
   const canvas = createCanvas(width, height)
   const gifCanvas = createCanvas(gifW, gifH)
-  const ctx = canvas.getContext('2d') as unknown as CanvasRenderingContext2D
-  const gifCtx = gifCanvas.getContext('2d') as unknown as CanvasRenderingContext2D
+  type NodeCanvas = { data(): Buffer }
+  type NodeCtx = CanvasRenderingContext2D & { reset?: () => void }
+  const ctx = canvas.getContext('2d', { willReadFrequently: true }) as NodeCtx
+  const gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true }) as NodeCtx
 
+  const gifBytes = gifW * gifH * 4
+  let rendered = 0
   for (let frame = 0; frame < totalFrames; frame += step) {
+    ctx.reset?.()
     drawFrame(ctx, config, frame, width, height)
-    // Downscale to gif canvas
-    gifCtx.drawImage(canvas as any, 0, 0, gifW, gifH)
-    const imageData = gifCtx.getImageData(0, 0, gifW, gifH)
-    encoder.addFrame(imageData.data as any)
-    opts.onProgress?.(frame / totalFrames, frame, totalFrames)
+    gifCtx.reset?.()
+    gifCtx.drawImage(canvas as unknown as CanvasImageSource, 0, 0, gifW, gifH)
+    const pixels = (gifCanvas as NodeCanvas).data()
+    if (pixels.length < gifBytes) {
+      throw new Error(`GIF pixel readback failed at frame ${frame}`)
+    }
+    encoder.addFrame(new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength) as unknown as Buffer)
+    emitProgress(rendered, frame)
+    rendered++
   }
 
   encoder.finish()
@@ -158,19 +234,26 @@ async function renderPngSequence(
   height: number,
   totalFrames: number,
   outputDir: string,
-  opts: RenderOptions
+  opts: RenderOptions,
+  tuning: NativeRenderTuning,
+  emitProgress: (rendered: number, sourceFrame: number) => void,
 ): Promise<void> {
   const { createCanvas } = require('@napi-rs/canvas')
   await fs.ensureDir(outputDir)
 
   const canvas = createCanvas(width, height)
-  const ctx = canvas.getContext('2d') as unknown as CanvasRenderingContext2D
+  type NodeCtx = CanvasRenderingContext2D & { reset?: () => void }
+  const ctx = canvas.getContext('2d', { willReadFrequently: true }) as NodeCtx
 
-  for (let frame = 0; frame < totalFrames; frame++) {
+  const step = tuning.frameStep
+  let rendered = 0
+  for (let frame = 0; frame < totalFrames; frame += step) {
+    ctx.reset?.()
     drawFrame(ctx, config, frame, width, height)
-    const pngData = await (canvas as any).encode('png')
-    const frameName = `frame_${String(frame).padStart(5, '0')}.png`
+    const pngData = await (canvas as { encode: (fmt: string) => Promise<Buffer> }).encode('png')
+    const frameName = `frame_${String(rendered).padStart(5, '0')}.png`
     await fs.writeFile(path.join(outputDir, frameName), pngData)
-    opts.onProgress?.(frame / totalFrames, frame, totalFrames)
+    emitProgress(rendered, frame)
+    rendered++
   }
 }

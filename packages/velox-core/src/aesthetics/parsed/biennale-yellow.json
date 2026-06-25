@@ -1,0 +1,15 @@
+{
+  "name": "Biennale Yellow",
+  "description": "HyperFrames frame.md preset — Warm parchment + solar yellow bloom, Instrument Serif display, indigo ink, 1px hairline rules",
+  "colors": {
+    "canvas": "#F5F0E6",
+    "canvas-soft": "#FAF6EE",
+    "primary": "#F4C430",
+    "accent": "#F4C430",
+    "ink": "#1E2A5A",
+    "body": "#1E2A5A",
+    "body-muted": "#6B6580",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Swiss Pulse",
+  "description": "Clinical grid-locked precision — Helvetica headlines, electric blue accent, data-forward.",
+  "colors": {
+    "primary": "#1a1a1a",
+    "on-primary": "#ffffff",
+    "accent": "#0066FF",
+    "canvas": "#ffffff",
+    "ink": "#1a1a1a",
+    "muted": "#64748b"
+  },
+  "typography": {}
+}

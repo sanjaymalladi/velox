@@ -1,0 +1,14 @@
+{
+  "name": "Shadow Cut",
+  "description": "Film noir cinematic — Oswald uppercase, blood-red accent, deep vignette.",
+  "colors": {
+    "primary": "#0a0a0a",
+    "on-primary": "#f0f0f0",
+    "surface": "#3a3a3a",
+    "accent": "#C1121F",
+    "canvas": "#0a0a0a",
+    "ink": "#f0f0f0",
+    "muted": "#a8a29e"
+  },
+  "typography": {}
+}

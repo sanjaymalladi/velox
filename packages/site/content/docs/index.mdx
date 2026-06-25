@@ -1,91 +1,58 @@
 ---
 title: Overview
-description: LLM-friendly motion graphics with VML, TypeScript, and native rendering.
+description: Velox turns VML markup and TypeScript into deterministic MP4 — native canvas render, built-in themes, and an LLM-friendly authoring model.
 ---
 
-# Velox Docs
+# Overview
 
-Velox is an LLM-friendly motion graphics engine for projects that need fast previewing, native rendering, and a lightweight workflow. It lets you create videos from VML or TypeScript and export H.264 MP4, GIF, or PNG sequence output without Chrome, Puppeteer, or FFmpeg.
+Velox is a **code-first motion graphics engine** for product reels, explainers, and social cuts. You describe scenes in **Velox Markup (VML)** or TypeScript, preview locally, then export **native MP4** without a browser capture step.
 
-## What Velox Does
+## What you get
 
-Velox provides a comprehensive solution for creating motion graphics programmatically:
+- **VML authoring** — XML-like markup with scenes, templates, captions, and semantic blocks (`<hero>`, `<metricRow>`, …).
+- **51 built-in themes** — one `theme="…"` attribute locks colors, type, cards, and caption bars. [Theme reference →](/docs/themes)
+- **Scene transitions** — dissolve, blur, wipe, zoom, glitch, and flash between scenes. [Transitions guide →](/docs/transitions)
+- **Native render** — `@napi-rs/canvas` + H.264 encoder on Node; no headless Chrome required.
+- **Audio mux** — background music and timeline SFX stitched onto the export (bundled ffmpeg when needed).
+- **CLI workflow** — `velox lint`, `velox render`, `velox list themes`, `velox add` catalog blocks.
 
-### Core Capabilities
-- **VML-first generation**: XML-like markup gives LLMs a safe, expressive surface for video generation
-- **Programmatic animation**: Define scenes in TypeScript when you need low-level control
-- **Premium motion**: Scene cameras, blur dissolves, vignette/grain overlays, and Popmotion-backed easing
-- **Data and organic visuals**: D3-backed charts and Flubber-backed morph blobs
-- **Reel production**: VML templates, semantic announcement components, captions, transparent assets, generated cards, and stock/media placeholders
-- **Free-first providers**: generated/local media first, no-key refs where possible, cached before render
-- **Fast preview**: Built-in preview studio for rapid iteration
-- **Native export**: Canvas + WASM/native encoders instead of browser automation
+## Mental model
 
-### Use Cases
-- Complex data visualizations and charts
-- Animated infographics and explainer videos
-- Text animations and kinetic typography
-- Particle systems and generative art
-- UI animations and micro-interactions
-- Short-form announcements, launch videos, tech reels, and social explainers
-
-## Documentation
-
-### Markup Prompt
-[Use the recommended VML prompt for LLM generation →](./docs/markup-prompt)
-
-### Getting Started
-[Install Velox and render your first video →](./docs/getting-started)
-
-### Preview Studio
-[Interactive development with HMR →](./docs/preview)
-
-### Rendering
-[Export to MP4, WebM, and GIF →](./docs/rendering)
-
-### CLI Commands
-[Complete command reference →](./docs/cli)
-
-## Templates
-
-Pre-made templates to get you started quickly:
-
-| Template | Description | Use Case |
-|----------|-------------|----------|
-| `intro-video` | Animated title sequence | Opening intros, product reveals |
-| `data-story` | Chart and data visualization | Infographics, analytics reports |
-| `text-kinetic` | Kinetic typography animation | Explainer videos, quotes |
-| `particle-system` | Generative particle effects | Backgrounds, ambient animations |
-| `product-showcase` | Product feature highlight | Marketing content, demos |
-
-### Using Templates
-
-```bash
-# Create from template
-npx velox-video new my-project --template intro-video
-
-# Or copy and modify
-cp templates/intro-video.ts src/index.ts
+```
+VML file  →  compile  →  frame loop  →  H.264 MP4  →  optional audio mux
 ```
 
-## Recommended LLM Prompt
+1. Author a `.vml` reel (or TypeScript config for programmatic projects).
+2. Run `velox lint reel.vml` to catch invalid tags, missing slots, and transition timing errors.
+3. Run `velox render reel.vml -o out.mp4` for the final file.
 
-Use Velox Markup as the model-facing format:
+## Minimal reel
 
 ```xml
-<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium">
-  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve">
-    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, cards, and beats." badge="NEW" motion="heroCinematic" />
-    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" />
-    <captions slot="caption" text="Safe markup, premium motion." style="karaoke" />
+<video size="portrait" fps="30" theme="stripe" motionQuality="premium">
+  <scene duration="5" template="centerCard" camera="slowPush"
+         transition="blurDissolve" transitionDuration="0.6">
+    <hero slot="center" kicker="INTRO" title="Ship faster." subtitle="Native render, no capture." />
+    <captions slot="caption" text="One line of proof." style="pill" start="0.5" />
+  </scene>
+  <scene duration="5" template="centerCard" transition="zoomSmooth">
+    <finalCTA slot="center" title="Try Velox" subtitle="velox render reel.vml" />
   </scene>
 </video>
 ```
 
-## Playground
+## Docs map
 
-Interactive code playground where you can paste code and see outputs:
+| Page | When to read it |
+|------|-----------------|
+| [Getting Started](/docs/getting-started) | First install, first render |
+| [Themes](/docs/themes) | Picking and overriding aesthetics |
+| [Transitions](/docs/transitions) | Scene-to-scene motion |
+| [Rendering](/docs/rendering) | Formats, quality, audio |
+| [CLI](/docs/cli) | Full command reference |
+| [VML Prompt](/docs/markup-prompt) | Prompt an LLM to write markup |
+| [Playground](/docs/playground) | Paste markup in the browser |
 
-### Pre-defined Examples
+## What Velox is not
 
-Paste VML into the playground, preview it, and use **Export WebM** to download the current custom video from the browser. For final MP4/GIF/PNG sequence output, use `velox render`.
+Velox is not a timeline NLE and not a drag-and-drop editor. The markup (or TypeScript) is the source of truth. That trade-off buys you version control, LLM generation, and deterministic exports.

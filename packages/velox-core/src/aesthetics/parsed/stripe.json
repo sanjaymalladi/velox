@@ -1,0 +1,27 @@
+{
+  "name": "Stripi-Inspired-design-analysis",
+  "description": "An inspired interpretation of Stripi's design language — a financial-infrastructure brand built on a deep navy ink, an electric indigo primary, and a recurring atmospheric gradient mesh that occupies the upper third of nearly every marketing page. The system pairs the proprietary Sohne family at thin (300) weights with negative letter-spacing for editorial-density display headlines, and uses tabular-figure body type where money and numerics matter. Buttons are tight-radius pills, cards live on near-white surfaces, and the dashboard track flips polarity to a familiar dark-app shell.",
+  "colors": {
+    "primary": "#533afd",
+    "primary-deep": "#4434d4",
+    "primary-press": "#2e2b8c",
+    "primary-soft": "#665efd",
+    "primary-bg-subdued-hover": "#b9b9f9",
+    "brand-dark-900": "#1c1e54",
+    "ink": "#0d253d",
+    "ink-secondary": "#273951",
+    "ink-mute": "#64748d",
+    "ink-mute-2": "#61718a",
+    "on-primary": "#ffffff",
+    "canvas": "#ffffff",
+    "canvas-soft": "#f6f9fc",
+    "canvas-cream": "#f5e9d4",
+    "hairline": "#e3e8ee",
+    "hairline-input": "#a8c3de",
+    "ruby": "#ea2261",
+    "magenta": "#f96bee",
+    "lemon": "#9b6829",
+    "shadow-blue": "#003770"
+  },
+  "typography": {}
+}

@@ -646,15 +646,46 @@ export function PlaygroundClient() {
         .pg-root {
           display: flex;
           flex-direction: column;
-          height: 620px;
-          border-radius: 18px;
+          width: 100%;
+          height: min(920px, calc(100dvh - 10rem));
+          min-height: 420px;
+          border-radius: 0;
           overflow: hidden;
           border: 1px solid rgba(196, 128, 44, 0.18);
+          border-left: none;
+          border-right: none;
           background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent), rgba(25, 17, 12, 0.84);
           box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
           backdrop-filter: blur(18px);
           font-family: ui-monospace, 'Fira Code', monospace;
-          margin: 0 -1rem;
+          margin: 0;
+        }
+
+        @media (min-width: 768px) {
+          .pg-root {
+            border-radius: 18px;
+            border-left: 1px solid rgba(196, 128, 44, 0.18);
+            border-right: 1px solid rgba(196, 128, 44, 0.18);
+          }
+        }
+
+        @media (max-width: 900px) {
+          .pg-split {
+            flex-direction: column;
+          }
+          .pg-editor-pane,
+          .pg-preview-pane {
+            width: 100%;
+            min-height: 0;
+          }
+          .pg-editor-pane {
+            flex: 1.1;
+            border-right: none;
+            border-bottom: 1px solid rgba(196,128,44,0.12);
+          }
+          .pg-preview-pane {
+            flex: 1;
+          }
         }
 
         /* Top bar */
@@ -800,6 +831,8 @@ export function PlaygroundClient() {
           background: radial-gradient(circle at top, rgba(255,190,92,0.08), transparent 30%), rgba(14, 10, 7, 0.96);
         }
         .pg-canvas {
+          width: 100%;
+          height: 100%;
           max-width: 100%;
           max-height: 100%;
           object-fit: contain;

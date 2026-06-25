@@ -1,0 +1,15 @@
+{
+  "name": "Daisy Days",
+  "description": "HyperFrames frame.md preset — Sunny-garden pastels, 3px charcoal outlines, hard offset shadows, Fredoka + Quicksand",
+  "colors": {
+    "canvas": "#FFF9E6",
+    "canvas-soft": "#FFF9E6",
+    "primary": "#2D3436",
+    "accent": "#FF7675",
+    "ink": "#2D3436",
+    "body": "#2D3436",
+    "body-muted": "#636E72",
+    "on-primary": "#ffffff"
+  },
+  "typography": {}
+}

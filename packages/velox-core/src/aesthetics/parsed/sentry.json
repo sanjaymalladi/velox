@@ -1,0 +1,28 @@
+{
+  "name": "Sentri-Inspired-design-analysis",
+  "description": "An inspired interpretation of Sentri's design language — a developer-tools brand built on a deep purple-violet midnight canvas, electric lime accents, and a slightly subversive illustrated personality. The system pairs a custom display sans (chunky, playful, near-condensed) with the open Rubik family for UI copy and Monaco for code, then leans on dark-on-light pricing surfaces, sticker-style mascots, and a single-color CTA hierarchy where black-violet buttons read as the primary action against either polarity.",
+  "colors": {
+    "primary": "#150f23",
+    "ink-deep": "#1f1633",
+    "on-primary": "#ffffff",
+    "accent-lime": "#c2ef4e",
+    "accent-pink": "#fa7faa",
+    "accent-violet": "#6a5fc1",
+    "accent-violet-deep": "#422082",
+    "accent-violet-mid": "#79628c",
+    "surface-canvas-dark": "#1f1633",
+    "surface-canvas-light": "#ffffff",
+    "surface-night": "#150f23",
+    "surface-press-light": "#f0f0f0",
+    "surface-press-stronger": "#efefef",
+    "hairline-violet": "#362d59",
+    "hairline-cool": "#cfcfdb",
+    "hairline-cloud": "#e5e7eb",
+    "ink": "#1f1633",
+    "ink-press": "#1a1a1a",
+    "on-dark-muted": "#bdb8c0",
+    "on-dark-faint": "#3f3849",
+    "ring-focus": "#9dc1f5"
+  },
+  "typography": {}
+}

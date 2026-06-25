@@ -4,7 +4,9 @@
  */
 import type { ShapeElementConfig, ShapeConfig, VeloxGradient, ChartDataPoint } from '../types'
 import type { AnimationState } from './animations'
+import { setCanvasFilter, supportsCanvasFilter } from './canvasFilter'
 import { lerp } from './easing'
+import { colors as colorUtils } from '../color'
 import * as d3 from 'd3'
 import { interpolate as interpolatePath } from 'flubber'
 
@@ -30,9 +32,9 @@ function makeGradient(
 // ─── Rounded Rect ─────────────────────────────────────────────────────────────
 
 function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number = 0): void {
+  ctx.beginPath()
   if (r === 0) { ctx.rect(x, y, w, h); return }
   const rad = Math.min(r, w / 2, h / 2)
-  ctx.beginPath()
   ctx.moveTo(x + rad, y)
   ctx.lineTo(x + w - rad, y)
   ctx.arcTo(x + w, y, x + w, y + rad, rad)
@@ -43,6 +45,16 @@ function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: numb
   ctx.lineTo(x, y + rad)
   ctx.arcTo(x, y, x + rad, y, rad)
   ctx.closePath()
+}
+
+// ─── Chart theme helpers ──────────────────────────────────────────────────────
+
+function chartInk(series: { color?: string }[]): { grid: string; label: string; plot: string; onLight: boolean } {
+  const hasDarkInk = series.some((s) => s.color && !colorUtils.isLight(s.color))
+  const onLight = hasDarkInk || series.length === 0
+  return onLight
+    ? { onLight: true, grid: 'rgba(0,0,0,0.12)', label: 'rgba(0,0,0,0.55)', plot: 'rgba(0,0,0,0.06)' }
+    : { onLight: false, grid: 'rgba(255,255,255,0.14)', label: 'rgba(255,255,255,0.7)', plot: 'rgba(255,255,255,0.08)' }
 }
 
 // ─── Shape Drawers ────────────────────────────────────────────────────────────
@@ -139,12 +151,13 @@ function drawBarChart(
 
   const labelFont = `500 13px "Inter"`
   const axisFont = `400 12px "Inter"`
+  const ink = chartInk(data.map((d) => ({ color: d.color })))
   
   // 1. Draw Grid Lines (Y-Axis Ticks)
   const ticks = yScale.ticks(4)
   ctx.save()
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)' // Subtle grid
-  ctx.fillStyle = 'rgba(255,255,255,0.4)'
+  ctx.strokeStyle = ink.grid
+  ctx.fillStyle = ink.label
   ctx.lineWidth = 1
   ctx.font = axisFont
   ctx.textAlign = 'right'
@@ -199,7 +212,7 @@ function drawBarChart(
     }
 
     // X-Axis Label
-    ctx.fillStyle = 'rgba(255,255,255,0.7)'
+    ctx.fillStyle = ink.label
     ctx.font = labelFont
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
@@ -230,9 +243,13 @@ function drawLineChart(
   const yScale = d3.scaleLinear().domain([Math.min(0, minVal), maxVal * 1.08]).range([y + h - 34, y + 22])
   const curve = shape.curve === 'step' ? d3.curveStepAfter : shape.curve === 'linear' ? d3.curveLinear : d3.curveCatmullRom.alpha(0.5)
   const line = d3.line<number>().x((_, i) => xScale(i)).y(v => yScale(v)).curve(curve)
+  const ink = chartInk(series)
 
   ctx.save()
-  ctx.strokeStyle = 'rgba(255,255,255,0.09)'
+  ctx.fillStyle = ink.onLight ? '#ececf0' : 'rgba(255,255,255,0.1)'
+  ctx.fillRect(x + 34, y + 22, w - 52, h - 56)
+
+  ctx.strokeStyle = ink.grid
   ctx.lineWidth = 1
   for (const tick of yScale.ticks(4)) {
     const ty = yScale(tick)
@@ -249,11 +266,18 @@ function drawLineChart(
   for (const [index, serie] of series.entries()) {
     const path = line(serie.values)
     if (!path) continue
-    ctx.strokeStyle = serie.color ?? d3.schemeTableau10[index % d3.schemeTableau10.length]
+    const fallback = ink.onLight
+      ? ['#e91d2a', '#111111', '#2563eb']
+      : ['#ff6b6b', '#ffffff', '#93c5fd']
+    ctx.strokeStyle = serie.color ?? fallback[index % fallback.length]
     ctx.lineWidth = 5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    ctx.stroke(new Path2D(path))
+    // Polyline fallback avoids @napi-rs/canvas Path2D stroke filling the plot area on some paths.
+    const pts = serie.values.map((v, i) => [xScale(i), yScale(v)] as const)
+    ctx.beginPath()
+    pts.forEach(([px, py], i) => (i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)))
+    ctx.stroke()
   }
   ctx.restore()
 }
@@ -334,11 +358,20 @@ export function drawShape(
 
   ctx.save()
   ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
-  ctx.filter = state.blur > 0 ? `blur(${state.blur}px)` : 'none'
+  if (supportsCanvasFilter) {
+    setCanvasFilter(ctx, state.blur > 0 ? `blur(${state.blur}px)` : 'none')
+  }
 
   ctx.translate(drawX + state.x, drawY + state.y)
   if (state.scaleX !== 1 || state.scaleY !== 1) ctx.scale(state.scaleX, state.scaleY)
   if (state.rotation !== 0) ctx.rotate((state.rotation * Math.PI) / 180)
+
+  if (state.clipRevealY !== undefined && state.clipRevealY < 1) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(-w / 2, h / 2 - h * state.clipRevealY, w, h * state.clipRevealY)
+    ctx.clip()
+  }
 
   const p = state.scaleY // growUp progress comes through scaleY for shapes
   const progress = shape.shapeType === 'growUp' ? p : state.clipReveal
@@ -372,6 +405,8 @@ export function drawShape(
       drawProgressBar(ctx, shape, -w / 2, -h / 2, w, h, state.clipReveal)
       break
   }
+
+  if (state.clipRevealY !== undefined && state.clipRevealY < 1) ctx.restore()
 
   ctx.restore()
 }

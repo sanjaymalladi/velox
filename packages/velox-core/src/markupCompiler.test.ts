@@ -37,7 +37,7 @@ describe('velox markup', () => {
     `)
 
     expect(video.config.background).toBe('grid(rgba(255,255,255,0.04), 44)')
-    expect(video.config.scenes[0].background).toBeUndefined()
+    expect(video.config.scenes[0].background).toBe('#050505')
     expect(video.config.scenes[1].background).toEqual(expect.objectContaining({ type: 'linear' }))
   })
 
@@ -135,7 +135,7 @@ describe('velox markup', () => {
     if (column.type !== 'group') return
     const textEl = column.children.find((child) => child.type === 'text')
     const chartEl = column.children.find((child) => child.type === 'shape')
-    expect(textEl?.type === 'text' ? textEl.color : undefined).toBe('#f4f5f8')
+    expect(textEl?.type === 'text' ? textEl.color : undefined).toBe('#f7f8f8')
     expect(chartEl?.type === 'shape' ? chartEl.shape.data?.[0]?.color : undefined).toBe('#5e6ad2')
   })
 
@@ -296,6 +296,68 @@ describe('velox markup', () => {
       </video>
     `)
     expect(video.config.scenes[0].elements[0].exit?.animation).toBe('fadeOut')
+  })
+
+  it('maps heroCinematic motion to maskRevealUp entrance', () => {
+    const video = createVideoFromMarkup(`
+      <video><scene duration="4" template="topTextBottomVisual">
+        <announcement slot="top" title="Hero" motion="heroCinematic" />
+      </scene></video>
+    `)
+    const top = video.config.scenes[0].elements.find((e) => e.type === 'group')
+    expect(top?.entrance?.animation).toBe('maskRevealUp')
+  })
+
+  it('compiles wipe transition', () => {
+    const video = createVideoFromMarkup(`
+      <video><scene duration="4" transition="wipe" transitionDuration="0.5">
+        <text value="A" />
+      </scene><scene duration="4"><text value="B" /></scene></video>
+    `)
+    expect(video.config.scenes[0].transition?.type).toBe('wipe')
+  })
+
+  it('defaults motionQuality to premium for reel template videos', () => {
+    const video = createVideoFromMarkup(`
+      <video size="portrait">
+        <scene duration="4" template="topTextBottomVisual">
+          <announcement slot="top" title="Test" />
+        </scene>
+      </video>
+    `)
+    expect(video.config.motionQuality).toBe('premium')
+  })
+
+  it('locks apple theme backgrounds and canvas from aesthetic pack', () => {
+    const video = createVideoFromMarkup(`
+      <video theme="apple">
+        <scene duration="4"><hero title="Hello" /></scene>
+        <scene duration="4" background="theme.canvas"><text value="Alt" /></scene>
+      </video>
+    `)
+    expect(video.config.theme.background).toBe('#000000')
+    expect(video.config.background).toBe('#000000')
+    expect(video.config.scenes[0].background).toBe('#000000')
+    expect(video.config.scenes[1].background).toBe('#000000')
+  })
+
+  it('resolves notion and dell-1996 design themes', () => {
+    for (const id of ['notion', 'dell-1996'] as const) {
+      const video = createVideoFromMarkup(`
+        <video theme="${id}"><scene duration="3"><announcement title="Test" /></scene></video>
+      `)
+      expect(video.config.theme.background).toBeTruthy()
+      expect(video.config.scenes[0].background).toBeTruthy()
+    }
+  })
+
+  it('applies zero vignette from aesthetic even with editorial mood', () => {
+    const video = createVideoFromMarkup(`
+      <video theme="dell-1996">
+        <scene duration="4" mood="editorial"><text value="Clean white scene" /></scene>
+      </video>
+    `)
+    expect(video.config.scenes[0].overlay).toEqual({ vignetteOpacity: 0, grainOpacity: 0 })
   })
 })
 

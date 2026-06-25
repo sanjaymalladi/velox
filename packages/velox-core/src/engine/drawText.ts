@@ -7,10 +7,32 @@
  */
 import type { TextElementConfig, TextListElementConfig, VeloxGradient } from '../types'
 import type { AnimationState } from './animations'
+import { setCanvasFilter, supportsCanvasFilter } from './canvasFilter'
+import { colors as colorUtils } from '../color'
 
 type Ctx = CanvasRenderingContext2D
 
+function roundTextHighlight(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
+  const rad = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + rad, y)
+  ctx.lineTo(x + w - rad, y)
+  ctx.arcTo(x + w, y, x + w, y + rad, rad)
+  ctx.lineTo(x + w, y + h - rad)
+  ctx.arcTo(x + w, y + h, x + w - rad, y + h, rad)
+  ctx.lineTo(x + rad, y + h)
+  ctx.arcTo(x, y + h, x, y + h - rad, rad)
+  ctx.lineTo(x, y + rad)
+  ctx.arcTo(x, y, x + rad, y, rad)
+  ctx.closePath()
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function primaryFontFamily(family: string): string {
+  const first = family.split(',')[0]?.trim() ?? family
+  return first.replace(/^['"]|['"]$/g, '')
+}
 
 function buildFont(
   size: number,
@@ -18,7 +40,8 @@ function buildFont(
   family: string = 'Inter',
   italic: boolean = false
 ): string {
-  return `${italic ? 'italic ' : ''}${weight} ${size}px "${family}"`
+  const primary = primaryFontFamily(family)
+  return `${italic ? 'italic ' : ''}${weight} ${size}px "${primary}"`
 }
 
 function applyGradientFill(
@@ -79,7 +102,9 @@ export function drawText(
   drawY: number,
   state: AnimationState,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  localFrame?: number,
+  fps?: number,
 ): void {
   let {
     content,
@@ -103,11 +128,34 @@ export function drawText(
     : textTransform === 'lowercase' ? content.toLowerCase()
     : content
 
+  // Caption karaoke: dim inactive words, highlight active word
+  if (el.caption && localFrame !== undefined && fps) {
+    const t = localFrame / fps
+    const { cueStartSec, wordStepSec, wordIndex, totalWords, style } = el.caption
+    const relativeT = Math.max(0, t - cueStartSec)
+    const activeIndex = Math.min(
+      totalWords - 1,
+      Math.max(0, Math.floor(relativeT / Math.max(wordStepSec, 0.08))),
+    )
+    const isActive = wordIndex === activeIndex
+    if (style === 'slam' && relativeT > 0 && !isActive) return
+    if (style === 'karaoke' || style === 'highlightKeywords') {
+      if (isActive) {
+        fontWeight = Math.max(fontWeight, 800)
+      } else if (relativeT > 0) {
+        fontWeight = 500
+        color = colorUtils.dimCaption(color, 0.38)
+      }
+    } else if (style === 'wordPop' && !isActive && relativeT > 0) {
+      color = colorUtils.dimCaption(color, 0.45)
+    }
+  }
+
   ctx.save()
 
   // Apply animation transform
   ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
-  ctx.filter = state.blur > 0 ? `blur(${state.blur}px)` : 'none'
+  setCanvasFilter(ctx, state.blur > 0 ? `blur(${state.blur}px)` : 'none')
 
   // Position transform
   ctx.translate(drawX + state.x, drawY + state.y)
@@ -143,6 +191,14 @@ export function drawText(
     textAlign = 'left'
   }
 
+  const anchorX = (() => {
+    if (shouldCenterBlock || textAlign === 'left') return -maxWidth / 2
+    if (textAlign === 'right') return maxWidth / 2
+    return 0
+  })()
+
+  const clipLeft = -maxWidth / 2
+
   ctx.textAlign = textAlign as CanvasTextAlign
   ctx.textBaseline = 'middle'
 
@@ -150,14 +206,50 @@ export function drawText(
   if (maxHeight) {
     ctx.save()
     ctx.beginPath()
-    const clipX = textAlign === 'center' || shouldCenterBlock ? -maxWidth / 2 : 0
-    ctx.rect(clipX, -maxHeight / 2, maxWidth, maxHeight)
+    ctx.rect(clipLeft, -maxHeight / 2, maxWidth, maxHeight)
+    ctx.clip()
+  }
+
+  // Vertical mask reveal (heroCinematic / maskRevealUp)
+  if (state.clipRevealY !== undefined && state.clipRevealY < 1) {
+    ctx.save()
+    ctx.beginPath()
+    const blockTop = -totalHeight / 2
+    const revealH = totalHeight * state.clipRevealY
+    ctx.rect(clipLeft, blockTop + totalHeight - revealH, maxWidth, revealH)
     ctx.clip()
   }
 
   lines.forEach((line, li) => {
     // Centre the block of lines vertically around the draw point
     const lineY = (li - (lines.length - 1) / 2) * lineH
+
+    // Karaoke active-word pill behind text
+    if (el.caption && localFrame !== undefined && fps) {
+      const t = localFrame / fps
+      const { cueStartSec, wordStepSec, wordIndex, style } = el.caption
+      const relativeT = Math.max(0, t - cueStartSec)
+      const activeIndex = Math.min(
+        el.caption.totalWords - 1,
+        Math.max(0, Math.floor(relativeT / Math.max(wordStepSec, 0.08))),
+      )
+      if ((style === 'karaoke' || style === 'highlightKeywords') && wordIndex === activeIndex && relativeT >= 0) {
+        const measured = ctx.measureText(line)
+        const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
+        const padX = 14
+        const padY = 8
+        const bx = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0) - padX
+        const by = lineY - fontSize / 2 - padY
+        ctx.save()
+        ctx.fillStyle =
+          style === 'highlightKeywords'
+            ? colorUtils.alpha(color, 0.22)
+            : colorUtils.dimCaption(color, 0.14)
+        roundTextHighlight(ctx, bx, by, w + padX * 2, fontSize + padY * 2, 10)
+        ctx.fill()
+        ctx.restore()
+      }
+    }
 
     // Clip reveal (typewriter / revealLeft)
     if (state.clipReveal < 1) {
@@ -166,7 +258,7 @@ export function drawText(
       const clipW = w * state.clipReveal
       ctx.save()
       ctx.beginPath()
-        const clipX = shouldCenterBlock ? -maxWidth / 2 : -w / 2
+        const clipX = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0)
         ctx.rect(clipX, lineY - fontSize, clipW, fontSize * 2)
       ctx.clip()
     }
@@ -191,18 +283,19 @@ export function drawText(
         ctx.textAlign = 'left' 
       }
       for (const ch of line) {
-        ctx.fillText(ch, cx + (shouldCenterBlock ? -maxWidth / 2 : 0), lineY)
+        ctx.fillText(ch, cx + anchorX, lineY)
         cx += ctx.measureText(ch).width + letterSpacing
       }
       ctx.restore()
     } else {
-      ctx.fillText(line, shouldCenterBlock ? -maxWidth / 2 : 0, lineY)
+      ctx.fillText(line, anchorX, lineY)
     }
 
     if (state.clipReveal < 1) ctx.restore()
   })
 
   if (maxHeight) ctx.restore()
+  if (state.clipRevealY !== undefined && state.clipRevealY < 1) ctx.restore()
 
   ctx.restore()
 }

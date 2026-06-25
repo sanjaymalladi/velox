@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "site:dev": "next dev",
     "build": "next build",
     "preview": "next start",
     "check": "tsc --noEmit",

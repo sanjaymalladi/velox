@@ -1,0 +1,16 @@
+<video size="portrait" fps="30" theme="creamChecks" background="creamGrid">
+  <scene duration="2" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.4">
+    <announcement slot="top" title="Velox CI" subtitle="Native readback smoke test." motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="280" height="480" motion="driftIn" />
+  </scene>
+  <scene duration="2" template="centerCard" background="mesh:violet" transition="wipe" transitionDuration="0.35">
+    <card slot="visual" width="700" height="500" radius="32" motion="softReveal">
+      <column gap="20">
+        <kicker color="theme.accent">CHART</kicker>
+        <lineChart width="560" height="180" curve="smooth" motion="drawIn">
+          <series label="A" values="10,20,35,50" color="theme.accent" />
+        </lineChart>
+      </column>
+    </card>
+  </scene>
+</video>

@@ -1,0 +1,6 @@
+<column slot="overlay" gap="12">
+  <shape width="880" height="200" radius="20" color="rgba(255,255,255,0.96)" motion="slideIn" delay="0.2" />
+  <text value="@yourproduct" size="26" weight="700" color="#111111" motion="fadeIn" delay="0.35" />
+  <text value="This pipeline replaced our motion stack." size="24" weight="400" color="#333333" wrap="820" motion="softReveal" delay="0.5" />
+</column>
+<captions slot="caption" text="Social proof on autopilot." style="pill" />
