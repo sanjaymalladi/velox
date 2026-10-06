@@ -36,6 +36,7 @@ import type { Element } from './core/Element'
 import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan, EntranceAnimation, ExitAnimation, LoopAnimation } from './types'
 import { isVeloxMarkup, parseVeloxMarkup, type MarkupNode } from './markup'
 import { applyVmlVariables } from './variables'
+import { calculateFrameTimeline } from './timeline'
 
 type AnyElement = Element<ElementConfig>
 type Background = VeloxColor | VeloxGradient
@@ -276,7 +277,7 @@ function finish<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: Re
   const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
   const slot = attr(node, 'slot')
   const positioned =
-    tpl && slot ? applyReelSlot(el, tpl, slot) : place(el, attr(node, 'placement'))
+    tpl && slot ? applyReelSlot(el, tpl, slot) : place(el, slot === 'caption' ? 'bottom' : attr(node, 'placement'))
   return animate(positioned, node)
 }
 
@@ -290,7 +291,7 @@ function finishInFlow<T extends AnyElement>(el: T, node: MarkupNode, reelTemplat
   const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
   const slot = attr(node, 'slot')
   const positioned =
-    tpl && slot ? applyReelSlot(el, tpl, slot) : el
+    tpl && slot ? applyReelSlot(el, tpl, slot) : slot === 'caption' ? place(el, 'bottom') : el
   return animate(positioned, node)
 }
 
@@ -848,18 +849,12 @@ function delayOf(node: MarkupNode): number {
 }
 
 function sceneStartsForMarkup(sceneNodes: MarkupNode[], fps: VeloxFps): number[] {
-  const starts: number[] = []
-  let cursorFrames = 0
-  for (const sn of sceneNodes) {
-    starts.push(cursorFrames / fps)
-    const frames = Math.round(num(attr(sn, 'duration'), 5, 'scene.duration') * fps)
-    const transFrames =
-      attr(sn, 'transition') !== undefined
-        ? Math.round(num(attr(sn, 'transitionDuration'), 0.55, 'scene.transitionDuration') * fps)
-        : 0
-    cursorFrames += frames - transFrames
-  }
-  return starts
+  return calculateFrameTimeline(sceneNodes.map((sn) => ({
+    duration: num(attr(sn, 'duration'), 5, 'scene.duration'),
+    transition: attr(sn, 'transition') !== undefined
+      ? { duration: num(attr(sn, 'transitionDuration'), 0.55, 'scene.transitionDuration') }
+      : undefined,
+  })), fps).scenes.map((segment) => segment.startFrame / fps)
 }
 
 function compileSceneChildren(
@@ -1018,7 +1013,30 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
 
   const bg = background(attr(node, 'background') ?? 'theme.scene', ctx)
   if (bg) s.background(bg)
-  s.add(...compileSceneChildren(node, duration, ctx, reelTemplate === 'none' ? undefined : reelTemplate))
+  const sceneElements = compileSceneChildren(node, duration, ctx, reelTemplate === 'none' ? undefined : reelTemplate)
+  const sceneLayout = attr(node, 'layout') ?? 'free'
+  const gap = num(attr(node, 'gap'), 28, 'scene.gap')
+  const align = (attr(node, 'align') ?? 'center') as 'start' | 'center' | 'end'
+  if (!['free', 'center', 'row', 'column', 'stack'].includes(sceneLayout)) {
+    fail('<scene> layout must be free, center, row, column, or stack.')
+  }
+  if (!['start', 'center', 'end'].includes(align)) {
+    fail('<scene> align must be start, center, or end.')
+  }
+  if (sceneLayout === 'free') {
+    s.add(...sceneElements)
+  } else {
+    const drawableNodes = node.children.filter((c) => !['sfx', 'beat', 'audio', 'assetPack'].includes(c.tag) && !(c.tag === 'captions' && attr(c, 'track') === 'true'))
+    const captionIndexes = new Set(drawableNodes.flatMap((child, index) => attr(child, 'slot') === 'caption' ? [index] : []))
+    const flow = sceneElements.filter((_, index) => !captionIndexes.has(index))
+    const pinnedCaptions = sceneElements.filter((_, index) => captionIndexes.has(index))
+    if (flow.length) {
+      if (sceneLayout === 'row') s.add(layout.row(flow, { gap, align }))
+      else if (sceneLayout === 'column' || sceneLayout === 'center') s.add(layout.column(flow, { gap, align }))
+      else s.add(layout.stack(flow))
+    }
+    s.add(...pinnedCaptions)
+  }
   return s
 }
 

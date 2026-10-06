@@ -21,6 +21,37 @@ describe('lintVeloxMarkup', () => {
     expect(r.issues.some((i) => i.code === 'not-vml')).toBe(true)
   })
 
+  it('reports source locations for unknown attributes', () => {
+    const r = lintVeloxMarkup('<video size="portrait" fps="30">\n  <scene duration="4">\n    <text value="Hello" colro="red" />\n  </scene>\n</video>')
+    const issue = r.issues.find((item) => item.code === 'unknown-attribute')
+    expect(issue?.location?.line).toBe(3)
+    expect(issue?.location?.column).toBe(25)
+  })
+
+  it('rejects duplicate attributes and accepts the root fx tag', () => {
+    const duplicate = lintVeloxMarkup('<video size="portrait" size="square" />')
+    expect(duplicate.issues.some((item) => item.code === 'syntax')).toBe(true)
+
+    const withFx = lintVeloxMarkup('<video size="portrait"><fx grain="0.2" /><scene duration="2"><text value="Hi" /></scene></video>')
+    expect(withFx.issues.some((item) => item.code === 'syntax')).toBe(false)
+  })
+
+  it('checks values and recommends automatic scene layout', () => {
+    const invalid = lintVeloxMarkup('<video size="portrait" fps="31"><scene duration="four" /></video>')
+    expect(invalid.issues.some((item) => item.code === 'invalid-fps')).toBe(true)
+    expect(invalid.issues.some((item) => item.code === 'type-number')).toBe(true)
+
+    const overlap = lintVeloxMarkup('<video size="portrait"><scene duration="4"><text value="First" /><text value="Second" /></scene></video>')
+    expect(overlap.issues.some((item) => item.code === 'text-overlap')).toBe(true)
+  })
+
+  it('compiles a centered column layout and preserves caption placement', () => {
+    const r = lintVeloxMarkup('<video size="portrait"><scene duration="4" layout="column" gap="20"><text value="Title" /><text value="Subtitle" /><captions slot="caption" text="Words here" /></scene></video>')
+    expect(r.ok).toBe(true)
+    expect(r.config?.scenes[0]?.elements).toHaveLength(2)
+    expect(r.config?.scenes[0]?.elements[0]?.type).toBe('group')
+  })
+
   it('warns on unresolved variables', () => {
     const r = lintVeloxMarkup(MINI.replace('Test', '{{missing}}'))
     expect(r.issues.some((i) => i.code === 'unresolved-var')).toBe(true)

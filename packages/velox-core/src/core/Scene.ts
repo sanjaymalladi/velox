@@ -38,7 +38,7 @@ export class SceneBuilder {
   }
 
   /**
-   * Transition INTO this scene from the previous one.
+   * Transition OUT of this scene and into the next scene.
    * @param type     - crossDissolve | blurDissolve | zoomSmooth | wipe | slide | zoom | glitch | flash
    * @param duration - seconds
    */

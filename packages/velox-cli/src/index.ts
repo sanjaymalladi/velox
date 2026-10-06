@@ -56,6 +56,7 @@ program
   .description('Validate VML markup before rendering')
   .option('--frames', 'hint spot-frame check after lint')
   .option('--strict', 'treat warnings as errors')
+  .option('--json', 'print lint results as JSON for tools and agents')
   .action((file: string, opts) => lintCommand(file, opts))
 
 // ── velox add <block> ───────────────────────────────────────────────────────

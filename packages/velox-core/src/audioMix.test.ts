@@ -60,4 +60,17 @@ describe('buildAudioMixArgs', () => {
     expect(fc).not.toContain('sidechaincompress')
     expect(fc).toContain('amix=inputs=1')
   })
+
+  it('places scene audio on the same transition-aware frame timeline as video', () => {
+    const resolved = resolveAudio({
+      size: [100, 100],
+      fps: 30,
+      scenes: [
+        { id: 'first', duration: 2, transition: { type: 'wipe', duration: 0.5 }, elements: [] },
+        { id: 'second', duration: 2, elements: [], audio: { src: 'voice.wav' } },
+      ],
+    }, { isResolved: () => true })
+    expect(resolved.tracks[0]?.at).toBe(1.5)
+    expect(resolved.durationSec).toBe(3.5)
+  })
 })

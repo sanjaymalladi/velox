@@ -13,6 +13,7 @@
  */
 
 import type { VeloxVideoConfig, VeloxAudioPlan, SceneConfig } from './types'
+import { calculateFrameTimeline } from './timeline'
 
 export type AudioKind = 'music' | 'sfx' | 'voice'
 
@@ -226,22 +227,20 @@ export function resolveAudio(
   }
 
   // Per-scene voice/audio: align to global timeline by accumulating durations.
-  let accFrames = 0
-  for (const scene of config.scenes as SceneConfig[]) {
+  const timeline = calculateFrameTimeline(config.scenes as SceneConfig[], config.fps)
+  for (let index = 0; index < config.scenes.length; index++) {
+    const scene = config.scenes[index] as SceneConfig
     if (scene.audio?.src) {
       tracks.push({
         src: resolveOne(scene.audio.src, opts),
         kind: 'voice',
         volume: scene.audio.volume ?? 1,
-        at: accFrames / config.fps + (scene.audio.startFrom ?? 0),
+        at: timeline.scenes[index].startFrame / config.fps + (scene.audio.startFrom ?? 0),
         duck: true,
       })
     }
-    const frames = Math.round(scene.duration * config.fps)
-    const transitionFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
-    accFrames += frames - transitionFrames
   }
 
-  const durationSec = accFrames / config.fps
+  const durationSec = timeline.totalFrames / config.fps
   return { tracks, beats: plan?.beats ?? [], durationSec, hasAudio: tracks.length > 0 }
 }

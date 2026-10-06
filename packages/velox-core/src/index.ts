@@ -86,6 +86,8 @@ export type { AnimationState } from './engine/animations'
 export { resolveEase, lerp, clamp, frameProgress, springValue } from './engine/easing'
 export { validateRawVideoInput, validateVeloxVideoConfig } from './validation'
 export { lintVeloxMarkup, lintVeloxConfig } from './lint'
+export { calculateFrameTimeline } from './timeline'
+export type { FrameTimeline, FrameTimelineSegment } from './timeline'
 export type { LintIssue, LintResult } from './lint'
 export { applyVmlVariables, findUnresolvedVariables } from './variables'
 export {

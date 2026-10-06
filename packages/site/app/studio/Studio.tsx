@@ -6,6 +6,7 @@ import {
   drawFrame,
   configToMarkup,
   getTotalFrames,
+  calculateFrameTimeline,
   parseCaptionTracks,
   WebGLComposer,
   DEFAULT_FX,
@@ -293,15 +294,7 @@ export default function Studio() {
 
   const totalDur = totalFrames / fps
   const cumulative = useMemo(() => {
-    const arr: number[] = []
-    let accFrames = 0
-    for (const s of scenes) {
-      arr.push(accFrames / fps)
-      const sceneFrames = Math.round(s.duration * fps)
-      const transitionFrames = s.transition ? Math.round(s.transition.duration * fps) : 0
-      accFrames += sceneFrames - transitionFrames
-    }
-    return arr
+    return calculateFrameTimeline(scenes, fps).scenes.map((segment) => segment.startFrame / fps)
   }, [scenes, fps])
   const rulerTicks = useMemo(() => {
     const ticks: { t: number; beat: boolean }[] = []

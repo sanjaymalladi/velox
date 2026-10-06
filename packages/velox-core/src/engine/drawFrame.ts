@@ -25,6 +25,7 @@ import { supportsCanvasFilter, setCanvasFilter, setNodeElementBlur, applyElement
 import { drawLayerWithBlur as browserDrawLayerWithBlur } from './cpuBlur'
 import { getSimplex, preloadHeavyDeps } from './lazyDeps'
 import { applyFxCpu, fxEnabled, getFx } from './webglPipeline'
+import { calculateFrameTimeline } from '../timeline'
 
 type DrawLayerWithBlurFn = typeof browserDrawLayerWithBlur
 
@@ -105,11 +106,7 @@ export function resolveSize(size: any): [number, number] {
 // ─── Total Duration ───────────────────────────────────────────────────────────
 
 export function getTotalFrames(config: VeloxVideoConfig): number {
-  return config.scenes.reduce((acc, scene) => {
-    const frames = Math.round(scene.duration * config.fps)
-    const transFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
-    return acc + frames - transFrames
-  }, 0)
+  return calculateFrameTimeline(config.scenes, config.fps).totalFrames
 }
 
 // ─── Scene activation ────────────────────────────────────────────────────────
@@ -121,15 +118,11 @@ interface ActiveScene {
 }
 
 export function buildSceneTimeline(config: VeloxVideoConfig): ActiveScene[] {
-  const timeline: ActiveScene[] = []
-  let cursor = 0
-  for (const scene of config.scenes) {
-    const frames = Math.round(scene.duration * config.fps)
-    const transFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
-    timeline.push({ scene, startFrame: cursor, endFrame: cursor + frames })
-    cursor += frames - transFrames
-  }
-  return timeline
+  return calculateFrameTimeline(config.scenes, config.fps).scenes.map((item, index) => ({
+    scene: config.scenes[index],
+    startFrame: item.startFrame,
+    endFrame: item.endFrame,
+  }))
 }
 
 /** Global scene start times in seconds (matches transition-aware timeline). */
