@@ -6,11 +6,13 @@ export type LogoWithPaths = LogoElementConfig & { _paths?: LogoPathData }
 
 export function collectImageSrcs(config: VeloxVideoConfig): Set<string> {
   const srcs = new Set<string>()
-  for (const scene of config.scenes) {
-    for (const el of scene.elements) {
+  const visit = (els: typeof config.scenes[number]['elements']): void => {
+    for (const el of els) {
       if (el.type === 'image') srcs.add((el as ImageElementConfig).src)
+      else if (el.type === 'group') visit((el as { children: typeof els }).children)
     }
   }
+  for (const scene of config.scenes) visit(scene.elements)
   return srcs
 }
 

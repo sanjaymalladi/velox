@@ -52,7 +52,7 @@ const motions = [
 const sceneCameras: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns']
 const sceneMoods: SceneMood[] = ['neutral', 'editorial', 'cinematic']
 const transitionTypes = new Set<TransitionType>([
-  'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash',
+  'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold',
 ])
 const stockProviders = new Set([
   'generated',
@@ -204,6 +204,7 @@ function place<T extends AnyElement>(el: T, placement: string | undefined): T {
 }
 
 function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
+  if (hasAttr(node, 'depth')) el.depth(num(attr(node, 'depth'), 0, `${node.tag}.depth`))
   const m = attr(node, 'motion') ?? 'cinematic'
   const delay = num(attr(node, 'delay'), 0, `${node.tag}.delay`)
   switch (m) {
@@ -241,6 +242,11 @@ function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
 
 function finish<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: ReelTemplateId): T {
   validateCommon(node)
+  if (hasAttr(node, 'x') || hasAttr(node, 'y')) {
+    const x = num(attr(node, 'x'), 0, `${node.tag}.x`)
+    const y = num(attr(node, 'y'), 0, `${node.tag}.y`)
+    return animate(el.pos(x, y), node)
+  }
   const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
   const slot = attr(node, 'slot')
   const positioned =
@@ -250,6 +256,11 @@ function finish<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: Re
 
 function finishInFlow<T extends AnyElement>(el: T, node: MarkupNode, reelTemplate?: ReelTemplateId): T {
   validateCommon(node)
+  if (hasAttr(node, 'x') || hasAttr(node, 'y')) {
+    const x = num(attr(node, 'x'), 0, `${node.tag}.x`)
+    const y = num(attr(node, 'y'), 0, `${node.tag}.y`)
+    return animate(el.pos(x, y), node)
+  }
   const tpl = reelTemplate && reelTemplate !== 'none' ? reelTemplate : undefined
   const slot = attr(node, 'slot')
   const positioned =
@@ -266,9 +277,10 @@ function compileCaptionsMarkup(
   const styleRaw = attr(node, 'style') ?? 'pill'
   const styles: CaptionStyle[] = [
     'plain', 'pill', 'karaoke', 'wordPop', 'highlightKeywords', 'slam', 'clipWipe', 'weightShift',
+    'neon', 'gradient', 'outline', 'typewriter', 'bounce', 'lowerThird',
   ]
   if (!styles.includes(styleRaw as CaptionStyle))
-    fail('<captions> style must be plain, pill, karaoke, wordPop, highlightKeywords, slam, clipWipe, weightShift.')
+    fail('<captions> style must be plain, pill, karaoke, wordPop, highlightKeywords, slam, clipWipe, weightShift, neon, gradient, outline, typewriter, bounce, lowerThird.')
 
   const style = styleRaw as CaptionStyle
 
@@ -304,16 +316,33 @@ function compileCaptionsMarkup(
     const anim = pickCaptionEntrance(style)
     const wordStep = dur > 0 ? Math.max(0.08, dur / Math.max(spans.length, 1)) : 0.12
     const baseSize =
-      style === 'slam' ? 52 : style === 'wordPop' ? 34 : style === 'pill' ? 32 : 30
+      style === 'slam'
+        ? 52
+        : style === 'wordPop'
+          ? 34
+          : style === 'pill'
+            ? 32
+            : style === 'neon' || style === 'gradient' || style === 'bounce'
+              ? 34
+              : style === 'outline'
+                ? 36
+                : style === 'lowerThird'
+                  ? 32
+                  : 30
 
     const cap = ctx.aesthetic.surfaces.captionBar
-    const pillH = style === 'pill' ? 68 : style === 'slam' ? 0 : 60
+    const pillH =
+      style === 'pill' || style === 'lowerThird' ? 68 : style === 'slam' ? 0 : 60
     const wordGap = style === 'wordPop' ? 16 : style === 'slam' ? 0 : 8
     const rowW = spans.reduce(
       (sum, span) => sum + span.word.length * baseSize * (style === 'slam' ? 0.55 : 0.58),
       0,
     ) + Math.max(0, spans.length - 1) * wordGap
-    const pillW = Math.min(960, Math.max(280, Math.round(rowW + (style === 'pill' ? 56 : 32))))
+    const pillPad = style === 'pill' ? 56 : style === 'lowerThird' ? 80 : 32
+    const pillW = Math.min(
+      style === 'lowerThird' ? 1100 : 960,
+      Math.max(style === 'lowerThird' ? 700 : 280, Math.round(rowW + pillPad)),
+    )
     const wordColor = style === 'pill' ? cap.text : color(undefined, ctx, ctx.theme.text)
     const words = spans.map((span, wordIndex) => {
       const size =
@@ -351,7 +380,7 @@ function compileCaptionsMarkup(
         : layout.row(words, { gap: wordGap, align: 'middle' })
 
     const bar =
-      style === 'pill'
+      style === 'pill' || style === 'lowerThird'
         ? (() => {
             const bodyH = cap.borderMode === 'stripe' && cap.border !== 'transparent' ? pillH - 4 : pillH
             const body = group([
@@ -944,7 +973,7 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
     if (hasReelTemplate) motionQuality = 'premium'
   }
 
-  const fps = num(attr(root, 'fps'), 60, 'video.fps') as VeloxFps
+  const fps = num(attr(root, 'fps'), 30, 'video.fps') as VeloxFps
   const audioPlanRaw = collectAudioFromVideoRoot(root, fps)
   const hasAnyAudioCue =
     Boolean(audioPlanRaw.music) ||
@@ -965,5 +994,6 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
   })
 }
 
+export { configToMarkup } from './markupSerializer'
 export { isVeloxMarkup }
 

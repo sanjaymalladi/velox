@@ -1,12 +1,13 @@
 import path from 'path'
 import fs from 'fs-extra'
 import { createJiti } from 'jiti'
-import { createVideoFromMarkup, validateVeloxVideoConfig } from '@velox-video/core'
+import { createVideoFromMarkup, validateVeloxVideoConfig, preloadAesthetics } from '@velox-video/core'
 import type { VeloxVideoConfig } from '@velox-video/core'
 import { resolveVeloxPlaceholders } from '../media/resolveVeloxPlaceholders'
 
 export async function loadVideoConfig(filePath: string): Promise<VeloxVideoConfig> {
   const abs = path.resolve(filePath)
+  await preloadAesthetics()
 
   if ((await fs.pathExists(abs)) && abs.toLowerCase().endsWith('.vml')) {
     const trimmed = (await fs.readFile(abs, 'utf8')).trim()

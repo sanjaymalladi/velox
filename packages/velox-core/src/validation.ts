@@ -2,7 +2,7 @@ import type { ElementConfig, VeloxVideoConfig, TransitionType, SceneCamera, Scen
 import type { RawVideoInput } from './core/Video'
 
 const VALID_TRANSITION_TYPES: TransitionType[] = [
-  'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash',
+  'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold',
 ]
 
 const VALID_SCENE_CAMERAS: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns']

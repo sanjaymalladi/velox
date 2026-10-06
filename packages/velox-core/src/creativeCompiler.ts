@@ -183,7 +183,7 @@ export function createVideoFromCreativeSpec(input: unknown): VeloxVideo {
   })
   return createVideo({
     size: input.size ?? 'portrait',
-    fps: input.fps ?? 60,
+    fps: input.fps ?? 30,
     theme: input.theme ?? 'obsidian',
     background: resolveRootBackground(input.background),
     scenes,

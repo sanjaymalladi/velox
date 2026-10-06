@@ -92,3 +92,79 @@ export function drawLayerWithBlur(
   targetCtx.drawImage(scratch as unknown as CanvasImageSource, 0, 0, width, height)
   targetCtx.restore()
 }
+
+/**
+ * Per-element CPU blur for native export (used when CSS `filter` is unavailable).
+ * Renders `drawFn` into a scratch region, blurs it, then composites back onto
+ * `targetCtx`. `postProcess` (e.g. brightness/saturate) runs on the blurred data.
+ */
+export function drawElementWithBlur(
+  targetCtx: Ctx,
+  cx: number,
+  cy: number,
+  halfW: number,
+  halfH: number,
+  blurRadius: number,
+  drawFn: (ctx: Ctx) => void,
+  postProcess?: (data: ImageData) => void,
+): void {
+  if (supportsCanvasFilter) {
+    drawFn(targetCtx)
+    return
+  }
+  if (blurRadius < 0.35 && !postProcess) {
+    drawFn(targetCtx)
+    return
+  }
+
+  const pad = Math.ceil(blurRadius * 2) + 2
+  const fullW = Math.max(2, (halfW + pad) * 2)
+  const fullH = Math.max(2, (halfH + pad) * 2)
+  const blurScale = nodeBlurScale(fullW, fullH)
+  const w = Math.max(2, Math.round(fullW * blurScale))
+  const h = Math.max(2, Math.round(fullH * blurScale))
+  const x = cx - fullW / 2
+  const y = cy - fullH / 2
+
+  const { canvas: scratch, ctx: sctx } = getScratch(w, h)
+  sctx.setTransform(1, 0, 0, 1, 0, 0)
+  sctx.clearRect(0, 0, w, h)
+  sctx.save()
+  sctx.translate(-x, -y)
+  if (blurScale < 1) sctx.scale(blurScale, blurScale)
+  drawFn(sctx)
+  sctx.restore()
+
+  const imageData = sctx.getImageData(0, 0, w, h)
+  if (blurRadius >= 0.35) blurImageDataRGBA(imageData.data, w, h, blurRadius * blurScale)
+  if (postProcess) postProcess(imageData)
+  sctx.putImageData(imageData, 0, 0)
+
+  targetCtx.save()
+  targetCtx.imageSmoothingEnabled = true
+  targetCtx.imageSmoothingQuality = 'high'
+  targetCtx.drawImage(scratch as unknown as CanvasImageSource, x, y, fullW, fullH)
+  targetCtx.restore()
+}
+
+/** In-place brightness (multiply) + saturation (lerp toward luma) on RGBA data. */
+export function adjustBrightnessSaturation(
+  data: Uint8ClampedArray,
+  brightness = 1,
+  saturate = 1,
+): void {
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i] * brightness
+    let g = data[i + 1] * brightness
+    let b = data[i + 2] * brightness
+    if (saturate !== 1) {
+      const l = 0.299 * r + 0.587 * g + 0.114 * b
+      r = l + (r - l) * saturate
+      g = l + (g - l) * saturate
+      b = l + (b - l) * saturate
+    }
+    data[i] = r
+    data[i + 1] = g
+    data[i + 2] = b
+  }
+}

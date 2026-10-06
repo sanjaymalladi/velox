@@ -48,6 +48,118 @@ function parseSrtTs(s: string): number {
   return ((h * 60 + m) * 60) + ss
 }
 
+/**
+ * Minimal, dependency-free ASS (SubStation Alpha) cue parser.
+ *
+ * Handles the common `[Events]` / `Dialogue:` format and strips override tags
+ * (`{\...}`), converting `\N` / `\n` line breaks. For full styled/karaoke ASS
+ * rendering, `sweet-subtitle` can be dynamically imported by the caller — this
+ * parser only extracts plain text cues so the core stays fetch-free and tiny.
+ */
+export function parseAss(input: string): CaptionCue[] {
+  const cues: CaptionCue[] = []
+  const lines = input.replace(/\r\n/g, '\n').split('\n')
+  let formatCols: string[] = []
+  let inEvents = false
+
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (/^\[/i.test(line)) {
+      inEvents = /^\[Events\]/i.test(line)
+      continue
+    }
+    if (!inEvents) continue
+
+    if (/^Format:/i.test(line)) {
+      formatCols = line.replace(/^Format:/i, '').split(',').map((s) => s.trim().toLowerCase())
+      continue
+    }
+    if (!/^Dialogue:/i.test(line)) continue
+
+    const body = line.replace(/^Dialogue:/i, '').trim()
+    const cols = formatCols.length ? formatCols : ['layer', 'start', 'end', 'style', 'name', 'marginl', 'marginr', 'marginv', 'effect', 'text']
+    const parts = splitAssFields(body, cols.length - 1)
+    const col = (name: string): string => {
+      const i = cols.indexOf(name)
+      return i >= 0 && i < parts.length ? parts[i] : ''
+    }
+    const start = parseAssTs(col('start'))
+    const end = parseAssTs(col('end'))
+    const textCol = col('text')
+    const text = textCol
+      .replace(/\{\\[^}]*\}/g, '') // strip override tags
+      .replace(/\\N/gi, '\n')
+      .replace(/\\n/gi, '\n')
+      .trim()
+    if (!text) continue
+    cues.push({ start, end, text })
+  }
+
+  return cues.sort((a, b) => a.start - b.start)
+}
+
+/** Split an ASS field list on commas, ignoring commas inside `{}` / `()` groups. */
+function splitAssFields(body: string, maxSplits: number): string[] {
+  const out: string[] = []
+  let depth = 0
+  let cur = ''
+  for (const ch of body) {
+    if (ch === '{' || ch === '(') depth++
+    else if (ch === '}' || ch === ')') depth = Math.max(0, depth - 1)
+    if (ch === ',' && depth === 0 && out.length < maxSplits) {
+      out.push(cur)
+      cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  out.push(cur)
+  return out
+}
+
+function parseAssTs(s: string): number {
+  const m = s.trim().match(/^(?:(\d+):)?(\d{1,2}):(\d{2})\.(\d{1,2})$/)
+  if (!m) return 0
+  const h = Number(m[1] ?? 0)
+  const mm = Number(m[2])
+  const ss = Number(m[3])
+  const cc = Number(m[4])
+  return h * 3600 + mm * 60 + ss + cc / 100
+}
+
+/**
+ * Auto-detect SRT vs ASS and parse to cues. Power users can feed either format
+ * from a `<captions src="...">` file (expanded by CLI preprocessors) or directly.
+ */
+export function parseCaptionTracks(input: string): CaptionCue[] {
+  const trimmed = input.trim()
+  if (/^\[Events\]/i.test(trimmed) || /^Dialogue:/im.test(trimmed)) return parseAss(input)
+  if (/^WEBVTT(?:\s|$)/i.test(trimmed)) return parseVtt(input)
+  return parseSrt(input)
+}
+
+/** Parse WebVTT's timing blocks into the same plain-text cue format as SRT. */
+export function parseVtt(input: string): CaptionCue[] {
+  const cues: CaptionCue[] = []
+  const blocks = input.replace(/^\uFEFF?WEBVTT[^\n]*\n/i, '').replace(/\r\n/g, '\n').trim().split(/\n\s*\n/)
+  for (const block of blocks) {
+    const lines = block.split('\n')
+    const timeIndex = lines.findIndex((line) => /\d{2}:\d{2}(?::\d{2})?\.\d{3}\s*-->/.test(line))
+    if (timeIndex < 0) continue
+    const match = lines[timeIndex].match(/((?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s*-->\s*((?:\d{2}:)?\d{2}:\d{2}\.\d{3})/)
+    if (!match) continue
+    const toSec = (stamp: string) => {
+      const nums = stamp.split(':').map(Number)
+      const last = nums.pop()!
+      const secs = Number(last.toFixed(3))
+      return nums.reduce((acc, n) => acc * 60 + n, secs)
+    }
+    const text = lines.slice(timeIndex + 1).join(' ').replace(/<[^>]*>/g, '').trim()
+    if (text) cues.push({ start: toSec(match[1]), end: toSec(match[2]), text })
+  }
+  return cues.sort((a, b) => a.start - b.start)
+}
+
 export function splitWords(s: string): string[] {
   return s.trim().split(/\s+/).filter(Boolean)
 }
@@ -61,6 +173,12 @@ export type CaptionStyle =
   | 'slam'
   | 'clipWipe'
   | 'weightShift'
+  | 'neon'
+  | 'gradient'
+  | 'outline'
+  | 'typewriter'
+  | 'bounce'
+  | 'lowerThird'
 
 /**
  * Produce per-line/per-word timings for karaoke from a caption cue inside a scene.
@@ -89,12 +207,21 @@ export function pickCaptionEntrance(style: CaptionStyle): EntranceAnimation {
     case 'slam':
       return 'tactileIn'
     case 'clipWipe':
+    case 'typewriter':
       return 'revealLeft'
     case 'karaoke':
     case 'highlightKeywords':
       return 'slideUp'
     case 'weightShift':
       return 'fadeIn'
+    case 'neon':
+    case 'gradient':
+      return 'fadeIn'
+    case 'outline':
+    case 'bounce':
+      return 'bounceIn'
+    case 'lowerThird':
+      return 'slideUp'
     default:
       return 'fadeIn'
   }

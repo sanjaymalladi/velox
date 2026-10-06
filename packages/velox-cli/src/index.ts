@@ -5,7 +5,7 @@ import { previewCommand } from './commands/preview'
 import { newCommand } from './commands/new'
 import { lintCommand } from './commands/lint'
 import { addCommand, listBlocksCommand } from './commands/add'
-import { aestheticIds } from '@velox-video/core'
+import { aestheticIds, preloadAesthetics } from '@velox-video/core'
 
 const { version: VERSION } = require('../package.json') as { version: string }
 
@@ -39,6 +39,7 @@ program
   .option('--draft', 'fast preview export: 50% resolution, max 30fps')
   .option('--scale <number>', 'output resolution scale 0.25–1 (e.g. 0.5 for half res)')
   .option('--fps <number>', 'cap export fps (skips frames, keeps duration)')
+  .option('--headless', 'all-WebGL export via headless Chromium + ffmpeg (requires Playwright)')
   .action((file: string, opts) => renderCommand(file, {
     output: opts.output,
     format: opts.format,
@@ -46,6 +47,7 @@ program
     draft: Boolean(opts.draft),
     scale: opts.scale !== undefined ? parseFloat(opts.scale) : undefined,
     fps: opts.fps !== undefined ? parseInt(opts.fps, 10) : undefined,
+    headless: Boolean(opts.headless),
   }))
 
 // ── velox lint <file> ───────────────────────────────────────────────────────
@@ -67,7 +69,7 @@ program
 program
   .command('list <type>')
   .description('List available animations, themes, or templates')
-  .action((type: string) => {
+  .action(async (type: string) => {
     if (type === 'animations') {
       console.log(chalk.cyan('\n  Entrance animations:'))
       const entrance = ['fadeIn', 'slideUp', 'slideDown', 'slideLeft', 'slideRight',
@@ -85,6 +87,7 @@ program
       loop.forEach(a => console.log(chalk.white(`    • ${a}`)))
 
     } else if (type === 'themes') {
+      await preloadAesthetics()
       console.log(chalk.cyan('\n  Built-in aesthetics (use theme="…" in <video>):'))
       aestheticIds.forEach((t) => console.log(chalk.white(`    • ${t}`)))
 

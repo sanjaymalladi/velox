@@ -5,10 +5,7 @@
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "noEmit": true,
-    "paths": {
-      "@velox-video/core": ["../velox-core/src/index.ts"]
-    }
+    "noEmit": true
   },
   "include": ["next-env.d.ts", "app", "src"],
   "exclude": ["node_modules"]

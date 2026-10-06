@@ -3,6 +3,7 @@
  */
 import { createVideoFromMarkup, isVeloxMarkup } from './markupCompiler'
 import { validateVeloxVideoConfig } from './validation'
+import { aestheticsArePreloaded } from './aesthetics/registry'
 import { aestheticIds } from './aesthetics/registry'
 import { findUnresolvedVariables } from './variables'
 import type { VeloxVideoConfig } from './types'
@@ -42,6 +43,15 @@ export function lintVeloxMarkup(markup: string): LintResult {
     })
   }
 
+  const themeId = markup.match(/theme="([^"]+)"/)?.[1]
+  if (themeId && aestheticsArePreloaded() && !aestheticIds.includes(themeId)) {
+    push(issues, {
+      level: 'warn',
+      code: 'unknown-theme',
+      message: `Theme "${themeId}" is not a registered aesthetic — falling back to legacy palette.`,
+    })
+  }
+
   let config: VeloxVideoConfig
   try {
     config = createVideoFromMarkup(markup).config
@@ -52,7 +62,30 @@ export function lintVeloxMarkup(markup: string): LintResult {
     return { ok: false, issues }
   }
 
-  const themeId = markup.match(/theme="([^"]+)"/)?.[1]
+  checkScenes(config, issues)
+
+  return finalize(config, issues)
+}
+
+/**
+ * Lint an already-compiled `VeloxVideoConfig` (e.g. from a `.ts`/`.js` authoring
+ * file). Mirrors `lintVeloxMarkup` but skips the markup parse step.
+ */
+export function lintVeloxConfig(
+  config: VeloxVideoConfig,
+  options: { themeId?: string } = {},
+): LintResult {
+  const issues: LintIssue[] = []
+
+  try {
+    validateVeloxVideoConfig(config)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    push(issues, { level: 'error', code: 'invalid-config', message: msg })
+    return { ok: false, issues }
+  }
+
+  const themeId = options.themeId
   if (themeId && !aestheticIds.includes(themeId)) {
     push(issues, {
       level: 'warn',
@@ -61,7 +94,12 @@ export function lintVeloxMarkup(markup: string): LintResult {
     })
   }
 
-  let cursorSec = 0
+  checkScenes(config, issues)
+
+  return finalize(config, issues)
+}
+
+function checkScenes(config: VeloxVideoConfig, issues: LintIssue[]): void {
   for (const scene of config.scenes) {
     if (scene.elements.length === 0) {
       push(issues, {
@@ -90,11 +128,10 @@ export function lintVeloxMarkup(markup: string): LintResult {
         scene: scene.id,
       })
     }
-
-    cursorSec += scene.duration
-    if (scene.transition) cursorSec -= scene.transition.duration
   }
+}
 
+function finalize(config: VeloxVideoConfig, issues: LintIssue[]): LintResult {
   const durationSec = config.scenes.reduce((acc, s) => {
     const trans = s.transition?.duration ?? 0
     return acc + s.duration - trans

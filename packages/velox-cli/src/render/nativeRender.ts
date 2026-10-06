@@ -92,14 +92,10 @@ export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions
 
   if (format === 'mp4') {
     await renderMp4(config, renderW, renderH, totalFrames, outputPath, opts, tuning, emitProgress)
-    const music = config.audio?.src ?? config.audioPlan?.music?.src
-    const vol = config.audio?.volume ?? config.audioPlan?.music?.volume ?? 0.35
     const packageDir = path.join(__dirname, '..')
     await muxAudioPlan(
       outputPath,
-      config.audioPlan,
-      music,
-      vol,
+      config,
       opts.sourceDir ?? path.dirname(outputPath),
       packageDir,
     )

@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { applyVmlVariables, findUnresolvedVariables } from './variables'
 import { createVideoFromMarkup } from './markupCompiler'
+import { preloadAesthetics } from './aesthetics/registry'
+
+beforeAll(async () => { await preloadAesthetics() })
 
 describe('variables', () => {
   it('substitutes {{key}} from map', () => {

@@ -4,7 +4,8 @@ import ora from 'ora'
 import fs from 'fs-extra'
 import { loadVideoConfig } from '../utils/loadVideo'
 import { nativeRender } from '../render/nativeRender'
-import { getTotalFrames, resolveSize } from '@velox-video/core'
+import { renderHeadless } from '../render/renderHeadless'
+import { getTotalFrames, resolveSize, preloadHeavyDeps } from '@velox-video/core'
 import { RenderProgress } from '../render/progress'
 import { resolveRenderTuning, scaledDimensions } from '../render/renderOptions'
 
@@ -15,6 +16,8 @@ export async function renderCommand(inputFile: string, options: {
   scale?: number
   fps?: number
   draft?: boolean
+  /** Use the all-WebGL headless-Chromium export path (replaces native CPU render). */
+  headless?: boolean
 }) {
   const spinner = ora()
   let preloadSpinner: ReturnType<typeof ora> | undefined
@@ -50,6 +53,9 @@ export async function renderCommand(inputFile: string, options: {
     if (!validFormats.has(format)) {
       throw new Error(`Unsupported format "${format}". Use one of: mp4, gif, png-sequence.`)
     }
+    if (options.headless && format !== 'mp4') {
+      throw new Error('Headless export only supports MP4; remove --format or choose --format mp4.')
+    }
     const normalizedQuality = Number.isFinite(options.quality)
       ? Math.min(100, Math.max(0, options.quality as number))
       : options.draft
@@ -61,6 +67,22 @@ export async function renderCommand(inputFile: string, options: {
       path.basename(inputFile, path.extname(inputFile)) + ext,
     )
 
+    // All-WebGL export: headless Chromium (WebGL post-FX) + ffmpeg + audio mux.
+    if (options.headless) {
+      console.log(chalk.cyan(`  Headless WebGL render → ${chalk.bold(outputPath)}`))
+      const progress = new RenderProgress(totalFrames, path.basename(outputPath), 1)
+      progress.begin()
+      await renderHeadless(config, outputPath, {
+        projectDir: path.dirname(path.resolve(inputFile)),
+        onProgress: (p, frame, total) => {
+          progress.update(frame, Math.round(p * total))
+        },
+      })
+      const stat = await fs.stat(outputPath)
+      progress.done(outputPath, (stat.size / 1024 / 1024).toFixed(1))
+      return
+    }
+
     const progress = new RenderProgress(totalFrames, path.basename(outputPath), tuning.frameStep)
     if (options.draft) {
       console.log(chalk.yellow('  Draft mode: 50% resolution, max 30fps export\n'))
@@ -68,6 +90,7 @@ export async function renderCommand(inputFile: string, options: {
     console.log(chalk.cyan(`  Rendering ${renderTotal} frames → ${chalk.bold(outputPath)}`))
 
     preloadSpinner = ora({ text: chalk.cyan('Loading assets...'), stream: process.stdout }).start()
+    await preloadHeavyDeps()
     await nativeRender(config, {
       outputPath,
       sourceDir: path.dirname(path.resolve(inputFile)),

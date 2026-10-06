@@ -2,131 +2,75 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import fs from 'fs-extra'
-import type { SfxCue, VeloxAudioPlan } from '@velox-video/core'
+import type { VeloxVideoConfig } from '@velox-video/core'
+import { resolveAudio, buildAudioMixArgs } from '@velox-video/core'
 import { resolveFfmpegPath } from './resolveFfmpeg'
+import type { ResolvedAudio } from '@velox-video/core'
 
 const execFileAsync = promisify(execFile)
 
-const BUNDLED_SFX = ['whoosh', 'click', 'pop', 'swoosh']
-
-async function ffmpegAvailable(): Promise<string | null> {
-  return resolveFfmpegPath()
+/** Resolve every audio reference in `config` to a real file using CLI conventions. */
+function resolveConfigAudio(
+  config: VeloxVideoConfig,
+  projectDir: string,
+  packageDir: string,
+) {
+  const tryCandidates = (name: string): string | undefined => {
+    const base = path.isAbsolute(name) || /^[a-zA-Z]:[\\/]/.test(name) || name.startsWith('/')
+      ? [name]
+      : [
+          path.join(projectDir, 'sfx', `${name}.mp3`),
+          path.join(projectDir, 'sfx', `${name}.wav`),
+          path.join(projectDir, `${name}.mp3`),
+          path.join(projectDir, 'audio', `${name}.mp3`),
+          path.join(packageDir, 'assets', 'sfx', `${name}.mp3`),
+          path.join(packageDir, 'assets', 'sfx', `${name}.wav`),
+          path.join(packageDir, 'assets', 'audio', `${name}.mp3`),
+        ]
+    for (const c of base) if (fs.existsSync(c)) return c
+    return undefined
+  }
+  return resolveAudio(config, {
+    resolvePresetName: tryCandidates,
+    resolvePath: (src) => path.isAbsolute(src) ? src : path.resolve(projectDir, src),
+  })
 }
 
-function resolveSfxPath(cue: SfxCue, projectDir: string, packageDir: string): string | undefined {
-  if (cue.src) {
-    const p = path.isAbsolute(cue.src) ? cue.src : path.resolve(projectDir, cue.src)
-    return p
-  }
-  const candidates = [
-    path.join(projectDir, 'sfx', `${cue.name}.mp3`),
-    path.join(projectDir, 'sfx', `${cue.name}.wav`),
-    path.join(projectDir, `${cue.name}.mp3`),
-    path.join(packageDir, 'assets', 'sfx', `${cue.name}.mp3`),
-    path.join(packageDir, 'assets', 'sfx', `${cue.name}.wav`),
-  ]
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c
-  }
-  return undefined
-}
-
-/** Mux background music and timeline SFX onto a silent MP4 when ffmpeg is available. */
+/** Mux background music, SFX and voiceover onto a silent MP4 when ffmpeg exists. */
 export async function muxAudioPlan(
   videoPath: string,
-  plan: VeloxAudioPlan | undefined,
-  musicSrc: string | undefined,
-  musicVolume: number,
+  config: VeloxVideoConfig,
   projectDir: string,
   packageDir: string,
 ): Promise<void> {
-  const ffmpeg = await ffmpegAvailable()
+  const ffmpeg = await resolveFfmpegPath()
   if (!ffmpeg) {
-    if (plan?.sfx.length || musicSrc) {
+    if (config.audioPlan?.sfx.length || config.audio?.src || config.audioPlan?.music?.src) {
       console.warn('[velox] Audio skipped — no ffmpeg available (system or bundled).')
     }
     return
   }
 
-  const musicPath = musicSrc
-    ? path.isAbsolute(musicSrc)
-      ? musicSrc
-      : path.resolve(projectDir, musicSrc)
-    : undefined
+  const resolved = resolveConfigAudio(config, projectDir, packageDir)
+  const existing = resolved.tracks.filter((t) => {
+    if (/^(https?:|data:|blob:)/.test(t.src)) return true
+    return fs.existsSync(t.src)
+  })
 
-  const sfxResolved: Array<{ cue: SfxCue; file: string }> = []
-  for (const cue of plan?.sfx ?? []) {
-    const file = resolveSfxPath(cue, projectDir, packageDir)
-    if (file && (await fs.pathExists(file))) sfxResolved.push({ cue, file })
-    else if (BUNDLED_SFX.includes(cue.name)) {
-      console.warn(`[velox] SFX "${cue.name}" not found — add sfx/${cue.name}.mp3 to your project.`)
-    }
-  }
+  if (existing.length === 0) return
 
-  if (!musicPath && sfxResolved.length === 0) return
-  if (musicPath && !(await fs.pathExists(musicPath))) {
-    console.warn(`[velox] Music file not found: ${musicPath}`)
-    if (sfxResolved.length === 0) return
-  }
+  const { args, hasAudio } = buildAudioMixArgs({ ...resolved, tracks: existing }, videoPath)
+  if (!hasAudio) return
 
   const tmp = `${videoPath}.mux.mp4`
-  const inputs: string[] = ['-i', videoPath]
-  const filters: string[] = []
-  const mixLabels: string[] = []
-
-  let inputIndex = 1
-  if (musicPath && (await fs.pathExists(musicPath))) {
-    inputs.push('-i', musicPath)
-    const vol = Math.max(0, Math.min(1, musicVolume))
-    filters.push(`[${inputIndex}:a]volume=${vol}[music]`)
-    mixLabels.push('[music]')
-    inputIndex++
-  }
-
-  for (const { cue, file } of sfxResolved) {
-    inputs.push('-i', file)
-    const delayMs = Math.max(0, Math.round(cue.at * 1000))
-    const vol = cue.volume ?? 0.85
-    const label = `sfx${inputIndex}`
-    filters.push(`[${inputIndex}:a]adelay=${delayMs}|${delayMs},volume=${vol}[${label}]`)
-    mixLabels.push(`[${label}]`)
-    inputIndex++
-  }
-
-  if (mixLabels.length === 0) return
-
-  const filterComplex =
-    filters.join(';') +
-    `;${mixLabels.join('')}` +
-    `amix=inputs=${mixLabels.length}:duration=first:dropout_transition=0[aout]`
-
   try {
-    await execFileAsync(
-      ffmpeg,
-      [
-        '-y',
-        ...inputs,
-        '-filter_complex',
-        filterComplex,
-        '-map',
-        '0:v:0',
-        '-map',
-        '[aout]',
-        '-c:v',
-        'copy',
-        '-c:a',
-        'aac',
-        '-b:a',
-        '192k',
-        '-shortest',
-        tmp,
-      ],
-      { timeout: 180_000 },
-    )
+    await execFileAsync(ffmpeg, [...args, tmp], { timeout: 180_000 })
     await fs.move(tmp, videoPath, { overwrite: true })
-    const parts = []
-    if (musicPath) parts.push('music')
-    if (sfxResolved.length) parts.push(`${sfxResolved.length} sfx`)
+    const kinds = new Set(existing.map((t) => t.kind))
+    const parts: string[] = []
+    if (kinds.has('music')) parts.push('music')
+    if (kinds.has('sfx')) parts.push('sfx')
+    if (kinds.has('voice')) parts.push('voice')
     console.log(`[velox] Muxed ${parts.join(' + ')} → ${path.basename(videoPath)}`)
   } catch (err) {
     await fs.remove(tmp).catch(() => {})

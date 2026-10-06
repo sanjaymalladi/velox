@@ -1,4 +1,7 @@
 // ─── Size & Video ───────────────────────────────────────────────────────────
+import type { FxSettings } from './webgl/composer'
+import type { CaptionCue, CaptionStyle } from './captions'
+
 export type VeloxSize =
   | '1080p'
   | '720p'
@@ -70,11 +73,14 @@ export type TransitionType =
   | 'zoom'
   | 'glitch'
   | 'flash'
+  | 'paperFold'
 
 export interface TransitionOptions {
   direction?: 'left' | 'right' | 'up' | 'down' | 'in' | 'out'
   color?: string
   intensity?: number
+  /** Number of vertical fold panels for the `paperFold` transition (default 5). */
+  folds?: number
 }
 
 /** Global motion polish — vignette/grain defaults scale with premium */
@@ -104,6 +110,12 @@ export interface BaseElementConfig {
   type: string
   position?: VeloxPosition
   opacity?: number
+  /**
+   * Parallax depth for the `parallaxDrift` scene camera. 0 (default) = moves with
+   * the baseline drift; positive = nearer the camera (moves more); negative = farther
+   * (moves less, -1 locks the plane). Multi-plane scenes assign distinct depths per layer.
+   */
+  depth?: number
   entrance?: { animation: EntranceAnimation; duration: number; options?: AnimationOptions }
   exit?: { animation: ExitAnimation; duration: number; options?: AnimationOptions }
   loop?: { animation: LoopAnimation; options?: LoopOptions }
@@ -128,7 +140,21 @@ export interface TextElementConfig extends BaseElementConfig {
   maxHeight?: number
   /** When set, renderer applies caption-bar styling (karaoke highlight, dim inactive words). */
   caption?: {
-    style: 'plain' | 'pill' | 'karaoke' | 'wordPop' | 'highlightKeywords' | 'slam' | 'clipWipe' | 'weightShift'
+    style:
+      | 'plain'
+      | 'pill'
+      | 'karaoke'
+      | 'wordPop'
+      | 'highlightKeywords'
+      | 'slam'
+      | 'clipWipe'
+      | 'weightShift'
+      | 'neon'
+      | 'gradient'
+      | 'outline'
+      | 'typewriter'
+      | 'bounce'
+      | 'lowerThird'
     wordIndex: number
     cueStartSec: number
     wordStepSec: number
@@ -275,6 +301,20 @@ export interface SceneConfig {
   }
   elements: ElementConfig[]
   audio?: { src: string; volume?: number; startFrom?: number }
+  /** Imported subtitle track (SRT/ASS) rendered as styled captions over the scene. */
+  captions?: CaptionTrack
+}
+
+/** A scene-level caption track imported from an SRT/ASS file. */
+export interface CaptionTrack {
+  cues: CaptionCue[]
+  style?: CaptionStyle
+  /** Max caption line width in px. Defaults to 88% of canvas width. */
+  maxWidth?: number
+  /** Distance of the caption block from the bottom edge in px. */
+  bottomOffset?: number
+  /** Accent color for karaoke pill / lowerThird bar. */
+  accent?: string
 }
 
 // ─── Theme ──────────────────────────────────────────────────────────────────
@@ -301,4 +341,11 @@ export interface VeloxVideoConfig {
   audio?: { src: string; volume?: number }
   /** Declarative audio timeline (VML / future mux); optional */
   audioPlan?: VeloxAudioPlan
+  /**
+   * Global post-processing effects. In the browser these run on the WebGL
+   * composer (`WebGLComposer`); in Node export a CPU fallback applies them.
+   * Providing this switches the renderer to the all-WebGL FX pipeline and
+   * suppresses the per-scene Canvas2D vignette/grain overlays.
+   */
+  fx?: Partial<FxSettings>
 }

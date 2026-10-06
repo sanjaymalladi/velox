@@ -11,23 +11,7 @@ import type {
 import { SceneBuilder } from './Scene'
 import { resolveTheme } from '../themes'
 import { validateRawVideoInput, validateVeloxVideoConfig } from '../validation'
-
-function resolveSize(size: VeloxSize): [number, number] {
-  if (Array.isArray(size)) return size
-  const map: Record<string, [number, number]> = {
-    '4k':       [3840, 2160],
-    '1080p':    [1920, 1080],
-    '720p':     [1280, 720],
-    'square':   [1080, 1080],
-    'portrait': [1080, 1920],
-    '16:9':     [1920, 1080],
-    '9:16':     [1080, 1920],
-    '1:1':      [1080, 1080],
-    '4:5':      [1080, 1350],
-    '21:9':     [2520, 1080],
-  }
-  return map[size] ?? [1920, 1080]
-}
+import { resolveSize } from '../engine/drawFrame'
 
 export interface RawVideoInput {
   size?: VeloxSize
