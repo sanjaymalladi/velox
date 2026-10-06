@@ -123,9 +123,11 @@ export function buildAudioMixArgs(
 
   if (mix.length === 0) return { args: [], hasAudio: false }
 
+  const mixLabel = '[mixed]'
   const filterComplex = [
     ...filters,
-    `${mix.join('')}amix=inputs=${mix.length}:duration=first:dropout_transition=0[aout]`,
+    `${mix.join('')}amix=inputs=${mix.length}:duration=longest:dropout_transition=0${mixLabel}`,
+    `[mixed]${resolved.durationSec > 0 ? `apad=pad_dur=${resolved.durationSec.toFixed(3)}` : 'anull'}[aout]`,
   ].join(';')
 
   const args = [
@@ -143,7 +145,7 @@ export function buildAudioMixArgs(
     'aac',
     '-b:a',
     '192k',
-    '-shortest',
+    ...(resolved.durationSec > 0 ? ['-t', resolved.durationSec.toFixed(3)] : []),
   ]
   return { args, hasAudio: true }
 }
@@ -190,16 +192,18 @@ export function resolveAudio(
 ): ResolvedAudio {
   const tracks: ResolvedAudioTrack[] = []
 
-  if (config.audio?.src) {
+  const plan: VeloxAudioPlan | undefined = config.audioPlan
+  // `config.audio` is the legacy/global music alias used by compiled VML.
+  // Prefer the richer audioPlan value when both are populated to avoid doubling
+  // the same bed as a voice track and music track.
+  if (config.audio?.src && !plan?.music?.src) {
     tracks.push({
       src: resolveOne(config.audio.src, opts),
-      kind: 'voice',
+      kind: 'music',
       volume: config.audio.volume ?? 1,
       duck: true,
     })
   }
-
-  const plan: VeloxAudioPlan | undefined = config.audioPlan
   if (plan) {
     if (plan.music?.src) {
       tracks.push({
@@ -222,20 +226,22 @@ export function resolveAudio(
   }
 
   // Per-scene voice/audio: align to global timeline by accumulating durations.
-  let acc = 0
+  let accFrames = 0
   for (const scene of config.scenes as SceneConfig[]) {
     if (scene.audio?.src) {
       tracks.push({
         src: resolveOne(scene.audio.src, opts),
         kind: 'voice',
         volume: scene.audio.volume ?? 1,
-        at: acc + (scene.audio.startFrom ?? 0),
+        at: accFrames / config.fps + (scene.audio.startFrom ?? 0),
         duck: true,
       })
     }
-    acc += scene.duration
+    const frames = Math.round(scene.duration * config.fps)
+    const transitionFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
+    accFrames += frames - transitionFrames
   }
 
-  const durationSec = config.scenes.reduce((a, s) => a + s.duration, 0)
+  const durationSec = accFrames / config.fps
   return { tracks, beats: plan?.beats ?? [], durationSec, hasAudio: tracks.length > 0 }
 }

@@ -77,8 +77,18 @@ export function parseAss(input: string): CaptionCue[] {
     if (!/^Dialogue:/i.test(line)) continue
 
     const body = line.replace(/^Dialogue:/i, '').trim()
-    const cols = formatCols.length ? formatCols : ['layer', 'start', 'end', 'style', 'name', 'marginl', 'marginr', 'marginv', 'effect', 'text']
-    const parts = splitAssFields(body, cols.length - 1)
+    let cols = formatCols.length ? formatCols : ['layer', 'start', 'end', 'style', 'name', 'marginl', 'marginr', 'marginv', 'effect', 'text']
+    let parts = splitAssFields(body, cols.length - 1)
+    // Some exporters write a shortened Format line but retain the standard
+    // ten-field Dialogue payload. Detect that mismatch and use standard order.
+    if (!parseAssTimestamp(parts[cols.indexOf('start')] ?? '')) {
+      const standard = ['layer', 'start', 'end', 'style', 'name', 'marginl', 'marginr', 'marginv', 'effect', 'text']
+      const standardParts = splitAssFields(body, standard.length - 1)
+      if (parseAssTimestamp(standardParts[1] ?? '')) {
+        cols = standard
+        parts = standardParts
+      }
+    }
     const col = (name: string): string => {
       const i = cols.indexOf(name)
       return i >= 0 && i < parts.length ? parts[i] : ''
@@ -125,6 +135,10 @@ function parseAssTs(s: string): number {
   const ss = Number(m[3])
   const cc = Number(m[4])
   return h * 3600 + mm * 60 + ss + cc / 100
+}
+
+function parseAssTimestamp(s: string): boolean {
+  return /^(?:(\d+):)?\d{1,2}:\d{2}\.\d{1,2}$/.test(s.trim())
 }
 
 /**

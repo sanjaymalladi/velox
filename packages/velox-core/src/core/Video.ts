@@ -38,6 +38,7 @@ export class VeloxVideo {
       background: input.background ?? theme?.background ?? '#000000',
       font: input.font ?? theme?.font,
       theme,
+      themeId: typeof input.theme === 'string' ? input.theme : undefined,
       motionQuality: input.motionQuality,
       scenes: input.scenes.map((s) => s.toConfig()),
       audio: input.audio,

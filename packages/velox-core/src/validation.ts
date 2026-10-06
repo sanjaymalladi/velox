@@ -69,6 +69,15 @@ export function validateVeloxVideoConfig(config: VeloxVideoConfig): void {
       `motionQuality must be standard or premium.`,
     )
   }
+  if (config.fx) {
+    for (const key of ['bloom', 'chromatic', 'vignette', 'grain', 'paper'] as const) {
+      const value = config.fx[key]
+      if (value !== undefined) assert(Number.isFinite(value) && value >= 0 && value <= 1, `fx.${key} must be 0-1.`)
+    }
+    if (config.fx.exposure !== undefined) {
+      assert(Number.isFinite(config.fx.exposure) && config.fx.exposure >= 0 && config.fx.exposure <= 4, 'fx.exposure must be 0-4.')
+    }
+  }
 
   for (const scene of config.scenes) {
     assert(Number.isFinite(scene.duration) && scene.duration > 0, `Scene "${scene.id}" must have a positive duration.`)
@@ -94,6 +103,17 @@ export function validateVeloxVideoConfig(config: VeloxVideoConfig): void {
     }
     if (scene.audio?.volume !== undefined) {
       assert(Number.isFinite(scene.audio.volume) && scene.audio.volume >= 0 && scene.audio.volume <= 1, `Scene "${scene.id}" audio volume must be 0-1.`)
+    }
+    if (scene.captions) {
+      assert(Array.isArray(scene.captions.cues), `Scene "${scene.id}" captions.cues must be an array.`)
+      if (scene.captions.maxWidth !== undefined) assert(Number.isFinite(scene.captions.maxWidth) && scene.captions.maxWidth > 0, `Scene "${scene.id}" caption maxWidth must be positive.`)
+      if (scene.captions.bottomOffset !== undefined) assert(Number.isFinite(scene.captions.bottomOffset) && scene.captions.bottomOffset >= 0, `Scene "${scene.id}" caption bottomOffset must be >= 0.`)
+      for (let i = 0; i < scene.captions.cues.length; i++) {
+        const cue = scene.captions.cues[i]!
+        assert(Number.isFinite(cue.start) && cue.start >= 0, `Scene "${scene.id}" caption ${i} start must be >= 0.`)
+        if (cue.end !== undefined) assert(Number.isFinite(cue.end) && cue.end >= cue.start, `Scene "${scene.id}" caption ${i} end must be >= start.`)
+        assert(typeof cue.text === 'string', `Scene "${scene.id}" caption ${i} text must be a string.`)
+      }
     }
     for (const element of scene.elements) validateElement(element, scene.id)
   }

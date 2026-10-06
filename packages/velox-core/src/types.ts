@@ -159,6 +159,7 @@ export interface TextElementConfig extends BaseElementConfig {
     cueStartSec: number
     wordStepSec: number
     totalWords: number
+    accent?: string
   }
 }
 
@@ -335,6 +336,8 @@ export interface VeloxVideoConfig {
   background?: VeloxColor | VeloxGradient
   font?: string
   theme?: VeloxTheme
+  /** Original named aesthetic, retained for round-tripping VML. */
+  themeId?: string
   /** Stronger vignette/grain defaults for scenes without explicit overlay */
   motionQuality?: MotionQuality
   scenes: SceneConfig[]

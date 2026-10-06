@@ -1,6 +1,6 @@
 import type {
   SceneConfig, ElementConfig, TransitionType, TransitionOptions,
-  VeloxColor, VeloxGradient, SceneCamera, SceneMood, SceneOverlay,
+  VeloxColor, VeloxGradient, SceneCamera, SceneMood, SceneOverlay, CaptionTrack,
 } from '../types'
 import { Element } from './Element'
 
@@ -58,6 +58,12 @@ export class SceneBuilder {
   /** Attach audio to this scene */
   audio(src: string, options?: { volume?: number; startFrom?: number }): this {
     this._config.audio = { src, volume: options?.volume ?? 1, startFrom: options?.startFrom ?? 0 }
+    return this
+  }
+
+  /** Attach an imported SRT/ASS/VTT caption track to this scene. */
+  captions(track: CaptionTrack): this {
+    this._config.captions = track
     return this
   }
 

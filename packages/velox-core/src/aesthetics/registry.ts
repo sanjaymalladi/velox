@@ -32,20 +32,23 @@ export function preloadAesthetics(): Promise<void> {
   if (_preloaded) return Promise.resolve()
   if (_preloading) return _preloading
   _preloading = (async () => {
-    const { parsedDesignSources } = await import('./parsed/index.js')
-    // Design + builtin aesthetics take precedence over the legacy set (mirrors the
-    // original eager merge order where legacy only filled gaps).
-    for (const [id, parsed] of Object.entries(parsedDesignSources)) {
-      registry[id] = buildAestheticFromParsed(id, parsed as ParsedDesignMd)
+    try {
+      const { parsedDesignSources } = await import('./parsed/index.js')
+      // Design + builtin aesthetics take precedence over the legacy set (mirrors the
+      // original eager merge order where legacy only filled gaps).
+      for (const [id, parsed] of Object.entries(parsedDesignSources)) {
+        registry[id] = buildAestheticFromParsed(id, parsed as ParsedDesignMd)
+      }
+      for (const [id, aesthetic] of Object.entries(builtinAesthetics)) {
+        registry[id] = aesthetic as VeloxAesthetic
+      }
+      const all = Object.keys(registry).sort()
+      aestheticIds.length = 0
+      aestheticIds.push(...all)
+      _preloaded = true
+    } finally {
+      _preloading = null
     }
-    for (const [id, aesthetic] of Object.entries(builtinAesthetics)) {
-      registry[id] = aesthetic as VeloxAesthetic
-    }
-    const all = Object.keys(registry).sort()
-    aestheticIds.length = 0
-    aestheticIds.push(...all)
-    _preloaded = true
-    _preloading = null
   })()
   return _preloading
 }

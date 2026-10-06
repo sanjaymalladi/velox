@@ -259,8 +259,9 @@ export function drawText(
           const bx = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0) - padX
           const by = lineY - fontSize / 2 - padY
           c.save()
-          c.fillStyle =
-            style === 'highlightKeywords'
+        c.fillStyle = el.caption.accent
+            ? colorUtils.alpha(el.caption.accent, 0.26)
+            : style === 'highlightKeywords'
               ? colorUtils.alpha(color, 0.22)
               : colorUtils.dimCaption(color, 0.14)
           roundTextHighlight(c, bx, by, w + padX * 2, fontSize + padY * 2, 10)
@@ -378,7 +379,7 @@ export function drawCaptionTrack(
 
   // Shrink font until the single-row layout fits the safe zone.
   let fontSize = Math.max(18, Math.round(canvasWidth * 0.045))
-  const maxRow = canvasWidth * 0.92
+  const maxRow = Math.min(canvasWidth * 0.92, Math.max(80, track.maxWidth ?? canvasWidth * 0.88))
   const measureRow = (fs: number): number => {
     ctx.font = buildFont(fs, 700, fontFamily)
     const g = gap(fs)
@@ -389,8 +390,27 @@ export function drawCaptionTrack(
   ctx.font = buildFont(fontSize, 700, fontFamily)
   const g = gap(fontSize)
   const widths = spans.map((s) => ctx.measureText(s.word).width)
-  const totalW = widths.reduce((a, b) => a + b, 0) + g * Math.max(0, spans.length - 1)
-  let cursorX = centerX - totalW / 2
+  const rows: Array<Array<{ index: number; width: number }>> = [[]]
+  let rowWidth = 0
+  widths.forEach((width, index) => {
+    const nextWidth = rowWidth + (rows[rows.length - 1].length ? g : 0) + width
+    if (rows[rows.length - 1].length && nextWidth > maxRow) {
+      rows.push([])
+      rowWidth = 0
+    }
+    const row = rows[rows.length - 1]
+    row.push({ index, width })
+    rowWidth += (row.length > 1 ? g : 0) + width
+  })
+  const rowOf = new Map<number, { row: number; x: number }>()
+  rows.forEach((row, rowIndex) => {
+    const rowW = row.reduce((sum, word) => sum + word.width, 0) + g * Math.max(0, row.length - 1)
+    let x = centerX - rowW / 2
+    for (const word of row) {
+      rowOf.set(word.index, { row: rowIndex, x: x + word.width / 2 })
+      x += word.width + g
+    }
+  })
 
   const state: AnimationState = {
     opacity: 1, x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, blur: 0, skewX: 0, clipReveal: 1,
@@ -398,8 +418,9 @@ export function drawCaptionTrack(
 
   spans.forEach((s, i) => {
     const w = widths[i]
-    const drawX = cursorX + w / 2
-    cursorX += w + g
+    const placement = rowOf.get(i)!
+    const drawX = placement.x
+    const drawY = baseY - (rows.length - 1 - placement.row) * fontSize * 1.25
     const el: TextElementConfig = {
       type: 'text',
       id: `cap-${i}`,
@@ -416,9 +437,10 @@ export function drawCaptionTrack(
         cueStartSec: cue.start,
         wordStepSec: wordStep,
         totalWords: spans.length,
+        accent: track.accent,
       },
     }
-    drawText(ctx, el, drawX, baseY, state, canvasWidth, canvasHeight, localFrame, fps)
+    drawText(ctx, el, drawX, drawY, state, canvasWidth, canvasHeight, localFrame, fps)
   })
 }
 

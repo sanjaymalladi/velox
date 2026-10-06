@@ -31,13 +31,14 @@ describe('buildAudioMixArgs', () => {
     const resolved = resolveAudio(cfg(), { isResolved: () => true })
     const { args, hasAudio } = buildAudioMixArgs(resolved, 'out.mp4')
     expect(hasAudio).toBe(true)
-    // 4 audio inputs (music, sfx, voice config, voice scene) + 1 video input
+    // The global legacy audio alias is suppressed when audioPlan.music exists:
+    // 3 audio inputs (music, sfx, scene voice) + 1 video input.
     const inputCount = args.filter((a) => a === '-i').length
-    expect(inputCount).toBe(5)
+    expect(inputCount).toBe(4)
     const fc = args[args.indexOf('-filter_complex') + 1]
     expect(fc).toContain('sidechaincompress')
     expect(fc).toContain('[musicduck]')
-    expect(fc).toContain('amix=inputs=4')
+    expect(fc).toContain('amix=inputs=3')
     // scene voice delayed to 3s (scene start) + 0.5s startFrom = 3500ms
     expect(fc).toContain('adelay=3500|3500')
     // sfx delayed to 1.5s = 1500ms

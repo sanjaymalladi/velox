@@ -53,9 +53,14 @@ export async function muxAudioPlan(
 
   const resolved = resolveConfigAudio(config, projectDir, packageDir)
   const existing = resolved.tracks.filter((t) => {
-    if (/^(https?:|data:|blob:)/.test(t.src)) return true
+    if (/^https?:/i.test(t.src)) return true
     return fs.existsSync(t.src)
   })
+
+  const skippedUnsupported = resolved.tracks.some((t) => /^(data:|blob:)/i.test(t.src))
+  if (skippedUnsupported) {
+    console.warn('[velox] Some data/blob audio sources cannot be read by the CLI ffmpeg muxer and were skipped.')
+  }
 
   if (existing.length === 0) return
 

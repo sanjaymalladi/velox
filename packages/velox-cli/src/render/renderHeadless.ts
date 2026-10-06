@@ -62,7 +62,14 @@ function startServer(
 ): Promise<{ server: http.Server; port: number }> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      const url = (req.url ?? '/').split('?')[0]
+      let url: string
+      try {
+        url = decodeURIComponent((req.url ?? '/').split('?')[0])
+      } catch {
+        res.writeHead(400)
+        res.end('bad request')
+        return
+      }
       const asset = url.match(/^\/asset\/(asset-\d+)$/)
       if (asset) {
         const source = assetFiles.get(asset[1])
@@ -82,9 +89,22 @@ function startServer(
         })
         return
       }
-      let filePath = url === '/' ? path.join(rootDir, 'index.html') : path.join(rootDir, url)
-      // Map /dist/* to the core dist directory.
-      if (url.startsWith('/dist/')) filePath = path.join(distDir, url.replace('/dist/', ''))
+      let filePath: string
+      if (url === '/') {
+        filePath = path.join(rootDir, 'index.html')
+      } else if (url.startsWith('/dist/')) {
+        const relative = url.slice('/dist/'.length)
+        filePath = path.resolve(distDir, relative)
+        if (!filePath.startsWith(path.resolve(distDir) + path.sep)) {
+          res.writeHead(404)
+          res.end('not found')
+          return
+        }
+      } else {
+        res.writeHead(404)
+        res.end('not found')
+        return
+      }
       fs.readFile(filePath)
         .then((buf) => {
           const ext = path.extname(filePath)
@@ -174,7 +194,7 @@ export async function renderHeadless(
     browser = b
 
     const page = await b.newPage()
-    await page.goto(`http://localhost:${srv.port}/`, { waitUntil: 'load' })
+    await page.goto(`http://127.0.0.1:${srv.port}/`, { waitUntil: 'load' })
     await page.evaluate(() => new Promise<void>((r) => {
       const check = () => (window as unknown as { __veloxReady?: boolean }).__veloxReady ? r() : setTimeout(check, 50)
       check()

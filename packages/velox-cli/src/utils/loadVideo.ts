@@ -1,16 +1,43 @@
 import path from 'path'
 import fs from 'fs-extra'
 import { createJiti } from 'jiti'
-import { createVideoFromMarkup, validateVeloxVideoConfig, preloadAesthetics } from '@velox-video/core'
+import { createVideoFromMarkup, validateVeloxVideoConfig, preloadAesthetics, preloadHeavyDeps, parseCaptionTracks } from '@velox-video/core'
 import type { VeloxVideoConfig } from '@velox-video/core'
 import { resolveVeloxPlaceholders } from '../media/resolveVeloxPlaceholders'
 
+function xmlAttr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+async function inlineCaptionSources(markup: string, projectDir: string): Promise<string> {
+  const tags = [...markup.matchAll(/<captions\b(?=[^>]*\bsrc\s*=)[^>]*\/>/gi)]
+  for (const match of tags) {
+    const tag = match[0]
+    const src = tag.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)?.[2]
+    if (!src) continue
+    const file = path.isAbsolute(src) ? src : path.resolve(projectDir, src)
+    const cues = parseCaptionTracks(await fs.readFile(file, 'utf8'))
+    if (!cues.length) throw new Error(`No caption cues found in "${src}".`)
+    const style = tag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i)?.[2] ?? 'karaoke'
+    const children = cues.map((cue) => {
+      const attrs = `at="${cue.start}"${cue.end === undefined ? '' : ` dur="${Math.max(0, cue.end - cue.start)}"`}`
+      return `<caption ${attrs} text="${xmlAttr(cue.text)}" />`
+    }).join('')
+    const retainedAttrs = tag.slice('<captions'.length, tag.length - 2)
+      .replace(/\bsrc\s*=\s*(["']).*?\1/i, '')
+      .trim()
+    markup = markup.replace(tag, `<captions ${retainedAttrs || `style="${xmlAttr(style)}"`}>${children}</captions>`)
+  }
+  return markup
+}
+
 export async function loadVideoConfig(filePath: string): Promise<VeloxVideoConfig> {
   const abs = path.resolve(filePath)
-  await preloadAesthetics()
+  await Promise.all([preloadAesthetics(), preloadHeavyDeps()])
 
   if ((await fs.pathExists(abs)) && abs.toLowerCase().endsWith('.vml')) {
-    const trimmed = (await fs.readFile(abs, 'utf8')).trim()
+    const raw = (await fs.readFile(abs, 'utf8')).trim()
+    const trimmed = await inlineCaptionSources(raw, path.dirname(abs))
     if (!trimmed.startsWith('<video')) {
       throw new Error(`"${filePath}" must start with <video> markup.`)
     }

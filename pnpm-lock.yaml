@@ -40,7 +40,7 @@ importers:
   packages/site:
     dependencies:
       '@ffmpeg/ffmpeg':
-        specifier: '0.12'
+        specifier: ^0.12.15
         version: 0.12.15
       '@ffmpeg/util':
         specifier: ^0.12.2

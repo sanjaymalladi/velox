@@ -853,7 +853,7 @@ function drawScene(
  * Draws a single frame onto the provided canvas context.
  * This is the only function you need to call from the renderer and preview.
  */
-export function drawFrame(
+function drawFrameInternal(
   ctx: Ctx,
   config: VeloxVideoConfig,
   frame: number,
@@ -1054,5 +1054,19 @@ export function drawFrame(
   if (globalFxActive && opts?.cpuFx !== false) {
     applyFxCpu(ctx, width, height, getFx(config), frame / config.fps)
   }
-  globalFxActive = false
+}
+
+export function drawFrame(
+  ctx: Ctx,
+  config: VeloxVideoConfig,
+  frame: number,
+  width: number,
+  height: number,
+  opts?: { cpuFx?: boolean },
+): void {
+  try {
+    drawFrameInternal(ctx, config, frame, width, height, opts)
+  } finally {
+    globalFxActive = false
+  }
 }

@@ -33,7 +33,7 @@ import { applyReelSlot, isReelTemplate, type ReelTemplateId } from './reelTempla
 import { resolveAesthetic } from './themes'
 import type { VeloxAesthetic } from './aesthetics/types'
 import type { Element } from './core/Element'
-import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan } from './types'
+import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan, EntranceAnimation, ExitAnimation, LoopAnimation } from './types'
 import { isVeloxMarkup, parseVeloxMarkup, type MarkupNode } from './markup'
 import { applyVmlVariables } from './variables'
 
@@ -48,6 +48,13 @@ const placements = ['center', 'top', 'bottom', 'left', 'right', 'hero', 'safeTop
 const motions = [
   'none', 'fade', 'cinematic', 'typewriter', 'pop', 'float', 'drawIn', 'growUp', 'slideIn',
   'heroCinematic', 'softReveal', 'driftIn', 'premiumSlide', 'magneticPop',
+  'fadeIn', 'slideUp', 'slideDown', 'slideLeft', 'slideRight', 'zoomIn', 'zoomInBlur', 'flipIn',
+  'expandX', 'spring', 'bounceIn', 'glitchIn', 'revealLeft', 'slideUpBlur', 'maskRevealUp', 'tactileIn',
+]
+const directEntranceMotions: EntranceAnimation[] = [
+  'fadeIn', 'slideUp', 'slideDown', 'slideLeft', 'slideRight', 'zoomIn', 'zoomInBlur', 'flipIn',
+  'typewriter', 'expandX', 'growUp', 'spring', 'bounceIn', 'glitchIn', 'revealLeft', 'slideUpBlur',
+  'maskRevealUp', 'tactileIn', 'drawIn',
 ]
 const sceneCameras: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns']
 const sceneMoods: SceneMood[] = ['neutral', 'editorial', 'cinematic']
@@ -175,6 +182,10 @@ function background(value: string | undefined, ctx: CompileContext): Background 
   if (value.startsWith('aurora:')) return backdrops.aurora({ mood: palette(value.slice('aurora:'.length), 'aurora background') })
   if (value.startsWith('mesh:')) return backdrops.meshGradient({ palette: palette(value.slice('mesh:'.length), 'mesh background') })
   if (value.startsWith('grid(')) return value
+  if (value.startsWith('linear(') && value.endsWith(')')) {
+    const [angle = '0deg', ...stops] = value.slice(7, -1).split('|')
+    return { type: 'linear', angle, stops }
+  }
   return value
 }
 
@@ -205,8 +216,23 @@ function place<T extends AnyElement>(el: T, placement: string | undefined): T {
 
 function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
   if (hasAttr(node, 'depth')) el.depth(num(attr(node, 'depth'), 0, `${node.tag}.depth`))
+  if (hasAttr(node, 'opacity')) el.opacity(num(attr(node, 'opacity'), 1, `${node.tag}.opacity`))
+  const exitName = attr(node, 'exit')
+  if (exitName) el.out(exitName as ExitAnimation, num(attr(node, 'exitDuration'), 0.35, `${node.tag}.exitDuration`), {
+    at: attr(node, 'exitAt') !== undefined ? num(attr(node, 'exitAt'), 0, `${node.tag}.exitAt`) : undefined,
+  })
+  const loopName = attr(node, 'loop')
+  if (loopName) el.loop(loopName as LoopAnimation, {
+    duration: attr(node, 'loopDuration') !== undefined ? num(attr(node, 'loopDuration'), 2, `${node.tag}.loopDuration`) : undefined,
+    scale: attr(node, 'loopScale') !== undefined ? num(attr(node, 'loopScale'), 0.05, `${node.tag}.loopScale`) : undefined,
+    distance: attr(node, 'loopDistance') !== undefined ? num(attr(node, 'loopDistance'), 10, `${node.tag}.loopDistance`) : undefined,
+    speed: attr(node, 'loopSpeed') !== undefined ? num(attr(node, 'loopSpeed'), 1, `${node.tag}.loopSpeed`) : undefined,
+  })
   const m = attr(node, 'motion') ?? 'cinematic'
   const delay = num(attr(node, 'delay'), 0, `${node.tag}.delay`)
+  if (directEntranceMotions.includes(m as EntranceAnimation)) {
+    return el.in(m as EntranceAnimation, num(attr(node, 'motionDuration'), 0.6, `${node.tag}.motionDuration`), { delay })
+  }
   switch (m) {
     case 'none':
       return el
@@ -509,12 +535,33 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         reelTemplate,
       )
     }
-    case 'text':
-      return finish(text(textContent(node) || requiredAttr(node, 'value'))
+    case 'text': {
+      const textEl = text(textContent(node) || requiredAttr(node, 'value'))
         .size(num(attr(node, 'size'), scale(attr(node, 'scale'), 56), 'text.size'))
         .weight(num(attr(node, 'weight'), 700, 'text.weight'))
         .color(color(attr(node, 'color'), ctx, ctx.theme.text))
-        .wrap(num(attr(node, 'wrap'), 820, 'text.wrap')), node, reelTemplate)
+        .align((attr(node, 'align') as 'left' | 'center' | 'right' | undefined) ?? 'center')
+        .font(attr(node, 'font') ?? 'Inter, sans-serif')
+        .letterSpacing(num(attr(node, 'letterSpacing'), 0, 'text.letterSpacing'))
+        .lineHeight(num(attr(node, 'lineHeight'), 1.2, 'text.lineHeight'))
+        .wrap(num(attr(node, 'wrap'), 820, 'text.wrap'))
+      if (attr(node, 'maxHeight') !== undefined) textEl.maxHeight(num(attr(node, 'maxHeight'), 0, 'text.maxHeight'))
+      if (attr(node, 'italic') === 'true') textEl.italic()
+      if (attr(node, 'transform') === 'uppercase') textEl.uppercase()
+      if (attr(node, 'transform') === 'lowercase') textEl.transform('lowercase')
+      const gradient = attr(node, 'gradient')?.split('|')
+      if (gradient && gradient.length >= 3) textEl.gradient(gradient[1], gradient[2], gradient[0])
+      const captionStyle = attr(node, 'captionStyle') as CaptionStyle | undefined
+      if (captionStyle) textEl.captionMeta({
+        style: captionStyle,
+        wordIndex: num(attr(node, 'wordIndex'), 0, 'text.wordIndex'),
+        cueStartSec: num(attr(node, 'cueStart'), 0, 'text.cueStart'),
+        wordStepSec: num(attr(node, 'wordStep'), 0.12, 'text.wordStep'),
+        totalWords: num(attr(node, 'totalWords'), 1, 'text.totalWords'),
+        accent: attr(node, 'captionAccent'),
+      })
+      return finish(textEl, node, reelTemplate)
+    }
     case 'list':
       return compileList(node, ctx, reelTemplate)
     case 'logo':
@@ -533,6 +580,9 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       return finish(image(requiredAttr(node, 'src'))
         .size(num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'image.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'image.height'))
         .radius(num(attr(node, 'radius'), 24, 'image.radius'))
+        .blur(num(attr(node, 'blur'), 0, 'image.blur'))
+        .brightness(num(attr(node, 'brightness'), 1, 'image.brightness'))
+        .saturate(num(attr(node, 'saturate'), 1, 'image.saturate'))
         .fit(), node, reelTemplate)
     case 'stock': {
       const provider = (attr(node, 'provider') ?? 'generated').toLowerCase()
@@ -819,7 +869,7 @@ function compileSceneChildren(
   reelTemplate?: ReelTemplateId,
 ): AnyElement[] {
   const meta = new Set(['sfx', 'beat', 'audio', 'assetPack'])
-  const drawable = node.children.filter((c) => !meta.has(c.tag))
+  const drawable = node.children.filter((c) => !meta.has(c.tag) && !(c.tag === 'captions' && attr(c, 'track') === 'true'))
   const staggerStep = num(attr(node, 'staggerStep'), 0, 'scene.staggerStep')
   const out: AnyElement[] = []
 
@@ -865,6 +915,10 @@ function collectAudioFromVideoRoot(root: MarkupNode, fps: VeloxFps): VeloxAudioP
         volume: attr(ch, 'volume') !== undefined ? num(attr(ch, 'volume'), 0.5, 'audio.volume') : undefined,
       }
     }
+    if (ch.tag === 'sfx') {
+      sfx.push({ name: requiredAttr(ch, 'name'), src: attr(ch, 'src'), at: num(attr(ch, 'at'), 0, 'sfx.at'), volume: attr(ch, 'volume') !== undefined ? num(attr(ch, 'volume'), 1, 'sfx.volume') : undefined })
+    }
+    if (ch.tag === 'beat') beats.push(num(attr(ch, 'at'), 0, 'beat.at'))
   }
 
   const sceneNodes = root.children.filter((c) => c.tag === 'scene')
@@ -915,7 +969,9 @@ function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode, ctx: Compile
     if (!transitionTypes.has(transition as TransitionType))
       fail(`<scene> transition="${transition}" is invalid.`)
     const transDur = num(attr(node, 'transitionDuration'), 0.55, 'scene.transitionDuration')
-    s.transition(transition as TransitionType, transDur)
+    const direction = attr(node, 'direction') as 'left' | 'right' | 'up' | 'down' | 'in' | 'out' | undefined
+    const folds = attr(node, 'folds') !== undefined ? num(attr(node, 'folds'), 5, 'scene.folds') : undefined
+    s.transition(transition as TransitionType, transDur, { direction, folds })
   }
   const vig = attr(node, 'vignette')
   const grain = attr(node, 'grain')
@@ -941,6 +997,22 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
     s.audio(requiredAttr(sceneAudio, 'src'), {
       volume: attr(sceneAudio, 'volume') !== undefined ? num(attr(sceneAudio, 'volume'), 1, 'audio.volume') : undefined,
       startFrom: attr(sceneAudio, 'startFrom') !== undefined ? num(attr(sceneAudio, 'startFrom'), 0, 'audio.startFrom') : undefined,
+    })
+  }
+
+  const importedCaptions = node.children.find((c) => c.tag === 'captions' && attr(c, 'track') === 'true')
+  if (importedCaptions) {
+    const cues = importedCaptions.children.filter((c) => c.tag === 'caption').map((c) => {
+      const start = num(attr(c, 'at'), 0, 'caption.at')
+      const end = start + num(attr(c, 'dur'), 1.5, 'caption.dur')
+      return { start, end, text: textContent(c) || requiredAttr(c, 'text') }
+    })
+    s.captions({
+      cues,
+      style: (attr(importedCaptions, 'style') as CaptionStyle | undefined) ?? 'karaoke',
+      maxWidth: attr(importedCaptions, 'maxWidth') ? num(attr(importedCaptions, 'maxWidth'), 0, 'captions.maxWidth') : undefined,
+      bottomOffset: attr(importedCaptions, 'bottomOffset') ? num(attr(importedCaptions, 'bottomOffset'), 0, 'captions.bottomOffset') : undefined,
+      accent: attr(importedCaptions, 'accent'),
     })
   }
 
@@ -975,15 +1047,26 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
 
   const fps = num(attr(root, 'fps'), 30, 'video.fps') as VeloxFps
   const audioPlanRaw = collectAudioFromVideoRoot(root, fps)
+  const fxNode = root.children.find((c) => c.tag === 'fx')
+  const fx = fxNode ? {
+    bloom: attr(fxNode, 'bloom') !== undefined ? num(attr(fxNode, 'bloom'), 0, 'fx.bloom') : undefined,
+    chromatic: attr(fxNode, 'chromatic') !== undefined ? num(attr(fxNode, 'chromatic'), 0, 'fx.chromatic') : undefined,
+    vignette: attr(fxNode, 'vignette') !== undefined ? num(attr(fxNode, 'vignette'), 0, 'fx.vignette') : undefined,
+    grain: attr(fxNode, 'grain') !== undefined ? num(attr(fxNode, 'grain'), 0, 'fx.grain') : undefined,
+    paper: attr(fxNode, 'paper') !== undefined ? num(attr(fxNode, 'paper'), 0, 'fx.paper') : undefined,
+    exposure: attr(fxNode, 'exposure') !== undefined ? num(attr(fxNode, 'exposure'), 1, 'fx.exposure') : undefined,
+  } : undefined
+  const sizeRaw = attr(root, 'size')
+  const customSize = sizeRaw?.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/)
   const hasAnyAudioCue =
     Boolean(audioPlanRaw.music) ||
     audioPlanRaw.sfx.length > 0 ||
     audioPlanRaw.beats.length > 0
 
   return createVideo({
-    size: (attr(root, 'size') as VeloxSize | undefined) ?? 'portrait',
+    size: customSize ? [Number(customSize[1]), Number(customSize[2])] : (sizeRaw as VeloxSize | undefined) ?? 'portrait',
     fps,
-    theme: aesthetic.theme,
+    theme: attr(root, 'theme') ?? aesthetic.theme,
     background: rootBackground(attr(root, 'background'), ctx),
     motionQuality,
     scenes,
@@ -991,9 +1074,9 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
       ? { audio: { src: audioPlanRaw.music.src, volume: audioPlanRaw.music.volume ?? 1 } }
       : {}),
     ...(hasAnyAudioCue ? { audioPlan: audioPlanRaw } : {}),
+    ...(fx ? { fx } : {}),
   })
 }
 
 export { configToMarkup } from './markupSerializer'
 export { isVeloxMarkup }
-

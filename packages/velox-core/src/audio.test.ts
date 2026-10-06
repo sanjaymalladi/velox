@@ -28,8 +28,10 @@ describe('resolveAudio', () => {
   it('passes through URLs and keeps user-provided paths', () => {
     const r = resolveAudio(makeConfig())
     expect(r.hasAudio).toBe(true)
-    const voice = r.tracks.find((t) => t.kind === 'voice' && t.at === undefined)
-    expect(voice?.src).toBe('https://cdn.example.com/voiceover.mp3')
+    // `config.audio` is the legacy/global music alias. The explicit plan wins
+    // when both are set so it is never duplicated as a voice track.
+    expect(r.tracks.filter((t) => t.kind === 'music')).toHaveLength(1)
+    expect(r.tracks.some((t) => t.kind === 'voice' && t.at === undefined)).toBe(false)
   })
 
   it('resolves preset names against assetRoot (Node)', () => {

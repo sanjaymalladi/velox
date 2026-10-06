@@ -5,6 +5,7 @@ import {
   createVideoFromMarkup,
   drawFrame,
   configToMarkup,
+  getTotalFrames,
   parseCaptionTracks,
   WebGLComposer,
   DEFAULT_FX,
@@ -264,16 +265,21 @@ export default function Studio() {
 
   // Parse VML -> compiled config
   useEffect(() => {
-    try {
-      const v = createVideoFromMarkup(vml)
-      setConfig(clone(v.config))
-      setError(null)
-      setFrame(0)
-      setSelected(null)
-      setSelectedScenes([])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    }
+    let cancelled = false
+    void Promise.all([preloadAesthetics(), preloadHeavyDeps()]).then(() => {
+      if (cancelled) return
+      try {
+        const v = createVideoFromMarkup(vml)
+        setConfig(clone(v.config))
+        setError(null)
+        setFrame(0)
+        setSelected(null)
+        setSelectedScenes([])
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      }
+    })
+    return () => { cancelled = true }
   }, [vml])
 
   const size = config?.size ?? [1080, 1920]
@@ -283,18 +289,20 @@ export default function Studio() {
     () => scenes.map((s) => Math.max(1, Math.round(s.duration * fps))),
     [scenes, fps],
   )
-  const totalFrames = sceneFrames.reduce((a, b) => a + b, 0) || 1
+  const totalFrames = config ? Math.max(1, getTotalFrames(config)) : 1
 
   const totalDur = totalFrames / fps
   const cumulative = useMemo(() => {
     const arr: number[] = []
-    let acc = 0
+    let accFrames = 0
     for (const s of scenes) {
-      arr.push(acc)
-      acc += s.duration
+      arr.push(accFrames / fps)
+      const sceneFrames = Math.round(s.duration * fps)
+      const transitionFrames = s.transition ? Math.round(s.transition.duration * fps) : 0
+      accFrames += sceneFrames - transitionFrames
     }
     return arr
-  }, [scenes])
+  }, [scenes, fps])
   const rulerTicks = useMemo(() => {
     const ticks: { t: number; beat: boolean }[] = []
     const beats = config?.audioPlan?.beats ?? []
@@ -304,13 +312,13 @@ export default function Studio() {
   }, [totalDur, config])
 
   const currentScene = useMemo(() => {
-    let acc = 0
-    for (let i = 0; i < sceneFrames.length; i++) {
-      if (frame < acc + sceneFrames[i]) return i
-      acc += sceneFrames[i]
+    for (let i = 0; i < scenes.length; i++) {
+      const start = Math.round(cumulative[i] * fps)
+      const end = start + sceneFrames[i]
+      if (frame >= start && frame < end) return i
     }
     return Math.max(0, scenes.length - 1)
-  }, [frame, sceneFrames, scenes.length])
+  }, [frame, cumulative, fps, sceneFrames, scenes.length])
 
   // Draw current frame (Canvas2D -> optional WebGL post-FX)
   useEffect(() => {
@@ -451,10 +459,8 @@ export default function Studio() {
   }
 
   const seekToScene = (i: number) => {
-    let f = 0
-    for (let k = 0; k < i; k++) f += sceneFrames[k]
     setPlaying(false)
-    setFrame(f)
+    setFrame(Math.min(totalFrames - 1, Math.round((cumulative[i] ?? 0) * fps)))
   }
 
   const [exporting, setExporting] = useState(false)
@@ -463,7 +469,29 @@ export default function Studio() {
     setExporting(true)
     try {
       const dur = totalFrames / fps
-      const webm = await captureCanvasToWebm(canvasRef.current, dur, fps)
+      setPlaying(false)
+      const canvas = canvasRef.current
+      const off = offscreenRef.current ?? document.createElement('canvas')
+      offscreenRef.current = off
+      off.width = size[0]
+      off.height = size[1]
+      const ctx = off.getContext('2d')
+      if (!ctx) throw new Error('Could not create export canvas')
+      const comp = composerRef.current
+      const renderFx = config.fx ? { ...DEFAULT_FX, ...config.fx } : fx
+      const webm = await captureCanvasToWebm(canvas, dur, fps, (exportFrame) => {
+        ctx.clearRect(0, 0, size[0], size[1])
+        drawFrame(ctx, config, exportFrame, size[0], size[1], { cpuFx: false })
+        if (comp?.ok) {
+          comp.setSize(size[0], size[1])
+          comp.draw(off, renderFx, exportFrame / fps)
+        } else {
+          const target = canvas.getContext('2d')
+          if (!target) throw new Error('Canvas2D export is unavailable')
+          target.clearRect(0, 0, size[0], size[1])
+          drawFrame(target, config, exportFrame, size[0], size[1])
+        }
+      })
       const mp4 = await muxAudioInBrowser(webm, config)
       const url = URL.createObjectURL(mp4)
       const a = document.createElement('a')
@@ -475,6 +503,20 @@ export default function Studio() {
       console.error('[studio] export failed', e)
     } finally {
       setExporting(false)
+      const canvas = canvasRef.current
+      if (canvas && config) {
+        const off = offscreenRef.current
+        const ctx = off?.getContext('2d')
+        const comp = composerRef.current
+        if (off && ctx && comp?.ok) {
+          ctx.clearRect(0, 0, size[0], size[1])
+          drawFrame(ctx, config, frame, size[0], size[1], { cpuFx: false })
+          comp.draw(off, config.fx ? { ...DEFAULT_FX, ...config.fx } : fx, frame / fps)
+        } else if (!comp?.ok) {
+          const target = canvas.getContext('2d')
+          if (target) drawFrame(target, config, frame, size[0], size[1])
+        }
+      }
     }
   }
 

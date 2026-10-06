@@ -45,7 +45,10 @@ async function getFFmpeg(opts: BrowserMuxOptions): Promise<FFmpeg> {
     })
     ffmpegSingleton = ffmpeg
     return ffmpeg
-  })()
+  })().catch((err) => {
+    loadPromise = null
+    throw err
+  })
   return loadPromise
 }
 
@@ -64,50 +67,51 @@ export async function muxAudioInBrowser(
   )
   if (usable.length === 0) return videoBlob
 
-  const { args, hasAudio } = buildAudioMixArgs({ ...resolved, tracks: usable }, 'input.mp4')
+  const { args, hasAudio } = buildAudioMixArgs({ ...resolved, tracks: usable }, 'input.webm')
   if (!hasAudio) return videoBlob
 
   const ffmpeg = await getFFmpeg(opts)
-  await ffmpeg.writeFile('input.mp4', await fetchFile(videoBlob))
-
-  // ffmpeg.wasm cannot read URLs directly, so rewrite each audio `-i` input to
-  // a file we wrote into the FS, preserving the order they appear in `args`.
-  let audioIdx = 0
-  let wroteAny = false
-  let failedAny = false
-  const inputArgs = [...args]
-  for (let i = 0; i < inputArgs.length; i++) {
-    if (inputArgs[i] !== '-i') continue
-    const src = inputArgs[i + 1]
-    if (src === 'input.mp4') continue // video input, already written
-    try {
-      const buf = src.startsWith('blob:')
-        ? await fetchFile(src)
-        : await fetchFile(await (await fetch(src)).blob())
-      const name = `audio${audioIdx}.dat`
-      await ffmpeg.writeFile(name, buf)
-      inputArgs[i + 1] = name
-      audioIdx++
-      wroteAny = true
-    } catch {
-      // Un-fetchable audio (CORS / 404). Its label is still referenced by the
-      // graph, so abort the mux and return the unmuxed video rather than emit
-      // a broken ffmpeg command.
-      failedAny = true
-      break
-    }
-  }
-
-  if (!wroteAny || failedAny) return videoBlob
-
+  const files = ['input.webm', 'output.mp4']
   try {
-    await ffmpeg.exec([...args, 'output.mp4'])
+    await ffmpeg.writeFile('input.webm', await fetchFile(videoBlob))
+    // ffmpeg.wasm cannot read URLs directly, so rewrite each audio input to a
+    // file in its virtual filesystem, preserving the filter graph input order.
+    let audioIdx = 0
+    const inputArgs = [...args]
+    for (let i = 0; i < inputArgs.length; i++) {
+      if (inputArgs[i] !== '-i') continue
+      const src = inputArgs[i + 1]
+      if (src === 'input.webm') continue
+      try {
+        let buf: Uint8Array
+        if (src.startsWith('blob:') || src.startsWith('data:')) {
+          buf = await fetchFile(src)
+        } else {
+          const response = await fetch(src.startsWith('//') ? `${location.protocol}${src}` : src)
+          if (!response.ok) throw new Error(`Audio fetch failed (${response.status})`)
+          buf = await fetchFile(await response.blob())
+        }
+        let ext = '.dat'
+        try { ext = `.${new URL(src, location.href).pathname.split('.').pop() || 'dat'}` } catch { /* use probeable .dat */ }
+        const name = `audio${audioIdx}${ext}`
+        files.push(name)
+        await ffmpeg.writeFile(name, buf)
+        inputArgs[i + 1] = name
+        audioIdx++
+      } catch {
+        // A partial audio mix is misleading; return the silent capture instead.
+        return videoBlob
+      }
+    }
+    const codecIndex = inputArgs.indexOf('-c:v')
+    if (codecIndex >= 0) inputArgs[codecIndex + 1] = 'libx264'
+    inputArgs.push('-pix_fmt', 'yuv420p', 'output.mp4')
+    await ffmpeg.exec(inputArgs)
     const out = await ffmpeg.readFile('output.mp4')
     const bytes = out instanceof Uint8Array ? out : new Uint8Array(out as unknown as ArrayBuffer)
     return new Blob([bytes as BlobPart], { type: 'video/mp4' })
   } finally {
-    await ffmpeg.deleteFile('input.mp4').catch(() => {})
-    await ffmpeg.deleteFile('output.mp4').catch(() => {})
+    await Promise.all(files.map((file) => ffmpeg.deleteFile(file).catch(() => {})))
   }
 }
 
@@ -119,17 +123,48 @@ export function captureCanvasToWebm(
   canvas: HTMLCanvasElement,
   durationSec: number,
   fps = 30,
+  renderFrame?: (frame: number) => void | Promise<void>,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const stream = canvas.captureStream(fps)
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' })
+    let stream = canvas.captureStream(renderFrame ? 0 : fps)
+    let track = stream.getVideoTracks()[0] as (MediaStreamTrack & { requestFrame?: () => void }) | undefined
+    if (renderFrame && typeof track?.requestFrame !== 'function') {
+      stream.getTracks().forEach((t) => t.stop())
+      stream = canvas.captureStream(fps)
+      track = stream.getVideoTracks()[0] as (MediaStreamTrack & { requestFrame?: () => void }) | undefined
+    }
+    const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+      .find((type) => MediaRecorder.isTypeSupported(type))
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
     const chunks: BlobPart[] = []
+    let failed = false
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data)
     }
     recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }))
-    recorder.onerror = () => reject(new Error('MediaRecorder capture failed'))
+    recorder.onerror = () => {
+      failed = true
+      reject(new Error('MediaRecorder capture failed'))
+    }
     recorder.start()
-    setTimeout(() => recorder.stop(), Math.round(durationSec * 1000))
+    if (!renderFrame) {
+      setTimeout(() => recorder.stop(), Math.round(durationSec * 1000))
+      return
+    }
+    const count = Math.max(1, Math.round(durationSec * fps))
+    void (async () => {
+      try {
+        for (let frame = 0; frame < count; frame++) {
+          await renderFrame(frame)
+          track?.requestFrame?.()
+          if (frame + 1 < count) await new Promise((r) => setTimeout(r, 1000 / fps))
+        }
+        if (!failed) recorder.stop()
+      } catch (err) {
+        if (recorder.state !== 'inactive') recorder.stop()
+        reject(err)
+      }
+    })()
+    recorder.addEventListener('stop', () => stream.getTracks().forEach((t) => t.stop()), { once: true })
   })
 }
