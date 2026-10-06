@@ -1,16 +1,23 @@
-<video size="portrait" fps="30" theme="creamChecks" background="creamGrid">
-  <scene duration="2" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.4">
-    <announcement slot="top" title="Velox CI" subtitle="Native readback smoke test." motion="heroCinematic" />
-    <asset slot="visual" name="phone-frame" width="280" height="480" motion="driftIn" />
+<video size="portrait" fps="30" theme="obsidian">
+  <scene duration="3.5" layout="column" gap="28" align="center" background="mesh:violet" transition="wipe" transitionDuration="0.4">
+    <kicker color="theme.accent" motion="fade">AUTO LAYOUT</kicker>
+    <text value="Skip the coordinate math." size="58" weight="800" align="center" color="theme.text" wrap="820" motion="slideUp" />
+    <text value="Describe the content. Velox places it in a centered column." size="32" align="center" color="theme.muted" wrap="820" motion="fade" delay="0.2" />
+    <captions slot="caption" text="Describe the content. Velox centers the layout." style="pill" motion="fade" />
   </scene>
-  <scene duration="2" template="centerCard" background="mesh:violet" transition="wipe" transitionDuration="0.35">
-    <card slot="visual" width="700" height="500" radius="32" motion="softReveal">
-      <column gap="20">
-        <kicker color="theme.accent">CHART</kicker>
-        <lineChart width="560" height="180" curve="smooth" motion="drawIn">
-          <series label="A" values="10,20,35,50" color="theme.accent" />
-        </lineChart>
-      </column>
-    </card>
+
+  <scene duration="4" layout="column" gap="24" align="center" background="mesh:ocean" transition="wipe" transitionDuration="0.4">
+    <kicker color="theme.accent" motion="fade">ONE FRAME TIMELINE</kicker>
+    <text value="Render, audio, and captions stay in sync." size="48" weight="800" align="center" color="theme.text" wrap="860" motion="slideUp" />
+    <progress value="82" color="theme.accent" trackColor="#ffffff" width="760" height="20" motion="fade" />
+    <text value="Scene frames → audio cues → captions" size="30" align="center" color="theme.muted" wrap="820" motion="fade" />
+    <captions slot="caption" text="One frame count drives every track." style="pill" start="0.5" motion="fade" />
+  </scene>
+
+  <scene duration="3.5" layout="column" gap="28" align="center" background="mesh:ember">
+    <kicker color="theme.accent" motion="fade">CHECK BEFORE EXPORT</kicker>
+    <text value="Lint finds mistakes before the render." size="56" weight="800" align="center" color="theme.text" wrap="820" motion="slideUp" />
+    <text value="VML checks types, attributes, and layout warnings." size="32" align="center" color="theme.muted" wrap="820" motion="fade" delay="0.2" />
+    <captions slot="caption" text="Lint. Center. Render." style="pill" motion="fade" />
   </scene>
 </video>
