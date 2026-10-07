@@ -36,7 +36,7 @@ program
   .option('-o, --output <path>', 'output file path')
   .option('-f, --format <format>', 'output format: mp4 | gif | png-sequence', 'mp4')
   .option('-q, --quality <number>', 'quality 0-100 (higher is better)', '80')
-  .option('--draft', 'fast preview export: 50% resolution, max 30fps')
+  .option('--draft', 'fast preview export: 50% resolution, max 15fps')
   .option('--scale <number>', 'output resolution scale 0.25–1 (e.g. 0.5 for half res)')
   .option('--fps <number>', 'cap export fps (skips frames, keeps duration)')
   .option('--headless', 'all-WebGL export via headless Chromium + ffmpeg (requires Playwright)')

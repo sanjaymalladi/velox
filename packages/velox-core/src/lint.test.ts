@@ -36,6 +36,14 @@ describe('lintVeloxMarkup', () => {
     expect(withFx.issues.some((item) => item.code === 'syntax')).toBe(false)
   })
 
+  it('accepts explicit dark chart surfaces and rejects invalid values', () => {
+    const valid = lintVeloxMarkup('<video><scene duration="2"><lineChart surface="dark"><series values="1,2,3" /></lineChart></scene></video>')
+    expect(valid.issues.some((item) => item.code === 'invalid-chart-surface')).toBe(false)
+
+    const invalid = lintVeloxMarkup('<video><scene duration="2"><lineChart surface="auto"><series values="1,2,3" /></lineChart></scene></video>')
+    expect(invalid.issues.some((item) => item.code === 'invalid-chart-surface')).toBe(true)
+  })
+
   it('checks values and recommends automatic scene layout', () => {
     const invalid = lintVeloxMarkup('<video size="portrait" fps="31"><scene duration="four" /></video>')
     expect(invalid.issues.some((item) => item.code === 'invalid-fps')).toBe(true)

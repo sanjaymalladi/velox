@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createCanvas } from '@napi-rs/canvas'
 import '../node-render.js'
 import { drawFrame, setImageCache } from '../index.js'
+import { blurImageDataRGBA, drawElementWithBlur } from './cpuBlurNode.js'
 import type { VeloxVideoConfig } from '../types.js'
 
 const requireLocal = createRequire(path.join(process.cwd(), 'package.json'))
@@ -20,6 +21,27 @@ function freshCtx(w: number, h: number) {
 }
 
 describe('native per-element blur / filters', () => {
+  it('treats a subpixel blur as a no-op instead of passing radius zero to stackblur', () => {
+    const pixels = new Uint8ClampedArray(4 * 8 * 8)
+    expect(() => blurImageDataRGBA(pixels, 8, 8, 0.4)).not.toThrow()
+    expect(pixels.every((channel) => channel === 0)).toBe(true)
+
+    const ctx = freshCtx(64, 64)
+    expect(() => drawElementWithBlur(ctx, 32, 32, 16, 16, 0.4, (target) => {
+      target.fillStyle = '#ffffff'
+      target.fillRect(24, 24, 16, 16)
+    })).not.toThrow()
+  })
+
+  it('uses the native canvas filter for a visible text-style blur', () => {
+    const ctx = freshCtx(64, 64)
+    drawElementWithBlur(ctx, 32, 32, 16, 16, 4, (target) => {
+      target.fillStyle = '#ffffff'
+      target.fillRect(24, 24, 16, 16)
+    })
+    expect(ctx.getImageData(21, 32, 1, 1).data[3]).toBeGreaterThan(0)
+  })
+
   it('renders a glowing (blurred) shape on Node without throwing', () => {
     const cfg = {
       size: [1080, 1920] as [number, number],

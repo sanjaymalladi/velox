@@ -653,6 +653,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         })),
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
+        surface: attr(node, 'surface') as 'light' | 'dark' | undefined,
       }).size(num(attr(node, 'width'), 700, 'barChart.width'), num(attr(node, 'height'), 320, 'barChart.height')), node, reelTemplate)
     }
     case 'lineChart': {
@@ -667,6 +668,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         curve: (attr(node, 'curve') as 'linear' | 'smooth' | 'step' | undefined) ?? 'smooth',
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
+        surface: attr(node, 'surface') as 'light' | 'dark' | undefined,
       }).size(num(attr(node, 'width'), 700, 'lineChart.width'), num(attr(node, 'height'), 320, 'lineChart.height')), node, reelTemplate)
     }
     case 'donutChart': {

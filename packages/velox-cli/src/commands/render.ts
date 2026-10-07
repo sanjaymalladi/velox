@@ -85,7 +85,7 @@ export async function renderCommand(inputFile: string, options: {
 
     const progress = new RenderProgress(totalFrames, path.basename(outputPath), tuning.frameStep)
     if (options.draft) {
-      console.log(chalk.yellow('  Draft mode: 50% resolution, max 30fps export\n'))
+      console.log(chalk.yellow('  Draft mode: 50% resolution, max 15fps export\n'))
     }
     console.log(chalk.cyan(`  Rendering ${renderTotal} frames → ${chalk.bold(outputPath)}`))
 

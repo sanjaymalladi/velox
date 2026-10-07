@@ -240,6 +240,8 @@ export interface ShapeConfig {
   showLabels?: boolean
   showValues?: boolean
   curve?: 'linear' | 'smooth' | 'step'
+  /** Select a chart plot surface when automatic contrast is not suitable. */
+  chartSurface?: 'light' | 'dark'
   innerRadius?: number
   paths?: string[]
   // progressBar

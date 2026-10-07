@@ -32,15 +32,33 @@ function nodeBlurScale(width: number, height: number): number {
   return 1
 }
 
-function blurImageDataRGBA(
+export function blurImageDataRGBA(
   data: Uint8ClampedArray,
   width: number,
   height: number,
   radius: number,
 ): void {
-  if (radius < 0.35) return
+  if (!Number.isFinite(radius) || radius < 0.35 || width < 2 || height < 2) return
+  // stackblur-canvas does not support radius 0. A non-zero fractional blur
+  // can round to 0 here and leave its blur stack uninitialized.
+  const blurRadius = Math.round(Math.min(radius, 24))
+  if (blurRadius < 1) return
   const imageData = { data, width, height } as ImageData
-  imageDataRGBA(imageData, 0, 0, width, height, Math.round(Math.min(radius, 24)))
+  imageDataRGBA(imageData, 0, 0, width, height, blurRadius)
+}
+
+function drawWithNativeCanvasBlur(
+  ctx: Ctx,
+  blurRadius: number,
+  draw: (target: Ctx) => void,
+): boolean {
+  const filterContext = ctx as Ctx & { filter?: string }
+  if (typeof filterContext.filter !== 'string') return false
+  ctx.save()
+  filterContext.filter = `blur(${blurRadius}px)`
+  draw(ctx)
+  ctx.restore()
+  return true
 }
 
 /** Node/native canvas CPU blur for transitions when CSS filter is unavailable. */
@@ -59,6 +77,13 @@ export function drawLayerWithBlur(
     targetCtx.restore()
     return
   }
+
+  // Skia's Canvas filter applies blur without allocating a full-frame readback.
+  // Keep stackblur as a fallback for canvas implementations without filters.
+  if (drawWithNativeCanvasBlur(targetCtx, blurRadius, (ctx) => {
+    ctx.globalAlpha = alpha
+    drawLayer(ctx)
+  })) return
 
   const blurScale = nodeBlurScale(width, height)
   const sw = Math.max(2, Math.round(width * blurScale))
@@ -116,6 +141,8 @@ export function drawElementWithBlur(
     drawFn(targetCtx)
     return
   }
+
+  if (!postProcess && drawWithNativeCanvasBlur(targetCtx, blurRadius, drawFn)) return
 
   const pad = Math.ceil(blurRadius * 2) + 2
   const fullW = Math.max(2, (halfW + pad) * 2)

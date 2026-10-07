@@ -61,9 +61,9 @@ function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: numb
 
 // ─── Chart theme helpers ──────────────────────────────────────────────────────
 
-function chartInk(series: { color?: string }[]): { grid: string; label: string; plot: string; onLight: boolean } {
-  const hasDarkInk = series.some((s) => s.color && !colorUtils.isLight(s.color))
-  const onLight = hasDarkInk || series.length === 0
+function chartInk(series: { color?: string }[], surface?: 'light' | 'dark'): { grid: string; label: string; plot: string; onLight: boolean } {
+  const darkInkCount = series.filter((s) => s.color && !colorUtils.isLight(s.color)).length
+  const onLight = surface ? surface === 'light' : darkInkCount > series.length / 2 || series.length === 0
   return onLight
     ? { onLight: true, grid: 'rgba(0,0,0,0.12)', label: 'rgba(0,0,0,0.55)', plot: 'rgba(0,0,0,0.06)' }
     : { onLight: false, grid: 'rgba(255,255,255,0.14)', label: 'rgba(255,255,255,0.7)', plot: 'rgba(255,255,255,0.08)' }
@@ -240,7 +240,7 @@ function drawBarChart(
 
   const labelFont = `500 13px "Inter"`
   const axisFont = `400 12px "Inter"`
-  const ink = chartInk(data.map((d) => ({ color: d.color })))
+  const ink = chartInk(data.map((d) => ({ color: d.color })), shape.chartSurface)
   
   // 1. Draw Grid Lines (Y-Axis Ticks)
   ticks.forEach(tick => {
@@ -335,7 +335,7 @@ function drawLineChart(
     ? d3m.scaleLinear().domain([Math.min(0, minVal), maxVal * 1.08]).range([y + h - 34, y + 22])
     : null
   const yScale = yScaleD3 ?? linScale(Math.min(0, minVal), maxVal * 1.08, y + h - 34, y + 22)
-  const ink = chartInk(series)
+  const ink = chartInk(series, shape.chartSurface)
 
   ctx.save()
   ctx.fillStyle = ink.onLight ? '#ececf0' : 'rgba(255,255,255,0.1)'

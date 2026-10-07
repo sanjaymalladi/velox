@@ -192,9 +192,9 @@ const attrSchemas: Record<string, Set<string>> = {
   progress: new Set(['value', 'color', 'trackColor', 'width', 'height', ...commonAttrs]),
   metric: new Set(['value', 'label', 'accent', ...commonAttrs]),
   metricRow: new Set(['gap', ...commonAttrs]),
-  barChart: new Set(['width', 'height', 'showLabels', 'showValues', ...commonAttrs]),
+  barChart: new Set(['width', 'height', 'showLabels', 'showValues', 'surface', ...commonAttrs]),
   bar: new Set(['label', 'value', 'color']),
-  lineChart: new Set(['width', 'height', 'curve', 'showLabels', 'showValues', ...commonAttrs]),
+  lineChart: new Set(['width', 'height', 'curve', 'showLabels', 'showValues', 'surface', ...commonAttrs]),
   series: new Set(['label', 'values', 'color']),
   donutChart: new Set(['innerRadius', 'showLabels', 'showValues', 'size', 'scale', ...commonAttrs]),
   slice: new Set(['label', 'value', 'color']),
@@ -290,6 +290,9 @@ function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
     }
     if (node.tag === 'text' && node.attrs.align && !['left', 'center', 'right'].includes(node.attrs.align)) {
       push(issues, { level: 'error', code: 'invalid-align', message: 'text align must be left, center, or right.', location: node.attributeLocations.align ?? node.location })
+    }
+    if ((node.tag === 'barChart' || node.tag === 'lineChart') && node.attrs.surface && !['light', 'dark'].includes(node.attrs.surface)) {
+      push(issues, { level: 'error', code: 'invalid-chart-surface', message: `${node.tag} surface must be light or dark.`, location: node.attributeLocations.surface ?? node.location })
     }
     if (node.tag === 'scene' && node.attrs.transition && !['crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold'].includes(node.attrs.transition)) {
       push(issues, { level: 'error', code: 'invalid-transition', message: `Unknown transition "${node.attrs.transition}".`, location: node.attributeLocations.transition ?? node.location })

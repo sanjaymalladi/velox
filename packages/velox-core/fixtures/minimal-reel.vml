@@ -9,7 +9,10 @@
   <scene duration="4" layout="column" gap="24" align="center" background="mesh:ocean" transition="wipe" transitionDuration="0.4">
     <kicker color="theme.accent" motion="fade">ONE FRAME TIMELINE</kicker>
     <text value="Render, audio, and captions stay in sync." size="48" weight="800" align="center" color="theme.text" wrap="860" motion="slideUp" />
-    <progress value="82" color="theme.accent" trackColor="#ffffff" width="760" height="20" motion="fade" />
+    <lineChart width="760" height="280" curve="smooth" surface="dark" motion="fade">
+      <series label="Scene" values="10,28,45,68,90" color="#a78bfa" />
+      <series label="Caption" values="8,24,42,64,86" color="#38bdf8" />
+    </lineChart>
     <text value="Scene frames → audio cues → captions" size="30" align="center" color="theme.muted" wrap="820" motion="fade" />
     <captions slot="caption" text="One frame count drives every track." style="pill" start="0.5" motion="fade" />
   </scene>
