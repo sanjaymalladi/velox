@@ -134,5 +134,6 @@ export function frameProgress(
   startFrame: number,
   durationFrames: number
 ): number {
+  if (durationFrames <= 0) return 1
   return clamp((currentFrame - startFrame) / durationFrames)
 }

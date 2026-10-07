@@ -17,22 +17,29 @@ import type {
 } from '../types'
 import { getAnimationState } from './animations'
 import type { AnimationState } from './animations'
-import { drawText, drawTextList } from './drawText'
+import { drawText, drawTextList, drawCaptionTrack } from './drawText'
 import { drawStockPlaceholder } from './drawStockPlaceholder'
 import { drawShape } from './drawShape'
 import { lerp, easeOut } from './easing'
-import { supportsCanvasFilter, setCanvasFilter } from './canvasFilter'
+import { supportsCanvasFilter, setCanvasFilter, setNodeElementBlur, applyElementBlur } from './canvasFilter'
 import { drawLayerWithBlur as browserDrawLayerWithBlur } from './cpuBlur'
-import { createNoise2D } from 'simplex-noise'
+import { getSimplex, preloadHeavyDeps } from './lazyDeps'
+import { applyFxCpu, fxEnabled, getFx } from './webglPipeline'
+import { calculateFrameTimeline } from '../timeline'
 
 type DrawLayerWithBlurFn = typeof browserDrawLayerWithBlur
 
 let nodeDrawLayerWithBlur: DrawLayerWithBlurFn | undefined
 
+/** When the all-WebGL FX pipeline is active, per-scene Canvas2D overlays are suppressed. */
+let globalFxActive = false
+
 /** Register Node CPU blur (import `@velox-video/core/node-render` before native export). */
 export function setNodeDrawLayerWithBlur(fn: DrawLayerWithBlurFn): void {
   nodeDrawLayerWithBlur = fn
 }
+
+export { setNodeElementBlur } from './canvasFilter'
 
 function drawLayerWithBlur(
   targetCtx: Ctx,
@@ -87,6 +94,11 @@ export function resolveSize(size: any): [number, number] {
     case '720p':     return [1280, 720]
     case 'square':   return [1080, 1080]
     case 'portrait': return [1080, 1920]
+    case '16:9':     return [1920, 1080]
+    case '9:16':     return [1080, 1920]
+    case '1:1':      return [1080, 1080]
+    case '4:5':      return [1080, 1350]
+    case '21:9':     return [2520, 1080]
     default:         return [1920, 1080]
   }
 }
@@ -94,11 +106,7 @@ export function resolveSize(size: any): [number, number] {
 // ─── Total Duration ───────────────────────────────────────────────────────────
 
 export function getTotalFrames(config: VeloxVideoConfig): number {
-  return config.scenes.reduce((acc, scene) => {
-    const frames = Math.round(scene.duration * config.fps)
-    const transFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
-    return acc + frames - transFrames
-  }, 0)
+  return calculateFrameTimeline(config.scenes, config.fps).totalFrames
 }
 
 // ─── Scene activation ────────────────────────────────────────────────────────
@@ -110,15 +118,11 @@ interface ActiveScene {
 }
 
 export function buildSceneTimeline(config: VeloxVideoConfig): ActiveScene[] {
-  const timeline: ActiveScene[] = []
-  let cursor = 0
-  for (const scene of config.scenes) {
-    const frames = Math.round(scene.duration * config.fps)
-    const transFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
-    timeline.push({ scene, startFrame: cursor, endFrame: cursor + frames })
-    cursor += frames - transFrames
-  }
-  return timeline
+  return calculateFrameTimeline(config.scenes, config.fps).scenes.map((item, index) => ({
+    scene: config.scenes[index],
+    startFrame: item.startFrame,
+    endFrame: item.endFrame,
+  }))
 }
 
 /** Global scene start times in seconds (matches transition-aware timeline). */
@@ -128,6 +132,64 @@ export function buildSceneStartsSeconds(config: VeloxVideoConfig): number[] {
 }
 
 // ─── Background ───────────────────────────────────────────────────────────────
+
+/** Procedural crumpled-paper background (Node-safe, deterministic). */
+function drawPaperBackground(
+  ctx: Ctx,
+  width: number,
+  height: number,
+  tone: 'cream' | 'white' | 'kraft' = 'cream'
+): void {
+  const bases: Record<string, [string, string, string]> = {
+    cream: ['#fbf7ef', '#f3e9d6', '#e9dcc2'],
+    white: ['#ffffff', '#f4f1ea', '#e8e3d8'],
+    kraft: ['#c9a878', '#b08d5b', '#8a6a3f'],
+  }
+  const stops = bases[tone] ?? bases.cream
+  const grad = ctx.createLinearGradient(0, 0, width, height)
+  grad.addColorStop(0, stops[0])
+  grad.addColorStop(0.5, stops[1])
+  grad.addColorStop(1, stops[2])
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, width, height)
+
+  // Deterministic PRNG so the crumple is identical across Node/browser renders.
+  let s = 0x9e3779b9 >>> 0
+  const rnd = (): number => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0
+    return s / 0xffffffff
+  }
+
+  ctx.save()
+  // Soft shaded fold blobs (large radial gradients) — fake crumple shading.
+  for (let i = 0; i < 10; i++) {
+    const cx = rnd() * width
+    const cy = rnd() * height
+    const r = (0.2 + rnd() * 0.35) * Math.max(width, height)
+    const dark = rnd() > 0.5
+    const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    const a = 0.05 + rnd() * 0.06
+    rg.addColorStop(0, dark ? `rgba(60,40,20,${a})` : `rgba(255,250,240,${a})`)
+    rg.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = rg
+    ctx.fillRect(0, 0, width, height)
+  }
+  // Fine paper fibers.
+  ctx.strokeStyle = tone === 'kraft' ? 'rgba(60,40,20,0.05)' : 'rgba(120,100,70,0.04)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  const fibers = Math.floor((width * height) / 12000)
+  for (let i = 0; i < fibers; i++) {
+    const x = rnd() * width
+    const y = rnd() * height
+    const len = 4 + rnd() * 14
+    const ang = rnd() * Math.PI
+    ctx.moveTo(x, y)
+    ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len)
+  }
+  ctx.stroke()
+  ctx.restore()
+}
 
 function drawBackground(
   ctx: Ctx,
@@ -145,6 +207,13 @@ function drawBackground(
   }
 
   if (typeof bg === 'string') {
+    if (bg === 'paper' || bg.startsWith('paper(')) {
+      const tone = bg.startsWith('paper(')
+        ? (bg.slice('paper('.length, -1).trim() as 'cream' | 'white' | 'kraft')
+        : 'cream'
+      drawPaperBackground(ctx, width, height, tone)
+      return
+    }
     if (bg.startsWith('grid(')) {
       // e.g. "grid(rgba(0,0,0,0.05), 40)"
       const inner = bg.slice('grid('.length, -1)
@@ -174,15 +243,26 @@ function drawBackground(
   } else {
     // VeloxGradient
     const g = bg as VeloxGradient
-    const angle = (parseFloat(g.angle) * Math.PI) / 180
+    // CSS convention: 0deg points up (to top), 90deg points right.
+    const rad = (parseFloat(g.angle ?? '0') * Math.PI) / 180
+    const dx = Math.sin(rad)
+    const dy = -Math.cos(rad)
     const len = Math.sqrt(width * width + height * height)
     const grad = ctx.createLinearGradient(
-      width / 2 - Math.cos(angle) * len / 2,
-      height / 2 - Math.sin(angle) * len / 2,
-      width / 2 + Math.cos(angle) * len / 2,
-      height / 2 + Math.sin(angle) * len / 2
+      width / 2 - (dx * len) / 2,
+      height / 2 - (dy * len) / 2,
+      width / 2 + (dx * len) / 2,
+      height / 2 + (dy * len) / 2
     )
-    g.stops.forEach((stop, i) => { grad.addColorStop(i / (g.stops.length - 1), stop) })
+    if (g.stops.length === 0) {
+      grad.addColorStop(0, 'rgba(0,0,0,0)')
+      grad.addColorStop(1, 'rgba(0,0,0,0)')
+    } else if (g.stops.length === 1) {
+      grad.addColorStop(0, g.stops[0])
+      grad.addColorStop(1, g.stops[0])
+    } else {
+      g.stops.forEach((stop, i) => { grad.addColorStop(i / (g.stops.length - 1), stop) })
+    }
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, width, height)
   }
@@ -221,9 +301,8 @@ function applySceneCamera(
       break
     }
     case 'parallaxDrift': {
-      const driftX = Math.sin(rawT * Math.PI * 2 * 0.42) * 14 * t
-      const driftY = Math.cos(rawT * Math.PI * 2 * 0.31) * 10 * t
-      ctx.translate(driftX, driftY)
+      // Zoom is global; per-element translation is applied in drawElement from
+      // each element's `depth` so nearer planes move more than farther ones.
       const s = 1 + 0.024 * t
       ctx.scale(s, s)
       break
@@ -250,6 +329,27 @@ function applySceneCamera(
   }
 
   ctx.translate(-width / 2, -height / 2)
+}
+
+/**
+ * Per-element parallax offset for the `parallaxDrift` camera. Returns null for any
+ * other camera. `depth` 0 gives the baseline drift (preserves prior behaviour);
+ * positive depth moves the plane more (nearer the camera), negative less (-1 locks it).
+ */
+function parallaxOffsetFor(
+  scene: SceneConfig,
+  localFrame: number,
+  fps: number,
+  depth: number,
+): { dx: number; dy: number } | null {
+  if (scene.camera !== 'parallaxDrift') return null
+  const durFrames = Math.max(Math.round(scene.duration * fps), 1)
+  const rawT = Math.min(Math.max(localFrame / durFrames, 0), 1)
+  const t = easeOut(rawT)
+  const driftX = Math.sin(rawT * Math.PI * 2 * 0.42) * 14 * t
+  const driftY = Math.cos(rawT * Math.PI * 2 * 0.31) * 10 * t
+  const f = 1 + depth
+  return { dx: driftX * f, dy: driftY * f }
 }
 
 function resolveSceneOverlay(scene: SceneConfig, motionQuality: MotionQuality | undefined): { vignette: number; grain: number } {
@@ -309,10 +409,23 @@ function drawVignetteOverlay(ctx: Ctx, width: number, height: number, opacity: n
 }
 
 /** Film grain — works in browser and Node (no CSS filter required). */
-let _grainNoise: ReturnType<typeof createNoise2D> | null = null
+type Noise2D = (x: number, y: number) => number
 
-function grainNoise(): ReturnType<typeof createNoise2D> {
-  if (!_grainNoise) _grainNoise = createNoise2D()
+// Deterministic hash-based fallback used only before `simplex-noise` is lazy-loaded.
+const fallbackNoise: Noise2D = (x, y) => {
+  const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453
+  return (s - Math.floor(s)) * 2 - 1
+}
+
+let _grainNoise: Noise2D | null = null
+
+function grainNoise(): Noise2D {
+  const sx = getSimplex()
+  if (!sx) {
+    void preloadHeavyDeps()
+    return fallbackNoise
+  }
+  if (!_grainNoise) _grainNoise = sx.createNoise2D()
   return _grainNoise
 }
 
@@ -367,6 +480,24 @@ function resolvePosition(
 }
 
 // ─── Image draw ───────────────────────────────────────────────────────────────
+
+/** In-place brightness (multiply) + saturation (lerp toward luma) on RGBA data. */
+function applyBrightnessSaturation(data: Uint8ClampedArray, brightness: number, saturate: number): void {
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i] * brightness
+    let g = data[i + 1] * brightness
+    let b = data[i + 2] * brightness
+    if (saturate !== 1) {
+      const l = 0.299 * r + 0.587 * g + 0.114 * b
+      r = l + (r - l) * saturate
+      g = l + (g - l) * saturate
+      b = l + (b - l) * saturate
+    }
+    data[i] = r
+    data[i + 1] = g
+    data[i + 2] = b
+  }
+}
 
 function drawImage(
   ctx: Ctx,
@@ -465,48 +596,65 @@ function drawImage(
     dy -= (dh / zoom) * (zoom - 1) / 2
   }
 
-  ctx.save()
-  ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
+  const drawInto = (c: Ctx) => {
+    c.save()
+    c.globalAlpha = Math.max(0, Math.min(1, state.opacity))
 
-  // Apply CSS-style filters
-  if (supportsCanvasFilter) {
-    const filters: string[] = []
-    if (blur) filters.push(`blur(${blur}px)`)
-    if (brightness !== undefined) filters.push(`brightness(${brightness})`)
-    if (saturate !== undefined) filters.push(`saturate(${saturate})`)
-    if (state.blur > 0) filters.push(`blur(${state.blur}px)`)
-    ctx.filter = filters.length ? filters.join(' ') : 'none'
-  }
-
-  // Animation transform (for entrance animations)
-  ctx.translate(state.x, state.y)
-  if (state.scaleX !== 1 || state.scaleY !== 1) {
-    ctx.translate(dx + dw / 2, dy + dh / 2)
-    ctx.scale(state.scaleX, state.scaleY)
-    ctx.translate(-(dx + dw / 2), -(dy + dh / 2))
-  }
-
-  // Border radius clip and Mask Reveal
-  const clipRevealY = state.clipRevealY
-  if (borderRadius > 0 || state.clipReveal < 1 || clipRevealY !== undefined) {
-    ctx.beginPath()
-    const r = borderRadius || 0
-    if (clipRevealY !== undefined && clipRevealY < 1) {
-       const cy = clipRevealY
-       ctx.rect(dx, dy + dh * (1 - cy), dw, dh * cy)
-    } else {
-      ctx.moveTo(dx + r, dy)
-      ctx.arcTo(dx + dw, dy, dx + dw, dy + dh, r)
-      ctx.arcTo(dx + dw, dy + dh, dx, dy + dh, r)
-      ctx.arcTo(dx, dy + dh, dx, dy, r)
-      ctx.arcTo(dx, dy, dx + dw, dy, r)
+    // Animation transform (for entrance animations)
+    c.translate(state.x, state.y)
+    if (state.scaleX !== 1 || state.scaleY !== 1) {
+      c.translate(dx + dw / 2, dy + dh / 2)
+      c.scale(state.scaleX, state.scaleY)
+      c.translate(-(dx + dw / 2), -(dy + dh / 2))
     }
-    ctx.closePath()
-    ctx.clip()
+
+    // Border radius clip and Mask Reveal
+    const clipRevealY = state.clipRevealY
+    if (borderRadius > 0 || state.clipReveal < 1 || clipRevealY !== undefined) {
+      c.beginPath()
+      const r = borderRadius || 0
+      if (clipRevealY !== undefined && clipRevealY < 1) {
+        const cy = clipRevealY
+        c.rect(dx, dy + dh * (1 - cy), dw, dh * cy)
+      } else {
+        c.moveTo(dx + r, dy)
+        c.arcTo(dx + dw, dy, dx + dw, dy + dh, r)
+        c.arcTo(dx + dw, dy + dh, dx, dy + dh, r)
+        c.arcTo(dx, dy + dh, dx, dy, r)
+        c.arcTo(dx, dy, dx + dw, dy, r)
+      }
+      c.closePath()
+      c.clip()
+    }
+
+    c.drawImage(img as unknown as CanvasImageSource, dx, dy, dw, dh)
+    c.restore()
   }
 
-  ctx.drawImage(img as unknown as CanvasImageSource, dx, dy, dw, dh)
-  ctx.restore()
+  const hasFilters = blur !== undefined || brightness !== undefined || saturate !== undefined || state.blur > 0
+  const regionCx = dx + dw / 2
+  const regionCy = dy + dh / 2
+
+  if (!supportsCanvasFilter && (state.blur > 0 || brightness !== undefined || saturate !== undefined)) {
+    const post = (imgData: ImageData) => {
+      if (brightness !== undefined || saturate !== undefined) {
+        applyBrightnessSaturation(imgData.data, brightness ?? 1, saturate ?? 1)
+      }
+    }
+    applyElementBlur(ctx, regionCx, regionCy, dw / 2, dh / 2, state.blur, drawInto, post)
+  } else {
+    if (supportsCanvasFilter && hasFilters) {
+      ctx.save()
+      const filters: string[] = []
+      if (blur) filters.push(`blur(${blur}px)`)
+      if (brightness !== undefined) filters.push(`brightness(${brightness})`)
+      if (saturate !== undefined) filters.push(`saturate(${saturate})`)
+      if (state.blur > 0) filters.push(`blur(${state.blur}px)`)
+      ctx.filter = filters.length ? filters.join(' ') : 'none'
+    }
+    drawInto(ctx)
+    if (supportsCanvasFilter && hasFilters) ctx.restore()
+  }
 }
 
 function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state: AnimationState, width: number, height: number, frame: number, fps: number) {
@@ -598,12 +746,20 @@ function drawElement(
   height: number,
   originX: number = 0,
   originY: number = 0,
-  sceneTotalFrames?: number
+  sceneTotalFrames?: number,
+  scene?: SceneConfig,
+  inheritedDepth: number = 0
 ): void {
   const state = getAnimationState(el, localFrame, fps)
   if (state.opacity <= 0) return
 
+  const effectiveDepth = el.depth ?? inheritedDepth
+  const off = scene ? parallaxOffsetFor(scene, localFrame, fps, effectiveDepth) : null
+
   const { x, y } = resolvePosition(el.position, width, height, originX, originY)
+
+  ctx.save()
+  if (off) ctx.translate(off.dx, off.dy)
 
   switch (el.type) {
     case 'text':
@@ -629,10 +785,12 @@ function drawElement(
     }
     case 'group':
       for (const child of el.children) {
-        drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames)
+        drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames, scene, effectiveDepth)
       }
       break
   }
+
+  ctx.restore()
 }
 
 // ─── Scene Draw ───────────────────────────────────────────────────────────────
@@ -646,7 +804,8 @@ function drawScene(
   height: number,
   motionQuality: MotionQuality | undefined,
   absoluteFrame: number,
-  alpha: number = 1
+  alpha: number = 1,
+  suppressOverlays = false
 ): void {
   ctx.save()
   ctx.globalAlpha = alpha
@@ -658,14 +817,23 @@ function drawScene(
   const sceneFrames = Math.round(scene.duration * fps)
   for (const el of scene.elements) {
     ctx.save()
-    drawElement(ctx, el, localFrame, fps, width, height, 0, 0, sceneFrames)
+    drawElement(ctx, el, localFrame, fps, width, height, 0, 0, sceneFrames, scene, 0)
     ctx.restore()
   }
   ctx.restore()
 
-  const ov = resolveSceneOverlay(scene, motionQuality)
-  drawVignetteOverlay(ctx, width, height, ov.vignette)
-  drawGrainOverlay(ctx, width, height, ov.grain, absoluteFrame)
+  // When the global all-WebGL FX pipeline is active, the post-FX pass handles
+  // vignette/grain (and more) for the whole frame, so skip the per-scene overlay.
+  if (!suppressOverlays && !globalFxActive) {
+    const ov = resolveSceneOverlay(scene, motionQuality)
+    drawVignetteOverlay(ctx, width, height, ov.vignette)
+    drawGrainOverlay(ctx, width, height, ov.grain, absoluteFrame)
+  }
+
+  // Scene-level imported caption track (SRT/ASS), above overlays for readability.
+  if (scene.captions?.cues?.length) {
+    drawCaptionTrack(ctx, scene.captions, localFrame, fps, width, height)
+  }
 
   ctx.restore()
 }
@@ -678,15 +846,18 @@ function drawScene(
  * Draws a single frame onto the provided canvas context.
  * This is the only function you need to call from the renderer and preview.
  */
-export function drawFrame(
+function drawFrameInternal(
   ctx: Ctx,
   config: VeloxVideoConfig,
   frame: number,
   width: number,
-  height: number
+  height: number,
+  opts?: { cpuFx?: boolean }
 ): void {
   // Clear
   ctx.clearRect(0, 0, width, height)
+
+  globalFxActive = fxEnabled(config)
 
   // Global background
   drawBackground(ctx, config.background, width, height, true)
@@ -814,6 +985,52 @@ export function drawFrame(
         ctx.save(); ctx.translate(ox + (dir === 'left' ? width : -width), 0)
         drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
         ctx.restore()
+      } else if (scene.transition.type === 'paperFold') {
+        // Accordion 2D fold: the outgoing scene stays put while the incoming scene
+        // unfolds panel-by-panel (staggered), each pivoting around alternating edges
+        // with a crease shadow to fake fold depth.
+        const folds = Math.max(2, Math.round(scene.transition.options?.folds ?? 5))
+        const dir = scene.transition.options?.direction ?? 'left'
+        drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1)
+        const panelW = width / folds
+        for (let k = 0; k < folds; k++) {
+          const sp = Math.min(Math.max(tp * (folds + 1) - k, 0), 1)
+          if (sp <= 0) continue
+          const e = easeOut(sp)
+          const px = dir === 'right' ? width - (k + 1) * panelW : k * panelW
+          const pivotLeft = dir === 'right' ? k % 2 === 1 : k % 2 === 0
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(px, 0, panelW, height)
+          ctx.clip()
+          const sx = lerp(0.02, 1, e)
+          if (pivotLeft) {
+            ctx.translate(px, 0)
+            ctx.scale(sx, 1)
+            ctx.translate(-px, 0)
+          } else {
+            ctx.translate(px + panelW, 0)
+            ctx.scale(sx, 1)
+            ctx.translate(-(px + panelW), 0)
+          }
+          drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, 1)
+          ctx.restore()
+          // Crease shadow along the leading fold edge.
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(px, 0, panelW, height)
+          ctx.clip()
+          const shadowW = Math.min(panelW, 48)
+          const g = ctx.createLinearGradient(
+            pivotLeft ? px : px + panelW - shadowW, 0,
+            pivotLeft ? px + shadowW : px + panelW, 0,
+          )
+          g.addColorStop(0, `rgba(0,0,0,${0.22 * (1 - e)})`)
+          g.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.fillStyle = g
+          ctx.fillRect(px, 0, panelW, height)
+          ctx.restore()
+        }
       } else {
         // Fallback: crossDissolve
         drawScene(ctx, scene, localFrame, config.fps, width, height, mq, frame, 1 - tp)
@@ -822,5 +1039,27 @@ export function drawFrame(
     } else if (isActive) {
       drawScene(ctx, scene, localFrame, config.fps, width, height, config.motionQuality, frame)
     }
+  }
+
+  // All-WebGL post-FX pass: in the browser the Studio routes the composited
+  // frame through `WebGLComposer` instead; in Node export we apply the CPU
+  // fallback so the deterministic render still gets the cinematic look.
+  if (globalFxActive && opts?.cpuFx !== false) {
+    applyFxCpu(ctx, width, height, getFx(config), frame / config.fps)
+  }
+}
+
+export function drawFrame(
+  ctx: Ctx,
+  config: VeloxVideoConfig,
+  frame: number,
+  width: number,
+  height: number,
+  opts?: { cpuFx?: boolean },
+): void {
+  try {
+    drawFrameInternal(ctx, config, frame, width, height, opts)
+  } finally {
+    globalFxActive = false
   }
 }

@@ -92,14 +92,10 @@ export async function nativeRender(config: VeloxVideoConfig, opts: RenderOptions
 
   if (format === 'mp4') {
     await renderMp4(config, renderW, renderH, totalFrames, outputPath, opts, tuning, emitProgress)
-    const music = config.audio?.src ?? config.audioPlan?.music?.src
-    const vol = config.audio?.volume ?? config.audioPlan?.music?.volume ?? 0.35
     const packageDir = path.join(__dirname, '..')
     await muxAudioPlan(
       outputPath,
-      config.audioPlan,
-      music,
-      vol,
+      config,
       opts.sourceDir ?? path.dirname(outputPath),
       packageDir,
     )
@@ -138,6 +134,7 @@ async function renderMp4(
 
   const encW = encoder.width
   const encH = encoder.height
+  const [logicalW, logicalH] = resolveSize(config.size)
   type NodeCanvas = { data(): Buffer }
   type NodeCtx = CanvasRenderingContext2D & { reset?: () => void }
 
@@ -149,7 +146,10 @@ async function renderMp4(
   let rendered = 0
   for (let frame = 0; frame < totalFrames; frame += step) {
     ctx.reset?.()
-    drawFrame(ctx, config, frame, encW, encH)
+    // Keep layout in the composition's logical coordinate space. A draft
+    // shrinks the whole frame; it must not shrink only the canvas and crop text.
+    if (encW !== logicalW || encH !== logicalH) ctx.scale(encW / logicalW, encH / logicalH)
+    drawFrame(ctx, config, frame, logicalW, logicalH)
     const pixels = canvas.data()
     if (pixels.length < expectedBytes) {
       throw new Error(`Canvas pixel readback failed at frame ${frame} (${pixels.length} < ${expectedBytes})`)

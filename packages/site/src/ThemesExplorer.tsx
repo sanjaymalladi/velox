@@ -18,13 +18,31 @@ const RENDER_H = 640
 const PREVIEW_FPS = 30
 const THEME_RENDER_DEBOUNCE_MS = 150
 
-/** Serialize preview draws — shared image cache is global in drawFrame. */
-let previewRenderQueue = Promise.resolve()
+/** Max concurrent canvas draws — prevents GPU/CPU overload when many cards are visible. */
+const MAX_CONCURRENT_DRAWS = 3
+let activeDraws = 0
+const drawWaitQueue: Array<() => void> = []
 
-function enqueuePreviewRender(task: () => Promise<void>): Promise<void> {
-  const run = previewRenderQueue.then(task)
-  previewRenderQueue = run.catch(() => {})
-  return run
+function acquireDraw(): Promise<void> {
+  if (activeDraws < MAX_CONCURRENT_DRAWS) {
+    activeDraws++
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => {
+    drawWaitQueue.push(() => {
+      activeDraws++
+      resolve()
+    })
+  })
+}
+
+function releaseDraw(): void {
+  const next = drawWaitQueue.shift()
+  if (next) {
+    next()
+  } else {
+    activeDraws--
+  }
 }
 
 function yieldToBrowser(): Promise<void> {
@@ -206,7 +224,7 @@ const ScenarioCard = memo(function ScenarioCard({
     if (!root) return
     const io = new IntersectionObserver(
       ([entry]) => setVisible(entry?.isIntersecting ?? false),
-      { rootMargin: '120px', threshold: 0.05 },
+      { rootMargin: '400px', threshold: 0.01 },
     )
     io.observe(root)
     return () => io.disconnect()
@@ -226,7 +244,8 @@ const ScenarioCard = memo(function ScenarioCard({
     setStatus('loading')
 
     const run = async () => {
-      await enqueuePreviewRender(async () => {
+      await acquireDraw()
+      try {
         if (cancelled || generation !== renderGeneration) return
         await yieldToBrowser()
         if (cancelled || generation !== renderGeneration) return
@@ -254,7 +273,9 @@ const ScenarioCard = memo(function ScenarioCard({
           }
           setStatus('error')
         }
-      })
+      } finally {
+        releaseDraw()
+      }
     }
 
     void run()

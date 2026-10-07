@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { createVideoFromMarkup, isVeloxMarkup } from './markupCompiler'
+import { preloadAesthetics } from './aesthetics/registry'
+
+beforeAll(async () => { await preloadAesthetics() })
 
 describe('velox markup', () => {
   it('compiles nested markup into a video', () => {

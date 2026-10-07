@@ -54,13 +54,17 @@ velox render reel.vml --scale 0.5 --fps 24
 
 ### `velox lint <file>`
 
-Validate VML before spending render time.
+Check VML before render. Lint reports invalid values, unknown attributes, text overlap, canvas overflow, and safe-area warnings.
+Use `--strict` to treat warnings as errors. Use `--json` to return issues with VML line and column data.
 
 ```bash
 velox lint reel.vml
 velox lint reel.vml --strict
+velox lint reel.vml --json
 velox lint reel.vml --frames   # hints for spot-frame checks
 ```
+
+Use `layout="column"`, `layout="row"`, `layout="stack"`, or `layout="center"` on a scene to position content without pixel coordinates. A `slot="caption"` stays at the bottom.
 
 ### `velox list <type>`
 

@@ -47,6 +47,8 @@ export class TextElement extends Element<TextElementConfig> {
 
   /** Transform text to uppercase */
   uppercase(): this { this.config.textTransform = 'uppercase'; return this }
+  /** Transform text to uppercase or lowercase. */
+  transform(mode: 'uppercase' | 'lowercase'): this { this.config.textTransform = mode; return this }
 
   /** Italic text style */
   italic(): this { this.config.fontStyle = 'italic'; return this }
@@ -71,6 +73,7 @@ export class TextElement extends Element<TextElementConfig> {
     cueStartSec: number
     wordStepSec: number
     totalWords: number
+    accent?: string
   }): this {
     this.config.caption = meta
     return this

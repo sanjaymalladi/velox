@@ -2,9 +2,12 @@
 export { preloadRasterInNodeWithLoader, type LoadImageFn } from './engine/preloadRasterInNode'
 export { preloadImagesInNode } from './engine/preloadImagesNode'
 export { drawLayerWithBlur as drawLayerWithBlurInNode } from './engine/cpuBlurNode'
-export { setNodeDrawLayerWithBlur } from './engine/drawFrame'
+export { drawElementWithBlur, adjustBrightnessSaturation } from './engine/cpuBlurNode'
+export { setNodeDrawLayerWithBlur, setNodeElementBlur } from './engine/drawFrame'
 
 import { drawLayerWithBlur as drawLayerWithBlurInNode } from './engine/cpuBlurNode'
-import { setNodeDrawLayerWithBlur } from './engine/drawFrame'
+import { drawElementWithBlur } from './engine/cpuBlurNode'
+import { setNodeDrawLayerWithBlur, setNodeElementBlur } from './engine/drawFrame'
 
 setNodeDrawLayerWithBlur(drawLayerWithBlurInNode)
+setNodeElementBlur(drawElementWithBlur)

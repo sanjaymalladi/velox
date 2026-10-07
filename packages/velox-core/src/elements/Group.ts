@@ -12,11 +12,24 @@ function elementSize(el: ElementConfig): [number, number] {
   if (el.type === 'text') {
     const size = el.fontSize ?? 32
     const weight = el.fontWeight ?? 400
-    const charW = size * (weight >= 700 ? 0.62 : weight >= 600 ? 0.58 : 0.52)
-    const width =
-      el.maxWidth ??
-      Math.max(48, el.content.length * charW + Math.max(0, el.content.length - 1) * (el.letterSpacing ?? 0))
-    return [width, size * (el.lineHeight ?? 1.2)]
+    const lh = el.lineHeight ?? 1.2
+    const charW = size * (weight >= 700 ? 0.6 : weight >= 600 ? 0.56 : 0.5)
+    const paras = (el.content ?? '').split('\n')
+    let lines = 0
+    let longest = charW
+    for (const p of paras) {
+      if (p.length === 0) {
+        lines += 1
+        continue
+      }
+      const w = p.length * charW
+      longest = Math.max(longest, w)
+      lines += Math.max(1, Math.ceil(w / (el.maxWidth || w)))
+    }
+    let height = lines * size * lh
+    if (el.maxHeight) height = Math.min(height, el.maxHeight)
+    const width = el.maxWidth ? Math.min(el.maxWidth, longest) : longest
+    return [width, height]
   }
   if (el.type === 'textList') {
     const size = el.fontSize ?? 24
@@ -33,7 +46,7 @@ function elementSize(el: ElementConfig): [number, number] {
   return [160, 80]
 }
 
-function measure(children: ElementConfig[]): { width: number; height: number } {
+export function measure(children: ElementConfig[]): { width: number; height: number } {
   if (children.length === 0) return { width: 0, height: 0 }
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   for (const child of children) {

@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@velox-video/core": "workspace:*",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-direction": "^1.1.1",

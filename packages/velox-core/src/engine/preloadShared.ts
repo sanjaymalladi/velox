@@ -6,19 +6,25 @@ export type LogoWithPaths = LogoElementConfig & { _paths?: LogoPathData }
 
 export function collectImageSrcs(config: VeloxVideoConfig): Set<string> {
   const srcs = new Set<string>()
-  for (const scene of config.scenes) {
-    for (const el of scene.elements) {
+  const visit = (els: typeof config.scenes[number]['elements']): void => {
+    for (const el of els) {
       if (el.type === 'image') srcs.add((el as ImageElementConfig).src)
+      else if (el.type === 'group') visit((el as { children: typeof els }).children)
     }
   }
+  for (const scene of config.scenes) visit(scene.elements)
   return srcs
 }
 
 /** Mutating: attaches `_paths` to logo elements via bundled SVGL JSON. */
 export async function attachBundledLogoPaths(config: VeloxVideoConfig): Promise<void> {
   const queue: Promise<void>[] = []
-  for (const scene of config.scenes) {
-    for (const el of scene.elements) {
+  const visit = (elements: VeloxVideoConfig['scenes'][number]['elements']): void => {
+    for (const el of elements) {
+      if (el.type === 'group') {
+        visit(el.children)
+        continue
+      }
       if (el.type !== 'logo') continue
       const logoEl = el as LogoElementConfig
       queue.push(
@@ -40,6 +46,9 @@ export async function attachBundledLogoPaths(config: VeloxVideoConfig): Promise<
         })(),
       )
     }
+  }
+  for (const scene of config.scenes) {
+    visit(scene.elements)
   }
   await Promise.all(queue)
 }
