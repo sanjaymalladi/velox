@@ -6,8 +6,15 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/loadLogo.ts"
   ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./loadLogo": "./src/loadLogo.ts",
+    "./dist/logos/*": "./dist/logos/*",
+    "./package.json": "./package.json"
+  },
   "main": "dist/index.js",
   "scripts": {
     "build": "tsx src/build.ts"

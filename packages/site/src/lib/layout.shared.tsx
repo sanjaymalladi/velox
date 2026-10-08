@@ -11,17 +11,12 @@ export function baseOptions(): BaseLayoutProps {
     githubUrl: 'https://github.com/sanjaymalladi/velox',
     links: [
       {
-        text: 'Docs',
-        url: '/docs',
-        active: 'nested-url',
-      },
-      {
         text: 'Themes',
         url: '/docs/themes',
       },
       {
-        text: 'CLI',
-        url: '/docs/cli',
+        text: 'Playground',
+        url: '/docs/playground',
       },
     ],
   }

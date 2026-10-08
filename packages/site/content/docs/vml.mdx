@@ -1,0 +1,333 @@
+---
+title: VML tags
+description: Attribute reference for Velox Markup — root, scene, layout, text, media, charts, and reel blocks.
+---
+
+VML is the recommended format for LLMs. It avoids TypeScript chain mistakes while keeping creative hierarchy: scenes contain layouts, layouts contain text/media/shapes/data, and shared attributes add placement and motion.
+
+### Root Video
+
+`<video>` wraps exactly one video document and must contain one or more `<scene>` tags.
+
+```text
+size            portrait | 1080p | 720p | square | 16:9 | 9:16 | 1:1 | 4:5 | 21:9
+fps             24 | 30 | 60
+theme           geist | notion | linear | obsidian | sandstone | corporateBlue | mintMinimal | monochromeGrid | creamChecks
+background      CSS color | grid(color, size) | creamGrid | creamGrid(size)
+motionQuality   standard | premium
+```
+
+`premium` adds a light grain and vignette when the scene mood asks for it.
+
+### Themes
+
+```text
+geist            clean white product slides
+notion           warm document
+linear           dark SaaS dashboards
+obsidian         cinematic black
+sandstone        editorial storytelling
+corporateBlue    reports and B2B
+mintMinimal      calm productivity
+monochromeGrid   black-and-white diagrams
+creamChecks      warm cream, use background="creamGrid"
+```
+
+Use theme tokens instead of hand-picking colors when contrast matters: `theme.text`, `theme.muted`, `theme.accent`, `theme.primary`, `theme.secondary`, `theme.background`.
+
+### Backgrounds
+
+Global video background applies to every scene unless the scene has its own background.
+
+```xml
+<video background="grid(rgba(255,255,255,0.04), 44)">
+  <scene duration="4">...</scene>
+  <scene duration="4" background="aurora:ocean">...</scene>
+</video>
+```
+
+Warm cream grid video background:
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid">
+  <scene duration="4">
+    <center>
+      <hero kicker="CASE STUDY" title="Soft editorial motion" subtitle="Warm cream grid with theme-aware text" />
+    </center>
+  </scene>
+</video>
+```
+
+Scene backgrounds:
+
+```text
+#050505
+rgba(0,0,0,0.2)
+grid(rgba(255,255,255,0.05), 44)
+creamGrid
+creamGrid(36)
+aurora:midnight | aurora:violet | aurora:danger | aurora:ocean | aurora:ember
+mesh:midnight | mesh:violet | mesh:danger | mesh:ocean | mesh:ember
+```
+
+Aliases: `neon` and `purple` map to `violet`. `blue` maps to `ocean`. `red` maps to `danger`. `orange` maps to `ember`.
+
+### Premium Scene Controls
+
+Scene-level controls add fluid movement without pixel offsets:
+
+```xml
+<scene duration="5" camera="slowPush" mood="editorial" transition="blurDissolve" transitionDuration="0.6" staggerStep="0.12">
+  <center motion="heroCinematic">
+    <hero kicker="CASE STUDY" title="Great visuals feel alive" subtitle="Depth, rhythm, and smooth timing." />
+  </center>
+</scene>
+```
+
+```text
+camera              none | slowPush | parallaxDrift | handheld | kenBurns
+mood                neutral | editorial | cinematic
+transition          crossDissolve | blurDissolve | zoomSmooth | slide | wipe | zoom | glitch | flash
+vignette / grain    0 to 1
+staggerStep         seconds between child entrances
+```
+
+### Layout
+
+Use `center` for a single centered composition, `column` for vertical flow, `row` for side-by-side items, and `stack` only for overlays.
+
+```xml
+<column gap="32" placement="center">
+  <kicker color="theme.accent">RESULTS</kicker>
+  <row gap="24">
+    <metric value="68%" label="Less layout work" />
+    <metric value="3x" label="Faster drafts" />
+  </row>
+</column>
+```
+
+Do not put `width` or `height` on layout tags. Size the child elements instead. If an LLM writes `<stack gap="...">`, Velox treats it as vertical flow because a gap usually means the model wanted a column, not an overlay.
+
+### Text
+
+```xml
+<hero kicker="..." title="..." subtitle="..." />
+<text value="..." size="64" weight="700" color="theme.text" wrap="820" />
+<kicker color="theme.accent">LABEL</kicker>
+<list>
+  <item>One</item>
+  <item>Two</item>
+</list>
+```
+
+For portrait video, keep titles around 48–76, subtitles around 28–42, and `wrap` between 680 and 860.
+
+### Media And Logos
+
+```xml
+<logo name="openai" theme="light" size="96" motion="float" />
+<logoLockup name="openai" label="OpenAI" theme="light" logoSize="72" textSize="96" gap="24" />
+<image src="/images/demo.png" width="520" height="320" radius="24" />
+<stock query="developer coding at night" width="520" height="320" radius="24" />
+```
+
+Use `logoLockup` when text should align with the brand mark. Do not try to call methods on logo lockups; VML uses attributes only.
+
+### Shapes And Cards
+
+`rect` can be a simple shape or a card container.
+
+```xml
+<rect width="620" height="300" color="rgba(255,255,255,0.08)" stroke="theme.accent" radius="32">
+  <column gap="18">
+    <kicker color="theme.accent">INSIGHT</kicker>
+    <text value="VML keeps models away from invalid chains." size="42" color="theme.text" />
+  </column>
+</rect>
+```
+
+Other shapes:
+
+```text
+circle | line | progress | metric | metricRow | glassList | card
+```
+
+### Charts And Data
+
+Use `barChart` for simple comparisons, `lineChart` for trends, and `donutChart` for shares. These are D3-backed and animate safely from VML.
+
+```xml
+<barChart width="720" height="340" motion="growUp" showLabels="true" showValues="true">
+  <bar label="Prompt" value="82" color="theme.accent" />
+  <bar label="Layout" value="64" color="#38bdf8" />
+  <bar label="Render" value="91" color="#22c55e" />
+</barChart>
+```
+
+Use `progress` for one number and `metric`/`metricRow` for short KPI cards.
+
+Organic accents use Flubber path morphing:
+
+```xml
+<morphBlob variant="soft" width="360" height="360" color="theme.accent" motion="driftIn" />
+```
+
+### Motion
+
+Shared motion values:
+
+```text
+none | fade | cinematic | typewriter | pop | float | drawIn | growUp | slideIn
+heroCinematic | softReveal | driftIn | premiumSlide | magneticPop
+```
+
+Premium motion values use Popmotion easing under the hood. Prefer `heroCinematic` for hero blocks, `softReveal` for calm text/cards, `driftIn` for ambient accents, `premiumSlide` for panels, and `magneticPop` for metrics.
+
+Use `delay` in seconds. Prefer separate scenes for sequential beats. If one long scene contains delayed top-level sections, Velox automatically fades older sections before the next delayed top-level section appears.
+
+### Reel Production
+
+Use reel templates when creating social video, product announcements, model launches, and news explainers. Templates place elements by semantic slots so LLMs do not need pixel offsets.
+
+Scene templates:
+
+```text
+topTextBottomVisual | topVisualBottomText | splitLeftRight | centerCard
+fullBleedMedia | headlineThenProof | threeBeatReveal
+```
+
+Slots:
+
+```text
+top | bottom | visual | caption | overlay | left | right | center | full
+```
+
+Semantic reel components:
+
+```xml
+<announcement slot="top" title="New model dropped" subtitle="Here is what changed" badge="BREAKING" />
+<launchCard title="Velox 2.0" subtitle="VML-first reels" cta="Try it" proof="Native Canvas export" />
+<breakingNews headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand." />
+<featureReveal title="Production pieces">
+  <item>captions</item>
+  <item>asset overlays</item>
+  <item>generated cards</item>
+</featureReveal>
+<problemSolution problem="LLMs invent offsets" solution="Use templates and slots" />
+<beforeAfter before="fragile chains" after="safe markup" />
+<quoteCard quote="Markup is easier for small models." author="Velox" />
+<ranking title="Top features"><item>VML</item><item>Captions</item></ranking>
+<countdown value="3" label="days left" />
+<finalCTA title="Paste VML. Render. Export." cta="Try it now" />
+```
+
+Assets and icons:
+
+```xml
+<asset name="phone-frame" slot="visual" width="360" height="640" motion="driftIn" />
+<asset name="new-badge" slot="overlay" width="240" height="110" motion="magneticPop" />
+<icon name="github" pack="simple-icons" size="104" slot="overlay" />
+```
+
+```text
+assets   phone-frame | new-badge | arrow-right | highlight-ring | star-burst
+icons    github | npm | rss | discord
+```
+
+Captions:
+
+```xml
+<captions text="Launch reels from markup with safe VML." style="karaoke" slot="caption" />
+<captions style="wordPop" slot="caption">
+  <caption at="0.2" dur="1.4">First line</caption>
+  <caption at="1.8" dur="1.5">Second line</caption>
+</captions>
+```
+
+```text
+plain | pill | karaoke | wordPop | highlightKeywords
+```
+
+Stock and generated cards:
+
+```xml
+<stock query="developer coding at night" provider="generated" width="520" height="320" />
+<stock query="open source robot" provider="wikipedia" width="520" height="320" />
+<githubRepo owner="sanjaymalladi" repo="velox" slot="visual" />
+<npmPackage name="@velox-video/core" />
+<website url="https://example.com" device="laptop" />
+<brandCard name="openai" provider="openbrand" />
+```
+
+```text
+generated | local | wikipedia | flickr | unsplashSource | openbrand | pexels | unsplash | pixabay
+```
+
+Remote providers are best-effort and should cache before render. Use `generated` or `local` when the export must be deterministic.
+
+Audio and beat metadata:
+
+```xml
+<video music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4">
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
+  </scene>
+</video>
+```
+
+Audio muxing is staged: VML compiles music, SFX, and beat markers into timeline metadata, but current MP4 export remains silent.
+
+## Complex Reel Example
+
+```xml
+<video size="portrait" fps="60" theme="creamChecks" background="creamGrid" motionQuality="premium" music="soundtrack.mp3" musicVolume="0.35">
+  <scene duration="4.8" template="topTextBottomVisual" camera="slowPush" mood="editorial" transition="blurDissolve" staggerStep="0.14">
+    <announcement slot="top" title="Launch reels from markup" subtitle="Templates, captions, assets, stock refs, cards, charts, and beat metadata." badge="NEW" tone="success" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="360" height="640" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Launch reels from markup with safe VML." style="karaoke" />
+    <sfx name="whoosh" at="0.35" volume="0.8" />
+    <beat at="0.5" />
+  </scene>
+
+  <scene duration="5.4" template="splitLeftRight" background="aurora:ocean" camera="parallaxDrift" mood="cinematic" transition="zoomSmooth">
+    <featureReveal slot="left" title="Production pieces included" caption="High-level tags instead of fragile offsets." motion="premiumSlide">
+      <item>caption styles</item>
+      <item>transparent SVG assets</item>
+      <item>stock provider refs</item>
+      <item>generated cards</item>
+    </featureReveal>
+    <stock slot="right" query="developer coding at night" provider="generated" width="440" height="620" radius="32" motion="driftIn" delay="0.2" />
+    <captions slot="caption" text="Every block stays semantic for small models." style="wordPop" start="0.8" />
+    <beat at="1.0" />
+  </scene>
+
+  <scene duration="5.2" template="centerCard" background="mesh:violet" camera="kenBurns" mood="cinematic" transition="blurDissolve">
+    <card slot="visual" width="900" height="720" radius="40" motion="softReveal">
+      <column gap="26">
+        <kicker color="theme.accent">DATA STORY</kicker>
+        <lineChart width="720" height="260" curve="smooth" motion="drawIn">
+          <series label="Prompt" values="18,30,46,64,78" color="theme.accent" />
+          <series label="Render" values="8,18,36,62,92" color="#22c55e" />
+        </lineChart>
+        <donutChart size="260" motion="growUp">
+          <slice label="Layout" value="35" color="theme.accent" />
+          <slice label="Media" value="25" color="#38bdf8" />
+          <slice label="Motion" value="40" color="#22c55e" />
+        </donutChart>
+      </column>
+    </card>
+    <captions slot="caption" text="Charts are VML too, powered by D3." style="pill" start="0.4" />
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" background="warmPaper" camera="slowPush" mood="editorial" transition="zoomSmooth">
+    <breakingNews slot="top" headline="No-key media starts free-first" ticker="Generated fallback, local, Wikipedia, Unsplash Source, OpenBrand metadata." tone="warning" motion="heroCinematic" />
+    <githubRepo slot="visual" owner="sanjaymalladi" repo="velox" motion="driftIn" delay="0.25" />
+    <icon slot="overlay" name="github" size="104" motion="magneticPop" delay="0.45" />
+    <captions slot="caption" text="Generated cards render before export and cache locally." style="highlightKeywords" />
+    <sfx name="pop" at="0.6" />
+  </scene>
+</video>
+```
+
+
