@@ -78,6 +78,9 @@ importers:
       '@velox-video/core':
         specifier: workspace:*
         version: link:../velox-core
+      '@velox-video/svgl':
+        specifier: workspace:*
+        version: link:../svgl-velox
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -117,6 +120,9 @@ importers:
       rehype-raw:
         specifier: ^7.0.0
         version: 7.0.0
+      remark-gfm:
+        specifier: '4'
+        version: 4.0.1
       scheduler:
         specifier: ^0.27.0
         version: 0.27.0

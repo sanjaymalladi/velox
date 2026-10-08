@@ -8,6 +8,7 @@ import {
   layout, backdrops, typography, creativeCards, motion,
 } from '@velox-video/core'
 import type { VeloxVideo, LlmVideoSpec } from '@velox-video/core'
+import { attachPlaygroundLogoPaths } from './playgroundLogos'
 
 // ─── Examples ────────────────────────────────────────────────────────────────
 
@@ -116,8 +117,8 @@ const EXAMPLES = [
     scene(5)
       .add(
         logo('github', 'light').center({ offsetX: -200, offsetY: -30 }).size(120).in('tactileIn', 1.0, { ease: 'jitter' }).loop('float', { distance: 15, speed: 0.8 }),
-        logo('react', 'dark').center({ offsetX: 0, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.1, ease: 'jitter' }).loop('rotate', { speed: 0.2 }),
-        logo('svelte', 'dark').center({ offsetX: 200, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.2, ease: 'jitter' }).loop('float', { distance: 10, speed: 1.2 }),
+        logo('react', 'light').center({ offsetX: 0, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.1, ease: 'jitter' }).loop('rotate', { speed: 0.2 }),
+        logo('svelte', 'light').center({ offsetX: 200, offsetY: -30 }).size(120).in('tactileIn', 1.0, { delay: 0.2, ease: 'jitter' }).loop('float', { distance: 10, speed: 1.2 }),
         text('INTEGRATED WITH SVGL')
           .center({ offsetY: 120 })
           .size(32).weight(600).color('#111').letterSpacing(4)
@@ -136,7 +137,7 @@ const EXAMPLES = [
   scenes: [
     scene(5)
       .add(
-        ...logo.lockup('openai', 'OpenAI', 'light', {
+        ...logo.lockup('openai', 'OpenAI', 'dark', {
           logoSize: 72,
           textSize: 112,
           gap: 26,
@@ -344,12 +345,13 @@ export function PlaygroundClient() {
         canvas.height = h
       }
 
-      preloadImages(cfg).then((cache) => {
-        setImageCache(cache)
-        // Draw first frame then start loop
-        drawCurrentFrame(0)
-        setIsPlaying(true)
-      })
+      void attachPlaygroundLogoPaths(cfg)
+        .then(() => preloadImages(cfg))
+        .then((cache) => {
+          setImageCache(cache)
+          drawCurrentFrame(0)
+          setIsPlaying(true)
+        })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
       setActiveTab('output')
@@ -365,12 +367,6 @@ export function PlaygroundClient() {
     }
     return stopLoop
   }, [isPlaying, startLoop, stopLoop])
-
-  // ── Auto-render the first example on mount ────────────────────────────────
-  useEffect(() => {
-    handleRender()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Scrubber change ───────────────────────────────────────────────────────
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -404,6 +400,7 @@ export function PlaygroundClient() {
       canvas.width = w
       canvas.height = h
 
+      await attachPlaygroundLogoPaths(cfg)
       const cache = await preloadImages(cfg)
       setImageCache(cache)
 
@@ -642,286 +639,6 @@ export function PlaygroundClient() {
         </div>
       </div>
 
-      <style>{`
-        .pg-root {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          height: min(920px, calc(100dvh - 10rem));
-          min-height: 420px;
-          border-radius: 0;
-          overflow: hidden;
-          border: 1px solid rgba(196, 128, 44, 0.18);
-          border-left: none;
-          border-right: none;
-          background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent), rgba(25, 17, 12, 0.84);
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
-          backdrop-filter: blur(18px);
-          font-family: ui-monospace, 'Fira Code', monospace;
-          margin: 0;
-        }
-
-        @media (min-width: 768px) {
-          .pg-root {
-            border-radius: 18px;
-            border-left: 1px solid rgba(196, 128, 44, 0.18);
-            border-right: 1px solid rgba(196, 128, 44, 0.18);
-          }
-        }
-
-        @media (max-width: 900px) {
-          .pg-split {
-            flex-direction: column;
-          }
-          .pg-editor-pane,
-          .pg-preview-pane {
-            width: 100%;
-            min-height: 0;
-          }
-          .pg-editor-pane {
-            flex: 1.1;
-            border-right: none;
-            border-bottom: 1px solid rgba(196,128,44,0.12);
-          }
-          .pg-preview-pane {
-            flex: 1;
-          }
-        }
-
-        /* Top bar */
-        .pg-topbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 16px;
-          background: rgba(35, 24, 16, 0.82);
-          border-bottom: 1px solid rgba(196, 128, 44, 0.14);
-          flex-shrink: 0;
-        }
-        .pg-topbar-left { display: flex; align-items: center; gap: 10px; }
-        .pg-label { font-size: 11px; color: rgba(235, 215, 194, 0.52); text-transform: uppercase; letter-spacing: 0.06em; font-family: inherit; }
-        .pg-select {
-          background: rgba(53, 37, 24, 0.88);
-          border: 1px solid rgba(196,128,44,0.28);
-          color: #f7ead7;
-          border-radius: 10px;
-          padding: 5px 10px;
-          font-size: 13px;
-          cursor: pointer;
-          font-family: inherit;
-          outline: none;
-        }
-        .pg-select:focus { border-color: #ffb14a; }
-        .pg-render-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: linear-gradient(135deg, #ffbf66, #f08a3c);
-          border: none;
-          color: #24160d;
-          border-radius: 999px;
-          padding: 8px 18px;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: opacity 0.15s;
-          font-family: inherit;
-        }
-        .pg-render-btn:hover { opacity: 0.88; }
-        .pg-render-btn:disabled { opacity: 0.55; cursor: wait; }
-        .pg-render-btn--secondary {
-          background: rgba(53, 37, 24, 0.88);
-          border: 1px solid rgba(196,128,44,0.28);
-          color: #f7ead7;
-        }
-        .pg-render-icon { font-size: 10px; }
-
-        /* Split */
-        .pg-split {
-          display: flex;
-          flex: 1;
-          overflow: hidden;
-          min-height: 0;
-        }
-
-        /* Editor pane */
-        .pg-editor-pane {
-          display: flex;
-          flex-direction: column;
-          width: 50%;
-          border-right: 1px solid rgba(196,128,44,0.12);
-          overflow: hidden;
-        }
-        .pg-pane-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 14px;
-          background: rgba(35, 24, 16, 0.76);
-          border-bottom: 1px solid rgba(196,128,44,0.1);
-          flex-shrink: 0;
-        }
-        .pg-pane-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .pg-dot-red    { background: #ff5f57; }
-        .pg-dot-yellow { background: #febc2e; }
-        .pg-dot-green  { background: #28c840; }
-        .pg-pane-title { font-size: 12px; color: rgba(235, 215, 194, 0.52); margin-left: 6px; }
-        .pg-editor {
-          flex: 1;
-          width: 100%;
-          background: rgba(20, 14, 10, 0.95);
-          color: #f1e2cf;
-          border: none;
-          outline: none;
-          resize: none;
-          padding: 16px;
-          font-size: 12.5px;
-          line-height: 1.7;
-          font-family: inherit;
-          tab-size: 2;
-        }
-        .pg-editor::selection { background: rgba(240,138,60,0.28); }
-
-        /* Preview pane */
-        .pg-preview-pane {
-          display: flex;
-          flex-direction: column;
-          width: 50%;
-          overflow: hidden;
-          background: rgba(24, 16, 11, 0.92);
-        }
-
-        /* Tabs */
-        .pg-tabs {
-          display: flex;
-          background: rgba(35, 24, 16, 0.82);
-          border-bottom: 1px solid rgba(196,128,44,0.14);
-          flex-shrink: 0;
-        }
-        .pg-tab {
-          padding: 8px 18px;
-          font-size: 12px;
-          background: none;
-          border: none;
-          color: rgba(235, 215, 194, 0.52);
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          transition: color 0.15s, border-color 0.15s;
-          font-family: inherit;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          position: relative;
-        }
-        .pg-tab:hover { color: #f3e4d0; }
-        .pg-tab--active { color: #fff7ef; border-bottom-color: #ffb14a; }
-        .pg-error-dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #ef4444; display: inline-block;
-        }
-
-        /* Canvas */
-        .pg-canvas-wrap {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          padding: 12px;
-          background: radial-gradient(circle at top, rgba(255,190,92,0.08), transparent 30%), rgba(14, 10, 7, 0.96);
-        }
-        .pg-canvas {
-          width: 100%;
-          height: 100%;
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-          border-radius: 10px;
-          display: block;
-        }
-        .pg-empty {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          color: rgba(235, 215, 194, 0.44);
-          font-size: 13px;
-          font-family: ui-sans-serif, system-ui, sans-serif;
-          position: absolute;
-        }
-        .pg-empty-icon { font-size: 32px; }
-
-        /* Output */
-        .pg-output {
-          flex: 1;
-          padding: 16px;
-          overflow: auto;
-          background: rgba(14, 10, 7, 0.96);
-          align-items: flex-start;
-        }
-        .pg-error-text {
-          color: #f87171;
-          font-size: 12px;
-          line-height: 1.7;
-          white-space: pre-wrap;
-          word-break: break-all;
-          margin: 0;
-          font-family: inherit;
-        }
-        .pg-ok-text {
-          color: #4ade80;
-          font-size: 13px;
-          font-family: inherit;
-        }
-
-        /* Controls */
-        .pg-controls {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: rgba(35, 24, 16, 0.82);
-          border-top: 1px solid rgba(196,128,44,0.14);
-          flex-shrink: 0;
-        }
-        .pg-ctrl-btn {
-          background: none;
-          border: none;
-          color: rgba(235, 215, 194, 0.64);
-          cursor: pointer;
-          font-size: 14px;
-          padding: 4px 6px;
-          border-radius: 4px;
-          transition: color 0.15s, background 0.15s;
-          font-family: inherit;
-        }
-        .pg-ctrl-btn:hover { color: #fff7ef; background: rgba(240,138,60,0.16); }
-        .pg-ctrl-play { color: #ffb14a; font-size: 15px; }
-        .pg-scrubber {
-          flex: 1;
-          appearance: none;
-          height: 3px;
-          border-radius: 2px;
-          background: rgba(240,138,60,0.22);
-          outline: none;
-          cursor: pointer;
-          accent-color: #ffb14a;
-        }
-        .pg-scrubber::-webkit-slider-thumb {
-          appearance: none;
-          width: 12px; height: 12px;
-          border-radius: 50%;
-          background: #ffb14a;
-          cursor: pointer;
-        }
-        .pg-time {
-          font-size: 11px;
-          color: rgba(235, 215, 194, 0.48);
-          white-space: nowrap;
-          min-width: 72px;
-          text-align: right;
-        }
-      `}</style>
     </div>
   )
 }

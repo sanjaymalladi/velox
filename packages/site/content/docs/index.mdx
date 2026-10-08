@@ -1,30 +1,9 @@
 ---
 title: Overview
-description: Velox turns VML markup and TypeScript into deterministic MP4 — native canvas render, built-in themes, and an LLM-friendly authoring model.
+description: Velox turns VML markup into deterministic MP4 with a native canvas renderer.
 ---
 
-# Overview
-
-Velox is a **code-first motion graphics engine** for product reels, explainers, and social cuts. You describe scenes in **Velox Markup (VML)** or TypeScript, preview locally, then export **native MP4** without a browser capture step.
-
-## What you get
-
-- **VML authoring** — XML-like markup with scenes, templates, captions, and semantic blocks (`<hero>`, `<metricRow>`, …).
-- **51 built-in themes** — one `theme="…"` attribute locks colors, type, cards, and caption bars. [Theme reference →](/docs/themes)
-- **Scene transitions** — dissolve, blur, wipe, zoom, glitch, and flash between scenes. [Transitions guide →](/docs/transitions)
-- **Native render** — `@napi-rs/canvas` + H.264 encoder on Node; no headless Chrome required.
-- **Audio mux** — background music and timeline SFX stitched onto the export (bundled ffmpeg when needed).
-- **CLI workflow** — `velox lint`, `velox render`, `velox list themes`, `velox add` catalog blocks.
-
-## Mental model
-
-```
-VML file  →  compile  →  frame loop  →  H.264 MP4  →  optional audio mux
-```
-
-1. Author a `.vml` reel (or TypeScript config for programmatic projects).
-2. Run `velox lint reel.vml` to catch invalid tags, missing slots, and transition timing errors.
-3. Run `velox render reel.vml -o out.mp4` for the final file.
+Velox is a code-first motion engine. You write a reel in Velox Markup, lint it, and export MP4 without a browser capture step.
 
 ## Minimal reel
 
@@ -35,24 +14,13 @@ VML file  →  compile  →  frame loop  →  H.264 MP4  →  optional audio mux
     <hero slot="center" kicker="INTRO" title="Ship faster." subtitle="Native render, no capture." />
     <captions slot="caption" text="One line of proof." style="pill" start="0.5" />
   </scene>
-  <scene duration="5" template="centerCard" transition="zoomSmooth">
-    <finalCTA slot="center" title="Try Velox" subtitle="velox render reel.vml" />
-  </scene>
 </video>
 ```
 
-## Docs map
+## Start here
 
-| Page | When to read it |
-|------|-----------------|
-| [Getting Started](/docs/getting-started) | First install, first render |
-| [Themes](/docs/themes) | Picking and overriding aesthetics |
-| [Transitions](/docs/transitions) | Scene-to-scene motion |
-| [Rendering](/docs/rendering) | Formats, quality, audio |
-| [CLI](/docs/cli) | Full command reference |
-| [VML Prompt](/docs/markup-prompt) | Prompt an LLM to write markup |
-| [Playground](/docs/playground) | Paste markup in the browser |
+- [Your first reel](/docs/getting-started) — install, lint, render
+- [Themes](/docs/themes) — one `theme` attribute, then the id list
+- [CLI](/docs/cli) — command reference
 
-## What Velox is not
-
-Velox is not a timeline NLE and not a drag-and-drop editor. The markup (or TypeScript) is the source of truth. That trade-off buys you version control, LLM generation, and deterministic exports.
+Agents writing markup should copy the [VML system prompt](/docs/markup-prompt). Tag details live on [VML tags](/docs/vml). The [playground](/docs/playground) stays closed until you press Render.

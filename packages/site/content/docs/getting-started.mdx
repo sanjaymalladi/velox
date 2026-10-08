@@ -3,8 +3,6 @@ title: Getting Started
 description: Install Velox, write a portrait reel in VML, lint it, and render native MP4 in under five minutes.
 ---
 
-# Getting Started
-
 This guide walks through a **VML reel** — the fastest path for product videos and LLM-generated motion graphics.
 
 ## Prerequisites
@@ -79,6 +77,16 @@ velox render reel.vml --draft    # half resolution, capped fps — quick review
 
 Progress prints in-place; the output path is deterministic when you pass `-o`.
 
+The usual loop is lint, a draft, then the final file:
+
+```bash
+velox lint reel.vml --strict
+velox render reel.vml --draft -o out/draft.mp4
+velox render reel.vml -o out/final.mp4
+```
+
+If elements stack in the center, set `template` on `<scene>` and `slot` on each child. If lint rejects a transition, `transitionDuration` must be shorter than the scene `duration`.
+
 ## Add music and SFX
 
 ```xml
@@ -91,18 +99,11 @@ Progress prints in-place; the output path is deterministic when you pass `-o`.
 
 Drop `sfx/whoosh.mp3` next to the VML file. See [Rendering → Audio](/docs/rendering#audio) for mux details.
 
+If the export is silent, check that `track.mp3` exists and read the render log for the mux step. Color comes from one `theme` on `<video>` plus `color="theme.text"` on children.
+
 ## Next steps
 
-- Pick a look on the [Themes reference](/docs/themes) or run `velox list themes`
+- Pick an id on [Themes](/docs/themes) or run `velox list themes`
 - Read [Transitions](/docs/transitions) for scene handoffs
-- Copy the [VML system prompt](/docs/markup-prompt) into your LLM workflow
+- Copy the [VML system prompt](/docs/markup-prompt) when an agent should write the markup
 - Install catalog snippets with `velox add stat-counter`
-
-## Common mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Elements stack in the center | Set `template="…"` on `<scene>` and `slot="…"` on children |
-| Transition error on lint | `transitionDuration` must be **less than** scene `duration` |
-| Silent export with music | Ensure `track.mp3` exists; check render log for mux status |
-| Wrong colors everywhere | Set **one** `theme="…"` on `<video>`, use `color="theme.text"` |
