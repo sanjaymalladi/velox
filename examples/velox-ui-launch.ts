@@ -23,6 +23,7 @@ const scenes = [
     .background('#0b0c13')
     .camera('slowPush')
     .mood('cinematic')
+    .overlay({ vignetteOpacity: 0.18, grainOpacity: 0 })
     .story({ chapter: 'The interaction', focus: 'A cursor builds and renders a video' })
     .add(uiDemo({
       app: 'Velox Studio',
@@ -67,7 +68,7 @@ export default createVideo({
   fps: 30,
   theme: 'obsidian',
   background: ink,
-  motionQuality: 'premium',
+  motionQuality: 'standard',
   visualWorld: {
     name: 'Velox violet studio',
     material: 'matte graphite',

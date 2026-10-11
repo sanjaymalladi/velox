@@ -23,5 +23,7 @@ describe('product UI demo renderer', () => {
 
     expect(frames[0]).not.toEqual(frames[1])
     expect(frames[1]).not.toEqual(frames[2])
+    const titleBarPixel = context.getImageData(640, 40, 1, 1).data
+    expect(Math.max(titleBarPixel[0]!, titleBarPixel[1]!, titleBarPixel[2]!)).toBeLessThan(100)
   })
 })

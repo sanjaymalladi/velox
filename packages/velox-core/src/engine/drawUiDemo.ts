@@ -28,7 +28,10 @@ function ease(value: number): number {
 
 function paintText(ctx: Ctx, value: string, x: number, y: number, size: number, color: string, weight = 500): void {
   ctx.fillStyle = color
-  ctx.font = `${weight} ${size}px Inter, ui-sans-serif, system-ui, sans-serif`
+  // @napi-rs/canvas accepts hundred-step font weights. Values such as 450
+  // can be parsed as a pixel size and produce enormous glyphs in exported video.
+  const canvasWeight = Math.max(100, Math.min(900, Math.round(weight / 100) * 100))
+  ctx.font = `${canvasWeight} ${size}px Inter, ui-sans-serif, system-ui, sans-serif`
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
   ctx.fillText(value, x, y)
@@ -111,41 +114,44 @@ export function drawUiDemo(
 
   ctx.save()
   ctx.globalAlpha *= animation.opacity * enter
-  ctx.translate(centerX + animation.x, centerY + animation.y)
-  ctx.scale(animation.scaleX * (0.965 + enter * 0.035), animation.scaleY * (0.965 + enter * 0.035))
+  ctx.translate(left + animation.x, top + animation.y)
+  ctx.translate(displayWidth / 2, displayHeight / 2)
   ctx.rotate(animation.rotation * Math.PI / 180)
-  ctx.translate(-centerX, -centerY)
+  ctx.scale(animation.scaleX * (0.965 + enter * 0.035), animation.scaleY * (0.965 + enter * 0.035))
+  ctx.translate(-displayWidth / 2, -displayHeight / 2)
   ctx.scale(sx, sy)
-  ctx.translate(-centerX / sx, -centerY / sy)
 
-  // Window body and a soft, stable shadow.
+  // A small offset layer gives the window depth without a per-frame blur pass.
   ctx.save()
-  roundedRect(ctx, left / sx, top / sy, DESIGN_WIDTH, DESIGN_HEIGHT, 20)
-  ctx.shadowColor = dark ? 'rgba(0,0,0,.46)' : 'rgba(30,38,65,.2)'
-  ctx.shadowBlur = 36
-  ctx.shadowOffsetY = 20
+  roundedRect(ctx, 6, 12, DESIGN_WIDTH, DESIGN_HEIGHT, 20)
+  ctx.fillStyle = 'rgba(0,0,0,0.30)'
+  ctx.fill()
+  roundedRect(ctx, 0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, 20)
   ctx.fillStyle = surface
   ctx.fill()
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,0.09)' : 'rgba(35,40,60,0.12)'
+  ctx.lineWidth = 1
+  ctx.stroke()
   ctx.restore()
   ctx.save()
-  roundedRect(ctx, left / sx, top / sy, DESIGN_WIDTH, DESIGN_HEIGHT, 20)
+  roundedRect(ctx, 0, 0, DESIGN_WIDTH, DESIGN_HEIGHT, 20)
   ctx.clip()
 
   // Window chrome.
   ctx.fillStyle = dark ? '#12141b' : '#f0f1f5'
-  ctx.fillRect(left / sx, top / sy, DESIGN_WIDTH, 54)
+  ctx.fillRect(0, 0, DESIGN_WIDTH, 54)
   for (let i = 0; i < 3; i++) {
     ctx.beginPath()
-    ctx.arc(left / sx + 25 + i * 18, top / sy + 27, 5, 0, Math.PI * 2)
+    ctx.arc(25 + i * 18, 27, 5, 0, Math.PI * 2)
     ctx.fillStyle = ['#ff6d67', '#f8c65a', '#43c985'][i]!
     ctx.fill()
   }
-  paintText(ctx, element.app, left / sx + 90, top / sy + 27, 13, muted, 600)
+  paintText(ctx, element.app, 90, 27, 13, muted, 600)
   ctx.fillStyle = line
-  ctx.fillRect(left / sx, top / sy + 53, DESIGN_WIDTH, 1)
+  ctx.fillRect(0, 53, DESIGN_WIDTH, 1)
 
   // Sidebar and hierarchy.
-  const sx0 = left / sx, sy0 = top / sy
+  const sx0 = 0, sy0 = 0
   ctx.fillStyle = dark ? '#151720' : '#fbfbfd'
   ctx.fillRect(sx0, sy0 + 54, 190, DESIGN_HEIGHT - 54)
   ctx.fillStyle = line
@@ -183,7 +189,7 @@ export function drawUiDemo(
   paintText(ctx, element.prompt.slice(0, promptVisible), mainX + 18, sy0 + 249, 13, text, 450)
   if (typing < 0.98 && t > 0.24) {
     const cursorText = element.prompt.slice(0, promptVisible)
-    ctx.font = '450 13px Inter, ui-sans-serif, system-ui, sans-serif'
+    ctx.font = '400 13px Inter, ui-sans-serif, system-ui, sans-serif'
     const caretX = mainX + 18 + ctx.measureText(cursorText).width + 2
     ctx.fillStyle = accent
     ctx.fillRect(caretX, sy0 + 237, 2, 18)
@@ -199,7 +205,8 @@ export function drawUiDemo(
   roundedRect(ctx, mainX, actionY, buttonW, buttonH, 12)
   ctx.fillStyle = accent
   ctx.fill()
-  paintText(ctx, rendering > 0.01 ? 'Rendering…' : element.action, mainX + 17, actionY + 24, 12, '#fff', 650)
+  const actionLabel = complete > 0.5 ? 'Video ready' : rendering > 0.01 ? 'Rendering…' : element.action
+  paintText(ctx, actionLabel, mainX + 17, actionY + 24, 12, '#fff', 650)
   if (rendering > 0.01 && complete < 1) {
     roundedRect(ctx, mainX, actionY + 56, buttonW, 4, 2)
     ctx.fillStyle = dark ? '#343746' : '#e6e7ec'
@@ -215,12 +222,11 @@ export function drawUiDemo(
     ctx.save()
     ctx.globalAlpha *= complete
     roundedRect(ctx, toastX, toastY, 265, 70, 14)
-    ctx.fillStyle = dark ? '#252833' : '#fff'
-    ctx.shadowColor = 'rgba(0,0,0,.25)'
-    ctx.shadowBlur = 20
-    ctx.shadowOffsetY = 8
+    ctx.fillStyle = 'rgba(0,0,0,.24)'
     ctx.fill()
-    ctx.shadowBlur = 0
+    roundedRect(ctx, toastX - 2, toastY - 2, 265, 70, 14)
+    ctx.fillStyle = dark ? '#252833' : '#fff'
+    ctx.fill()
     ctx.beginPath()
     ctx.arc(toastX + 24, toastY + 35, 12, 0, Math.PI * 2)
     ctx.fillStyle = '#46c78a'
@@ -239,8 +245,6 @@ export function drawUiDemo(
 
   // Persistent UI seam and layers stay perfectly seekable; only the pointer moves.
   ctx.restore()
-  const globalX = left + cursorX * sx
-  const globalY = top + cursorY * sy
-  drawPointer(ctx, globalX / sx, globalY / sy, down, ripple)
+  drawPointer(ctx, cursorX, cursorY, down, ripple)
   ctx.restore()
 }
