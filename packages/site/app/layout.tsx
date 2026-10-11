@@ -14,7 +14,7 @@ const syne = Syne({
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
-  weight: ['300', '400'],
+  weight: ['400'],
   variable: '--font-dm-sans',
   display: 'swap',
 })
@@ -42,8 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`dark ${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
-      style={{ colorScheme: 'dark' }}
+      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body>

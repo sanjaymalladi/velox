@@ -657,6 +657,13 @@ function drawImage(
   }
 }
 
+function usablePaint(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const v = value.trim().toLowerCase()
+  if (v === 'none' || v === 'transparent' || v === 'currentcolor') return undefined
+  return value
+}
+
 function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state: AnimationState, width: number, height: number, frame: number, fps: number) {
   const data = el._paths
   if (!data) return
@@ -695,6 +702,7 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
     const path = data.paths[i]
     if (!path.d) continue
     const p2d = new Path2D(path.d)
+    const fill = usablePaint(path.fill) ?? usablePaint(path.stroke) ?? (el.theme === 'dark' ? '#ffffff' : '#111111')
     
     // Stagger paths slightly based on index
     const delay = (i / data.paths.length) * 0.5
@@ -703,7 +711,7 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
     const pathProgress = Math.min(Math.max(rawProgress, 0), 1)
 
     if (state.animationPhase === 'entrance' && p < 1) {
-       ctx.strokeStyle = path.fill || path.stroke || '#ffffff'
+       ctx.strokeStyle = fill
        ctx.lineWidth = 3 / scale // thin line independent of scale
        if (path.length) {
          ctx.setLineDash([path.length])
@@ -713,20 +721,18 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
        
        // Fade in fill at the very end of the stroke
        if (pathProgress > 0.8) {
-          ctx.fillStyle = path.fill || path.stroke || '#ffffff'
+          ctx.fillStyle = fill
           const fillP = (pathProgress - 0.8) / 0.2
           ctx.globalAlpha = fillP * (el.opacity ?? 1)
           ctx.fill(p2d)
           ctx.globalAlpha = el.opacity ?? 1
        }
     } else {
-       // Loop or Exit phase: just draw the filled path
-       if (path.fill) {
-         ctx.fillStyle = path.fill
-         ctx.fill(p2d)
-       }
-       if (path.stroke) {
-         ctx.strokeStyle = path.stroke
+       ctx.fillStyle = fill
+       ctx.fill(p2d)
+       const stroke = usablePaint(path.stroke)
+       if (stroke) {
+         ctx.strokeStyle = stroke
          ctx.stroke(p2d)
        }
     }
