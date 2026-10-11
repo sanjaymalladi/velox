@@ -1,0 +1,7 @@
+<video size="720p" fps="24" theme="obsidian" background="#101820">
+  <scene duration="2" layout="column" gap="28" align="center">
+    <kicker color="#fbbf24">STATIC BASELINE</kicker>
+    <text value="A quiet scene" size="60" weight="800" align="center" color="#ffffff" />
+    <text value="Background and type only" size="30" align="center" color="#cbd5e1" />
+  </scene>
+</video>

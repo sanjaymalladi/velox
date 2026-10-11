@@ -1,7 +1,7 @@
 import type {
   BaseElementConfig, VeloxPosition, NamedPosition,
   EntranceAnimation, ExitAnimation, LoopAnimation,
-  AnimationOptions, LoopOptions,
+  AnimationOptions, LoopOptions, MotionIntent,
 } from '../types'
 
 let _idCounter = 0
@@ -32,6 +32,12 @@ export abstract class Element<TConfig extends BaseElementConfig> {
   /** Element-level opacity (0-1) */
   opacity(value: number): this {
     this.config.opacity = value
+    return this
+  }
+
+  /** Retain the story job for linting and review. */
+  intent(value: MotionIntent): this {
+    this.config.intent = value
     return this
   }
 

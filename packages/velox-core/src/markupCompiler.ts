@@ -33,7 +33,7 @@ import { applyReelSlot, isReelTemplate, type ReelTemplateId } from './reelTempla
 import { resolveAesthetic } from './themes'
 import type { VeloxAesthetic } from './aesthetics/types'
 import type { Element } from './core/Element'
-import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan, EntranceAnimation, ExitAnimation, LoopAnimation } from './types'
+import type { ElementConfig, VeloxColor, VeloxGradient, VeloxSize, VeloxFps, VeloxTheme, MotionQuality, SceneCamera, SceneMood, TransitionType, SfxCue, VeloxAudioPlan, EntranceAnimation, ExitAnimation, LoopAnimation, MotionIntent, VisualWorldConfig, ChartProvenance } from './types'
 import { isVeloxMarkup, parseVeloxMarkup, type MarkupNode } from './markup'
 import { applyVmlVariables } from './variables'
 import { calculateFrameTimeline } from './timeline'
@@ -43,6 +43,8 @@ type Background = VeloxColor | VeloxGradient
 interface CompileContext {
   theme: VeloxTheme
   aesthetic: VeloxAesthetic
+  visualWorld?: VisualWorldConfig
+  sceneAccent?: string
 }
 
 const placements = ['center', 'top', 'bottom', 'left', 'right', 'hero', 'safeTop', 'safeBottom']
@@ -57,7 +59,7 @@ const directEntranceMotions: EntranceAnimation[] = [
   'typewriter', 'expandX', 'growUp', 'spring', 'bounceIn', 'glitchIn', 'revealLeft', 'slideUpBlur',
   'maskRevealUp', 'tactileIn', 'drawIn',
 ]
-const sceneCameras: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns']
+const sceneCameras: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'orbit', 'handheld', 'kenBurns']
 const sceneMoods: SceneMood[] = ['neutral', 'editorial', 'cinematic']
 const transitionTypes = new Set<TransitionType>([
   'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold',
@@ -66,6 +68,8 @@ const stockProviders = new Set([
   'generated',
   'local',
   'wikipedia',
+  'openverse',
+  'quarry',
   'flickr',
   'unsplashSource',
   'openbrand',
@@ -121,6 +125,16 @@ function color(value: string | undefined, ctx: CompileContext, fallback: string)
       return ctx.theme.muted
     case 'theme.accent':
       return ctx.theme.accent ?? ctx.theme.primary
+    case 'world.background':
+      return ctx.visualWorld?.palette?.background ?? ctx.theme.background
+    case 'world.foreground':
+      return ctx.visualWorld?.palette?.foreground ?? ctx.theme.text
+    case 'world.accent':
+      return ctx.visualWorld?.palette?.accent ?? ctx.theme.accent ?? ctx.theme.primary
+    case 'world.muted':
+      return ctx.visualWorld?.palette?.muted ?? ctx.theme.muted
+    case 'scene.accent':
+      return ctx.sceneAccent ?? ctx.visualWorld?.palette?.accent ?? ctx.theme.accent ?? ctx.theme.primary
     default:
       return value
   }
@@ -131,6 +145,20 @@ function numberList(value: string | undefined, path: string): number[] {
   const values = value.split(',').map((part) => Number(part.trim()))
   if (values.some((n) => !Number.isFinite(n))) fail(`${path} must contain only numbers.`)
   return values
+}
+
+function chartProvenance(node: MarkupNode): ChartProvenance {
+  const kind = attr(node, 'dataType')
+  if (kind && kind !== 'quantitative' && kind !== 'conceptual') {
+    fail(`<${node.tag}> dataType must be quantitative or conceptual.`)
+  }
+  return {
+    source: attr(node, 'source'),
+    date: attr(node, 'sourceDate'),
+    units: attr(node, 'units'),
+    kind: kind as ChartProvenance['kind'],
+    label: attr(node, 'label'),
+  }
 }
 
 const blobPathPresets = {
@@ -171,6 +199,10 @@ function validateCommon(node: MarkupNode): void {
   if (placement && !placements.includes(placement)) fail(`<${node.tag}> placement="${placement}" is invalid.`)
   const m = attr(node, 'motion')
   if (m && !motions.includes(m)) fail(`<${node.tag}> motion="${m}" is invalid.`)
+  const intent = attr(node, 'intent')
+  if (intent && !['reveal', 'trace', 'compare', 'transform', 'emphasize', 'settle', 'exit', 'atmosphere'].includes(intent)) {
+    fail(`<${node.tag}> intent="${intent}" is invalid. Use reveal, trace, compare, transform, emphasize, settle, exit, or atmosphere.`)
+  }
 }
 
 function background(value: string | undefined, ctx: CompileContext): Background | undefined {
@@ -216,10 +248,12 @@ function place<T extends AnyElement>(el: T, placement: string | undefined): T {
 }
 
 function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
+  const intent = attr(node, 'intent') as MotionIntent | undefined
+  if (intent) el.intent(intent)
   if (hasAttr(node, 'depth')) el.depth(num(attr(node, 'depth'), 0, `${node.tag}.depth`))
   if (hasAttr(node, 'opacity')) el.opacity(num(attr(node, 'opacity'), 1, `${node.tag}.opacity`))
   const exitName = attr(node, 'exit')
-  if (exitName) el.out(exitName as ExitAnimation, num(attr(node, 'exitDuration'), 0.35, `${node.tag}.exitDuration`), {
+  if (exitName || intent === 'exit') el.out((exitName ?? 'fadeOut') as ExitAnimation, num(attr(node, 'exitDuration'), 0.35, `${node.tag}.exitDuration`), {
     at: attr(node, 'exitAt') !== undefined ? num(attr(node, 'exitAt'), 0, `${node.tag}.exitAt`) : undefined,
   })
   const loopName = attr(node, 'loop')
@@ -229,7 +263,11 @@ function animate<T extends AnyElement>(el: T, node: MarkupNode): T {
     distance: attr(node, 'loopDistance') !== undefined ? num(attr(node, 'loopDistance'), 10, `${node.tag}.loopDistance`) : undefined,
     speed: attr(node, 'loopSpeed') !== undefined ? num(attr(node, 'loopSpeed'), 1, `${node.tag}.loopSpeed`) : undefined,
   })
-  const m = attr(node, 'motion') ?? 'cinematic'
+  const intentMotion: Record<MotionIntent, string> = {
+    reveal: 'maskRevealUp', trace: 'drawIn', compare: 'fadeIn', transform: 'slideUp',
+    emphasize: 'tactileIn', settle: 'fadeIn', exit: 'none', atmosphere: 'none',
+  }
+  const m = attr(node, 'motion') ?? (intent ? intentMotion[intent] : 'cinematic')
   const delay = num(attr(node, 'delay'), 0, `${node.tag}.delay`)
   if (directEntranceMotions.includes(m as EntranceAnimation)) {
     return el.in(m as EntranceAnimation, num(attr(node, 'motionDuration'), 0.6, `${node.tag}.motionDuration`), { delay })
@@ -577,14 +615,28 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       })]).stack()
       return finish(el, node, reelTemplate)
     }
-    case 'image':
-      return finish(image(requiredAttr(node, 'src'))
+    case 'image': {
+      const img = image(requiredAttr(node, 'src'))
         .size(num(attr(node, 'width'), scale(attr(node, 'scale'), 520), 'image.width'), num(attr(node, 'height'), scale(attr(node, 'scale'), 320), 'image.height'))
         .radius(num(attr(node, 'radius'), 24, 'image.radius'))
         .blur(num(attr(node, 'blur'), 0, 'image.blur'))
         .brightness(num(attr(node, 'brightness'), 1, 'image.brightness'))
         .saturate(num(attr(node, 'saturate'), 1, 'image.saturate'))
-        .fit(), node, reelTemplate)
+        .fit()
+      if (attr(node, 'tilt')) {
+        const angles = attr(node, 'tilt')!.split(',').map((value) => Number(value.trim()))
+        if (angles.length !== 2 || angles.some((value) => !Number.isFinite(value)))
+          fail('<image> tilt must contain two angles, for example tilt="8,-12".')
+        img.tilt(angles[0], angles[1])
+      }
+      if (attr(node, 'source') || attr(node, 'creator') || attr(node, 'rights') || attr(node, 'sourceDate') || attr(node, 'illustration')) {
+        img.provenance({
+          source: attr(node, 'source'), creator: attr(node, 'creator'), rights: attr(node, 'rights'),
+          date: attr(node, 'sourceDate'), illustration: attr(node, 'illustration') === 'true',
+        })
+      }
+      return finish(img, node, reelTemplate)
+    }
     case 'stock': {
       const provider = (attr(node, 'provider') ?? 'generated').toLowerCase()
       const q = requiredAttr(node, 'query')
@@ -645,7 +697,7 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
     case 'barChart': {
       const bars = node.children.filter((child) => child.tag === 'bar')
       if (bars.length === 0) fail('<barChart> requires <bar label="..." value="..." /> children.')
-      return finish(shape.barChart({
+      const chart = shape.barChart({
         data: bars.map((bar) => ({
           label: requiredAttr(bar, 'label'),
           value: num(requiredAttr(bar, 'value'), 0, 'bar.value'),
@@ -654,12 +706,15 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
         surface: attr(node, 'surface') as 'light' | 'dark' | undefined,
-      }).size(num(attr(node, 'width'), 700, 'barChart.width'), num(attr(node, 'height'), 320, 'barChart.height')), node, reelTemplate)
+      }).size(num(attr(node, 'width'), 700, 'barChart.width'), num(attr(node, 'height'), 320, 'barChart.height'))
+      const provenance = chartProvenance(node)
+      if (Object.values(provenance).some((value) => value !== undefined)) chart.provenance(provenance)
+      return finish(chart, node, reelTemplate)
     }
     case 'lineChart': {
       const series = node.children.filter((child) => child.tag === 'series')
       if (series.length === 0) fail('<lineChart> requires <series values="1,2,3" /> children.')
-      return finish(shape.lineChart({
+      const chart = shape.lineChart({
         series: series.map((s) => ({
           label: attr(s, 'label'),
           values: numberList(requiredAttr(s, 'values'), 'series.values'),
@@ -669,12 +724,15 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
         surface: attr(node, 'surface') as 'light' | 'dark' | undefined,
-      }).size(num(attr(node, 'width'), 700, 'lineChart.width'), num(attr(node, 'height'), 320, 'lineChart.height')), node, reelTemplate)
+      }).size(num(attr(node, 'width'), 700, 'lineChart.width'), num(attr(node, 'height'), 320, 'lineChart.height'))
+      const provenance = chartProvenance(node)
+      if (Object.values(provenance).some((value) => value !== undefined)) chart.provenance(provenance)
+      return finish(chart, node, reelTemplate)
     }
     case 'donutChart': {
       const slices = node.children.filter((child) => child.tag === 'slice')
       if (slices.length === 0) fail('<donutChart> requires <slice label="..." value="..." /> children.')
-      return finish(shape.donutChart({
+      const chart = shape.donutChart({
         data: slices.map((slice) => ({
           label: requiredAttr(slice, 'label'),
           value: num(requiredAttr(slice, 'value'), 0, 'slice.value'),
@@ -683,7 +741,10 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
         innerRadius: num(attr(node, 'innerRadius'), 0.58, 'donutChart.innerRadius'),
         showLabels: attr(node, 'showLabels') !== 'false',
         showValues: attr(node, 'showValues') !== 'false',
-      }).size(num(attr(node, 'size'), scale(attr(node, 'scale'), 340), 'donutChart.size')), node, reelTemplate)
+      }).size(num(attr(node, 'size'), scale(attr(node, 'scale'), 340), 'donutChart.size'))
+      const provenance = chartProvenance(node)
+      if (Object.values(provenance).some((value) => value !== undefined)) chart.provenance(provenance)
+      return finish(chart, node, reelTemplate)
     }
     case 'morphBlob': {
       const variant = (attr(node, 'variant') ?? 'soft') as keyof typeof blobPathPresets
@@ -942,10 +1003,19 @@ function collectAudioFromVideoRoot(root: MarkupNode, fps: VeloxFps): VeloxAudioP
 }
 
 function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelTemplateId): void {
+  const story: { chapter?: string; focus?: string; backgroundReason?: string; accent?: string; source?: string; sourceLabel?: string; sourceDate?: string } = {}
+  if (attr(node, 'chapter')) story.chapter = attr(node, 'chapter')
+  if (attr(node, 'focus')) story.focus = attr(node, 'focus')
+  if (attr(node, 'backgroundReason')) story.backgroundReason = attr(node, 'backgroundReason')
+  if (attr(node, 'accent')) story.accent = color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary)
+  if (attr(node, 'source')) story.source = attr(node, 'source')
+  if (attr(node, 'sourceLabel')) story.sourceLabel = attr(node, 'sourceLabel')
+  if (attr(node, 'sourceDate')) story.sourceDate = attr(node, 'sourceDate')
+  if (Object.keys(story).length) s.story(story)
   const cam = attr(node, 'camera')
   if (cam) {
     if (!sceneCameras.includes(cam as SceneCamera))
-      fail(`<scene> camera="${cam}" is invalid. Use none, slowPush, parallaxDrift, handheld, kenBurns.`)
+      fail(`<scene> camera="${cam}" is invalid. Use none, slowPush, parallaxDrift, orbit, handheld, kenBurns.`)
     s.camera(cam as SceneCamera)
   }
   const mood = attr(node, 'mood')
@@ -980,6 +1050,10 @@ function applySceneVmlAttributes(s: SceneBuilder, node: MarkupNode, ctx: Compile
 function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
   if (node.tag !== 'scene') fail('Only <scene> is allowed directly inside <video>.')
   const duration = num(attr(node, 'duration'), 5, 'scene.duration')
+  const sceneCtx: CompileContext = {
+    ...ctx,
+    sceneAccent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
+  }
   const s = scene(duration)
   const tplRaw = attr(node, 'template')
   if (tplRaw && !isReelTemplate(tplRaw))
@@ -987,7 +1061,7 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
       `<scene> template="${tplRaw}" is invalid. Use none, topTextBottomVisual, splitLeftRight, centerCard, headlineThenProof…`,
     )
   const reelTemplate = tplRaw && isReelTemplate(tplRaw) ? (tplRaw as ReelTemplateId) : undefined
-  applySceneVmlAttributes(s, node, ctx, reelTemplate === 'none' ? undefined : reelTemplate)
+  applySceneVmlAttributes(s, node, sceneCtx, reelTemplate === 'none' ? undefined : reelTemplate)
 
   const sceneAudio = node.children.find((c) => c.tag === 'audio')
   if (sceneAudio) {
@@ -1013,9 +1087,11 @@ function compileScene(node: MarkupNode, ctx: CompileContext): SceneBuilder {
     })
   }
 
-  const bg = background(attr(node, 'background') ?? 'theme.scene', ctx)
+  const bg = attr(node, 'background')
+    ? background(attr(node, 'background'), ctx)
+    : ctx.visualWorld?.background ?? background('theme.scene', ctx)
   if (bg) s.background(bg)
-  const sceneElements = compileSceneChildren(node, duration, ctx, reelTemplate === 'none' ? undefined : reelTemplate)
+  const sceneElements = compileSceneChildren(node, duration, sceneCtx, reelTemplate === 'none' ? undefined : reelTemplate)
   const sceneLayout = attr(node, 'layout') ?? 'free'
   const gap = num(attr(node, 'gap'), 28, 'scene.gap')
   const align = (attr(node, 'align') ?? 'center') as 'start' | 'center' | 'end'
@@ -1047,6 +1123,29 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
   const root = parseVeloxMarkup(resolved)
   const aesthetic = resolveAesthetic(attr(root, 'theme') ?? 'obsidian')
   const ctx: CompileContext = { theme: aesthetic.theme, aesthetic }
+  const worldNode = root.children.find((child) => child.tag === 'visualWorld')
+  let visualWorld: VisualWorldConfig | undefined
+  if (worldNode) {
+    const worldBackground = attr(worldNode, 'background')
+    const depth = attr(worldNode, 'depth')
+    if (depth && depth !== 'flat' && depth !== 'layered') fail('<visualWorld> depth must be flat or layered.')
+    visualWorld = {
+      name: attr(worldNode, 'name'),
+      background: worldBackground ? background(worldBackground, ctx) : undefined,
+      material: attr(worldNode, 'material'),
+      lighting: attr(worldNode, 'lighting'),
+      texture: attr(worldNode, 'texture'),
+      motif: attr(worldNode, 'motif'),
+      depth: depth as VisualWorldConfig['depth'],
+      palette: {
+        background: attr(worldNode, 'bgColor'),
+        foreground: attr(worldNode, 'foreground'),
+        accent: attr(worldNode, 'accent'),
+        muted: attr(worldNode, 'muted'),
+      },
+    }
+    ctx.visualWorld = visualWorld
+  }
   const sceneNodes = root.children.filter((c) => c.tag === 'scene')
   const scenes = sceneNodes.map((child) => compileScene(child, ctx))
   if (scenes.length === 0) fail('<video> requires at least one <scene>.')
@@ -1090,6 +1189,8 @@ export function createVideoFromMarkup(markup: string, variables?: Record<string,
     background: rootBackground(attr(root, 'background'), ctx),
     motionQuality,
     scenes,
+    ...(visualWorld ? { visualWorld } : {}),
+    ...(attr(root, 'reducedMotion') === 'true' ? { reducedMotion: true } : {}),
     ...(audioPlanRaw.music
       ? { audio: { src: audioPlanRaw.music.src, volume: audioPlanRaw.music.volume ?? 1 } }
       : {}),

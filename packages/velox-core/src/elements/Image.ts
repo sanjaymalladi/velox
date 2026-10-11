@@ -1,5 +1,6 @@
 import { Element } from '../core/Element'
-import type { ImageElementConfig } from '../types'
+import type { AssetProvenance, ImageElementConfig } from '../types'
+import { encodeVeloxStockRef } from '../mediaProviders'
 
 export class ImageElement extends Element<ImageElementConfig> {
   constructor(src: string) {
@@ -38,12 +39,24 @@ export class ImageElement extends Element<ImageElementConfig> {
   /** Border radius in pixels */
   radius(px: number): this { this.config.borderRadius = px; return this }
 
+  /** Tilt this image as a shallow 3D plane. Angles are degrees; keep them subtle. */
+  tilt(x: number, y = 0, options?: { perspective?: number }): this {
+    this.config.tilt = { x, y, ...options }
+    return this
+  }
+
   /**
    * Ken Burns effect — slow cinematic pan & zoom.
    * Great for still photos in news videos.
    */
   kenBurns(options?: { direction?: 'in' | 'out'; intensity?: number }): this {
     this.config.kenBurns = options ?? true
+    return this
+  }
+
+  /** Record where this image came from and whether it is an illustration. */
+  provenance(value: AssetProvenance): this {
+    this.config.provenance = { ...value }
     return this
   }
 }
@@ -60,3 +73,7 @@ image.stock = (query: string): ImageElement => {
   const slug = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'stock'
   return new ImageElement(`stock://${slug}`)
 }
+
+/** Find a no-key, permissively licensed image through Quarry. The CLI caches it on first render. */
+image.lookup = (query: string): ImageElement =>
+  new ImageElement(encodeVeloxStockRef('quarry', query))

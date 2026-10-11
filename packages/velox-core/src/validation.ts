@@ -5,7 +5,7 @@ const VALID_TRANSITION_TYPES: TransitionType[] = [
   'crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold',
 ]
 
-const VALID_SCENE_CAMERAS: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns']
+const VALID_SCENE_CAMERAS: SceneCamera[] = ['none', 'slowPush', 'parallaxDrift', 'orbit', 'handheld', 'kenBurns']
 
 const VALID_SCENE_MOODS: SceneMood[] = ['neutral', 'editorial', 'cinematic']
 

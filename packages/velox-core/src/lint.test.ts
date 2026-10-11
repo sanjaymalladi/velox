@@ -64,6 +64,27 @@ describe('lintVeloxMarkup', () => {
     const r = lintVeloxMarkup(MINI.replace('Test', '{{missing}}'))
     expect(r.issues.some((i) => i.code === 'unresolved-var')).toBe(true)
   })
+
+  it('checks world continuity, scene focus, source dates, and contrast', () => {
+    const r = lintVeloxMarkup(`<video><visualWorld bgColor="#ffffff" /><scene duration="2" chapter="One" focus="a title" source="https://example.com"><text value="Low contrast" color="#eeeeee" /></scene><scene duration="2"><text value="Second" /></scene><scene duration="2"><text value="Third" /></scene></video>`)
+    expect(r.issues.some((issue) => issue.code === 'scene-source-date-missing')).toBe(true)
+    expect(r.issues.some((issue) => issue.code === 'scene-source-missing')).toBe(true)
+    expect(r.issues.some((issue) => issue.code === 'scene-focus-missing')).toBe(true)
+    expect(r.issues.some((issue) => issue.code === 'text-contrast-low')).toBe(true)
+  })
+
+  it('requires provenance for quantitative charts', () => {
+    const r = lintVeloxMarkup('<video><scene duration="2"><barChart><bar label="A" value="1" /></barChart></scene></video>')
+    expect(r.issues.some((issue) => issue.code === 'chart-source-missing')).toBe(true)
+    const sourced = lintVeloxMarkup('<video><scene duration="2"><barChart source="https://example.com"><bar label="A" value="1" /></barChart></scene></video>')
+    expect(sourced.issues.some((issue) => issue.code === 'chart-source-date-missing')).toBe(true)
+    expect(sourced.issues.some((issue) => issue.code === 'chart-units-missing')).toBe(true)
+  })
+
+  it('uses line thickness instead of a square shape when checking overflow', () => {
+    const r = lintVeloxMarkup('<video size="1280x720"><scene duration="2"><line x="480" y="490" length="770" thickness="3" /></scene></video>')
+    expect(r.issues.some((issue) => issue.code === 'layout-overflow')).toBe(false)
+  })
 })
 
 describe('lintVeloxConfig', () => {

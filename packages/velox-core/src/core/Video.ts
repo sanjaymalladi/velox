@@ -7,6 +7,7 @@ import type {
   VeloxColor,
   VeloxGradient,
   VeloxAudioPlan,
+  VisualWorldConfig,
 } from '../types'
 import { SceneBuilder } from './Scene'
 import { resolveTheme } from '../themes'
@@ -23,6 +24,8 @@ export interface RawVideoInput {
   scenes: SceneBuilder[]
   audio?: { src: string; volume?: number }
   audioPlan?: VeloxAudioPlan
+  visualWorld?: VisualWorldConfig
+  reducedMotion?: boolean
 }
 
 /** Compiled, serialisable video config — passed to the renderer */
@@ -43,6 +46,8 @@ export class VeloxVideo {
       scenes: input.scenes.map((s) => s.toConfig()),
       audio: input.audio,
       audioPlan: input.audioPlan,
+      visualWorld: input.visualWorld ? { ...input.visualWorld, palette: input.visualWorld.palette ? { ...input.visualWorld.palette } : undefined } : undefined,
+      reducedMotion: input.reducedMotion,
     }
     validateVeloxVideoConfig(this.config)
   }

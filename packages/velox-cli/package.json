@@ -31,6 +31,8 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.5",
+    "@fontsource/noto-sans-math": "^5.3.0",
+    "@fontsource/noto-sans-symbols-2": "^5.3.0",
     "@napi-rs/canvas": "^0.1.97",
     "@velox-video/core": "workspace:*",
     "chalk": "^4.1.2",

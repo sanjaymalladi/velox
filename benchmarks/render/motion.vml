@@ -1,0 +1,7 @@
+<video size="720p" fps="24" theme="obsidian" background="mesh:ocean">
+  <scene duration="2" layout="column" gap="24" align="center">
+    <kicker color="#67e8f9" motion="fade">MOTION BASELINE</kicker>
+    <text value="Reveal, move, settle" size="60" weight="800" align="center" color="#ffffff" motion="slideUp" />
+    <circle diameter="120" color="#fbbf24" motion="growUp" delay="0.3" />
+  </scene>
+</video>

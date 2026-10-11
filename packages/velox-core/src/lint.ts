@@ -84,6 +84,7 @@ export function lintVeloxMarkup(markup: string): LintResult {
 
   checkScenes(config, issues)
   checkLayout(config, issues, root.children.filter((child) => child.tag === 'scene').map((scene) => scene.location))
+  checkDesignPrinciples(config, root, issues)
 
   return finalize(config, issues)
 }
@@ -117,12 +118,22 @@ export function lintVeloxConfig(
 
   checkScenes(config, issues)
   checkLayout(config, issues)
+  checkDesignPrinciples(config, undefined, issues)
 
   return finalize(config, issues)
 }
 
 function checkScenes(config: VeloxVideoConfig, issues: LintIssue[]): void {
+  const sourcedScenes = config.scenes.filter((scene) => scene.source)
+  if (sourcedScenes.length > 0 && sourcedScenes.length < config.scenes.length) {
+    for (const scene of config.scenes.filter((candidate) => !candidate.source)) {
+      push(issues, { level: 'warn', code: 'scene-source-missing', message: 'This scene makes historical or factual claims, but has no source. Add source="..." and sourceDate="...".', scene: scene.id })
+    }
+  }
   for (const scene of config.scenes) {
+    if (scene.source && !scene.sourceDate) {
+      push(issues, { level: 'warn', code: 'scene-source-date-missing', message: 'Add sourceDate="..." to show when this source was published or accessed.', scene: scene.id })
+    }
     if (scene.elements.length === 0) {
       push(issues, {
         level: 'warn',
@@ -153,6 +164,135 @@ function checkScenes(config: VeloxVideoConfig, issues: LintIssue[]): void {
   }
 }
 
+function flattenElements(elements: VeloxVideoConfig['scenes'][number]['elements']): VeloxVideoConfig['scenes'][number]['elements'] {
+  return elements.flatMap((element) => element.type === 'group' ? [element, ...flattenElements(element.children)] : [element])
+}
+
+function normalizedText(value: string): string {
+  return value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+}
+
+function contrastRatio(foreground: string, background: string): number | undefined {
+  const parse = (value: string): [number, number, number] | undefined => {
+    const match = value.match(/^#([\da-f]{3}|[\da-f]{6})$/i)
+    if (!match) return undefined
+    const hex = match[1]!.length === 3 ? [...match[1]!].map((ch) => ch + ch).join('') : match[1]!
+    return [0, 2, 4].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255) as [number, number, number]
+  }
+  const luminance = (color: [number, number, number]): number => {
+    const linear = color.map((component) => component <= 0.04045 ? component / 12.92 : ((component + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!
+  }
+  const fg = parse(foreground)
+  const bg = parse(background)
+  if (!fg || !bg) return undefined
+  const [light, dark] = [luminance(fg), luminance(bg)].sort((a, b) => b - a)
+  return (light! + 0.05) / (dark! + 0.05)
+}
+
+function checkDesignPrinciples(config: VeloxVideoConfig, root: MarkupNode | undefined, issues: LintIssue[]): void {
+  const sceneNodes = root?.children.filter((child) => child.tag === 'scene') ?? []
+  if (config.scenes.length >= 3 && !config.visualWorld) {
+    push(issues, { level: 'warn', code: 'visual-world-missing', message: 'Define <visualWorld> so palette, material, lighting, and motif can carry across scenes.' })
+  }
+
+  const signatures = sceneNodes.map((scene) => scene.children
+    .filter((child) => !['audio', 'sfx', 'beat', 'assetPack'].includes(child.tag) && !(child.tag === 'captions' && child.attrs.track === 'true'))
+    .map((child) => `${child.tag}:${child.attrs.slot ?? child.attrs.placement ?? ''}`)
+    .join('|'))
+  if (signatures.length >= 3 && new Set(signatures).size < 3) {
+    const counts = new Map<string, number>()
+    signatures.forEach((signature) => counts.set(signature, (counts.get(signature) ?? 0) + 1))
+    if ([...counts.values()].some((count) => count >= 3)) {
+      push(issues, { level: 'warn', code: 'repeated-composition', message: 'Three or more scenes repeat the same element structure. Carry a visual subject forward and vary composition when the story changes.' })
+    }
+  }
+
+  const transitionCounts = new Map<string, number>()
+  config.scenes.forEach((scene) => {
+    if (scene.transition) transitionCounts.set(scene.transition.type, (transitionCounts.get(scene.transition.type) ?? 0) + 1)
+  })
+  if (config.scenes.length >= 4 && [...transitionCounts.values()].some((count) => count >= config.scenes.length - 1)) {
+    push(issues, { level: 'warn', code: 'transition-repetition', message: 'The same transition repeats across nearly every scene. Use transitions that match the relationship between beats; cut when scenes are unrelated.' })
+  }
+
+  for (let i = 0; i < config.scenes.length; i++) {
+    const scene = config.scenes[i]!
+    const markupScene = sceneNodes[i]
+    const location = markupScene?.location
+    const elements = flattenElements(scene.elements)
+    const words = elements.flatMap((element) => element.type === 'text' ? element.content.split(/\s+/) : element.type === 'textList' ? element.items.flatMap((item) => item.split(/\s+/)) : []).filter(Boolean)
+    if (words.length > 35) {
+      push(issues, { level: 'warn', code: 'text-density', message: `Scene contains about ${words.length} visible words. Move detail to narration and keep only key phrases on screen.`, scene: scene.id, location })
+    }
+    if (scene.audio && !scene.captions) {
+      push(issues, { level: 'warn', code: 'voice-captions-missing', message: 'This scene has audio but no caption track. Add timed captions when the audio contains speech.', scene: scene.id, location })
+    }
+    if (scene.focus === undefined && config.visualWorld && sceneNodes.length >= 3) {
+      push(issues, { level: 'warn', code: 'scene-focus-missing', message: 'Add focus="..." to name the main object, place, or idea for this scene.', scene: scene.id, location })
+    }
+    if (!markupScene && scene.focus === undefined && config.visualWorld && config.scenes.length >= 3) {
+      push(issues, { level: 'warn', code: 'scene-focus-missing', message: 'Add focus to name the main object, place, or idea for this scene.', scene: scene.id })
+    }
+    const chartElements = elements.filter((element) => element.type === 'shape' && ['barChart', 'lineChart', 'donutChart'].includes(element.shape.shapeType))
+    for (const element of chartElements) {
+      if (element.type !== 'shape') continue
+      const provenance = element.shape.provenance
+      if (!root && provenance?.kind !== 'conceptual' && !provenance?.source) {
+        push(issues, { level: 'warn', code: 'chart-source-missing', message: `Chart "${element.id}" needs a data source and date, or dataType="conceptual" with a visible diagram label.`, scene: scene.id, location })
+      }
+      if (!root && provenance?.kind !== 'conceptual' && provenance?.source && !provenance?.units) {
+        push(issues, { level: 'warn', code: 'chart-units-missing', message: `Chart "${element.id}" has no units. Add units so viewers can interpret the values.`, scene: scene.id, location })
+      }
+      if (!root && provenance?.kind === 'conceptual' && !provenance.label) {
+        push(issues, { level: 'warn', code: 'conceptual-chart-label', message: `Chart "${element.id}" must have a visible diagram label when it is conceptual.`, scene: scene.id, location })
+      }
+    }
+    const untrackedImages = root ? [] : elements.filter((element) => element.type === 'image' && !element.src.startsWith('stock://') && !element.provenance?.source)
+    for (const element of untrackedImages) {
+      push(issues, { level: 'warn', code: 'asset-provenance-missing', message: `Image "${element.id}" has no source or prompt record. Add source, rights, and creator metadata.`, scene: scene.id, location })
+    }
+
+    if (markupScene) {
+      const captionTexts = markupScene.children.filter((child) => child.tag === 'captions' && child.attrs.track !== 'true')
+        .map((child) => child.attrs.text ?? child.children.map((cue) => cue.attrs.text ?? cue.text).join(' '))
+      const visibleText = elements.filter((element) => element.type === 'text').map((element) => normalizedText(element.content))
+      if (captionTexts.some((caption) => visibleText.includes(normalizedText(caption)))) {
+        push(issues, { level: 'warn', code: 'caption-duplicates-copy', message: 'A caption repeats visible headline text. Keep design copy separate from speech captions.', scene: scene.id, location })
+      }
+    }
+  }
+
+  if (root) {
+    const worldNode = root.children.find((child) => child.tag === 'visualWorld')
+    if (worldNode) {
+      for (const scene of sceneNodes) {
+        if (scene.attrs.background && !scene.attrs.backgroundReason) {
+          push(issues, { level: 'warn', code: 'background-change-unexplained', message: 'This scene changes the visual world background without backgroundReason="...". Explain the story change or keep the world consistent.', scene: scene.attrs.chapter ?? scene.location.line.toString(), location: scene.location })
+        }
+      }
+      const bg = worldNode.attrs.bgColor
+      if (bg) {
+        const visit = (node: MarkupNode): void => {
+          if (node.tag === 'text' && node.attrs.color) {
+            const ratio = contrastRatio(node.attrs.color, bg)
+            if (ratio !== undefined && ratio < 4.5) {
+              push(issues, { level: 'warn', code: 'text-contrast-low', message: `Text contrast is ${ratio.toFixed(1)}:1 against the visual-world background. Use at least 4.5:1 for normal text.`, location: node.attributeLocations.color ?? node.location })
+            }
+          }
+          node.children.forEach(visit)
+        }
+        sceneNodes.forEach(visit)
+      }
+    }
+    const unintentionalMotion = root.children.filter((child) => child.tag === 'scene').flatMap((scene) => scene.children)
+      .filter((element) => Boolean(element.attrs.motion) && element.attrs.motion !== 'none' && !element.attrs.intent)
+    if (unintentionalMotion.length >= 5) {
+      push(issues, { level: 'warn', code: 'motion-intent-missing', message: 'Several elements move without an intent. Add intent="reveal|trace|compare|transform|emphasize|settle|exit|atmosphere" or remove decorative motion.' })
+    }
+  }
+}
+
 function finalize(config: VeloxVideoConfig, issues: LintIssue[]): LintResult {
   const durationSec = getTotalFrames(config) / config.fps
 
@@ -166,18 +306,19 @@ function finalize(config: VeloxVideoConfig, issues: LintIssue[]): LintResult {
 }
 
 const commonAttrs = [
-  'x', 'y', 'placement', 'slot', 'motion', 'motionDuration', 'delay', 'depth', 'opacity',
+  'x', 'y', 'placement', 'slot', 'motion', 'intent', 'motionDuration', 'delay', 'depth', 'opacity',
   'exit', 'exitDuration', 'exitAt', 'loop', 'loopDuration', 'loopScale', 'loopDistance', 'loopSpeed',
 ]
 const attrSchemas: Record<string, Set<string>> = {
-  video: new Set(['size', 'fps', 'theme', 'background', 'motionQuality', 'music', 'musicVolume']),
-  scene: new Set(['duration', 'template', 'camera', 'mood', 'transition', 'transitionDuration', 'direction', 'folds', 'background', 'vignette', 'grain', 'staggerStep', 'layout', 'gap', 'align']),
+  video: new Set(['size', 'fps', 'theme', 'background', 'motionQuality', 'music', 'musicVolume', 'reducedMotion']),
+  visualWorld: new Set(['name', 'background', 'material', 'lighting', 'texture', 'motif', 'depth', 'bgColor', 'foreground', 'accent', 'muted']),
+  scene: new Set(['duration', 'template', 'camera', 'mood', 'transition', 'transitionDuration', 'direction', 'folds', 'background', 'vignette', 'grain', 'staggerStep', 'layout', 'gap', 'align', 'chapter', 'focus', 'backgroundReason', 'accent', 'source', 'sourceLabel', 'sourceDate']),
   center: new Set(['gap', ...commonAttrs]),
   row: new Set(['gap', ...commonAttrs]),
   column: new Set(['gap', ...commonAttrs]),
   stack: new Set(['gap', ...commonAttrs]),
   text: new Set(['value', 'size', 'scale', 'weight', 'color', 'align', 'font', 'letterSpacing', 'lineHeight', 'wrap', 'maxHeight', 'italic', 'transform', 'gradient', 'captionStyle', 'wordIndex', 'cueStart', 'wordStep', 'totalWords', 'captionAccent', ...commonAttrs]),
-  image: new Set(['src', 'width', 'height', 'scale', 'radius', 'blur', 'brightness', 'saturate', ...commonAttrs]),
+  image: new Set(['src', 'width', 'height', 'scale', 'radius', 'blur', 'brightness', 'saturate', 'tilt', 'source', 'creator', 'rights', 'sourceDate', 'illustration', ...commonAttrs]),
   kicker: new Set(['text', 'color', ...commonAttrs]),
   hero: new Set(['title', 'kicker', 'subtitle', 'color', 'accent', ...commonAttrs]),
   list: new Set(['size', 'color', 'bullet', 'gap', 'wrap', 'stagger', ...commonAttrs]),
@@ -192,11 +333,11 @@ const attrSchemas: Record<string, Set<string>> = {
   progress: new Set(['value', 'color', 'trackColor', 'width', 'height', ...commonAttrs]),
   metric: new Set(['value', 'label', 'accent', ...commonAttrs]),
   metricRow: new Set(['gap', ...commonAttrs]),
-  barChart: new Set(['width', 'height', 'showLabels', 'showValues', 'surface', ...commonAttrs]),
+  barChart: new Set(['width', 'height', 'showLabels', 'showValues', 'surface', 'source', 'sourceDate', 'units', 'dataType', 'label', ...commonAttrs]),
   bar: new Set(['label', 'value', 'color']),
-  lineChart: new Set(['width', 'height', 'curve', 'showLabels', 'showValues', 'surface', ...commonAttrs]),
+  lineChart: new Set(['width', 'height', 'curve', 'showLabels', 'showValues', 'surface', 'source', 'sourceDate', 'units', 'dataType', 'label', ...commonAttrs]),
   series: new Set(['label', 'values', 'color']),
-  donutChart: new Set(['innerRadius', 'showLabels', 'showValues', 'size', 'scale', ...commonAttrs]),
+  donutChart: new Set(['innerRadius', 'showLabels', 'showValues', 'size', 'scale', 'source', 'sourceDate', 'units', 'dataType', 'label', ...commonAttrs]),
   slice: new Set(['label', 'value', 'color']),
   morphBlob: new Set(['variant', 'color', 'width', 'height', 'scale', ...commonAttrs]),
   glassList: new Set(['width', 'color', ...commonAttrs]),
@@ -232,7 +373,7 @@ const numericAttrs = new Set([
   'saturate', 'start', 'dur', 'maxWidth', 'bottomOffset', 'volume', 'startFrom', 'at', 'bloom',
   'chromatic', 'paper', 'exposure', 'wordIndex', 'cueStart', 'wordStep', 'totalWords', 'musicVolume',
 ])
-const booleanAttrs = new Set(['italic', 'stagger', 'showLabels', 'showValues', 'track'])
+const booleanAttrs = new Set(['italic', 'stagger', 'showLabels', 'showValues', 'track', 'illustration', 'reducedMotion'])
 
 function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
   const visit = (node: MarkupNode): void => {
@@ -247,7 +388,7 @@ function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
             message: `<${node.tag}> does not support the "${name}" attribute. Check its spelling.`,
             location,
           })
-        } else if (!(node.tag === 'video' && name === 'size') && numericAttrs.has(name) && !Number.isFinite(Number(value))) {
+        } else if (!(node.tag === 'video' && name === 'size') && !(node.tag === 'visualWorld' && name === 'depth') && numericAttrs.has(name) && !Number.isFinite(Number(value))) {
           push(issues, {
             level: 'error',
             code: 'type-number',
@@ -275,6 +416,36 @@ function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
         push(issues, { level: 'error', code: 'invalid-size', message: 'size must be a supported preset or WIDTHxHEIGHT.', location: node.attributeLocations.size ?? node.location })
       }
     }
+    if (node.tag === 'visualWorld' && node.attrs.depth && !['flat', 'layered'].includes(node.attrs.depth)) {
+      push(issues, { level: 'error', code: 'invalid-world-depth', message: '<visualWorld> depth must be flat or layered.', location: node.attributeLocations.depth ?? node.location })
+    }
+    if (node.tag === 'image' && node.attrs.tilt && !/^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(node.attrs.tilt)) {
+      push(issues, { level: 'error', code: 'invalid-image-tilt', message: '<image> tilt must contain two angles, for example tilt="8,-12".', location: node.attributeLocations.tilt ?? node.location })
+    }
+    if ((node.tag === 'barChart' || node.tag === 'lineChart' || node.tag === 'donutChart') && node.attrs.dataType && !['quantitative', 'conceptual'].includes(node.attrs.dataType)) {
+      push(issues, { level: 'error', code: 'invalid-chart-type', message: `${node.tag} dataType must be quantitative or conceptual.`, location: node.attributeLocations.dataType ?? node.location })
+    }
+    if ((node.tag === 'barChart' || node.tag === 'lineChart' || node.tag === 'donutChart') && node.attrs.dataType !== 'conceptual' && !node.attrs.source) {
+      push(issues, { level: 'warn', code: 'chart-source-missing', message: `Quantitative <${node.tag}> should include source="..." and sourceDate="...".`, location: node.location })
+    }
+    if ((node.tag === 'barChart' || node.tag === 'lineChart' || node.tag === 'donutChart') && node.attrs.dataType === 'conceptual' && !node.attrs.label) {
+      push(issues, { level: 'warn', code: 'conceptual-chart-label', message: `Label this <${node.tag}> as an illustrative diagram; do not present it as measured data.`, location: node.location })
+    }
+    if (node.tag === 'image' && node.attrs.illustration === 'true' && !node.attrs.source) {
+      push(issues, { level: 'warn', code: 'illustration-source-missing', message: 'Generated or reconstructed illustrations should still record their prompt or source.', location: node.location })
+    }
+    if (node.tag === 'scene' && node.attrs.source && !node.attrs.sourceDate) {
+      push(issues, { level: 'warn', code: 'scene-source-date-missing', message: 'Add sourceDate="..." to show when this source was published or accessed.', location: node.location })
+    }
+    if (['barChart', 'lineChart', 'donutChart'].includes(node.tag) && node.attrs.dataType !== 'conceptual' && node.attrs.source && !node.attrs.sourceDate) {
+      push(issues, { level: 'warn', code: 'chart-source-date-missing', message: `Add sourceDate="..." to <${node.tag}>.`, location: node.location })
+    }
+    if (['barChart', 'lineChart', 'donutChart'].includes(node.tag) && node.attrs.dataType !== 'conceptual' && node.attrs.source && !node.attrs.units) {
+      push(issues, { level: 'warn', code: 'chart-units-missing', message: `Add units="..." to quantitative <${node.tag}>.`, location: node.location })
+    }
+    if (node.attrs.intent && !['reveal', 'trace', 'compare', 'transform', 'emphasize', 'settle', 'exit', 'atmosphere'].includes(node.attrs.intent)) {
+      push(issues, { level: 'error', code: 'invalid-motion-intent', message: `Unknown intent "${node.attrs.intent}".`, location: node.attributeLocations.intent ?? node.location })
+    }
     if (node.tag === 'scene' && node.attrs.layout && !['free', 'center', 'row', 'column', 'stack'].includes(node.attrs.layout)) {
       push(issues, { level: 'error', code: 'invalid-layout', message: 'scene layout must be free, center, row, column, or stack.', location: node.attributeLocations.layout ?? node.location })
     }
@@ -297,7 +468,7 @@ function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
     if (node.tag === 'scene' && node.attrs.transition && !['crossDissolve', 'blurDissolve', 'zoomSmooth', 'slide', 'wipe', 'zoom', 'glitch', 'flash', 'paperFold'].includes(node.attrs.transition)) {
       push(issues, { level: 'error', code: 'invalid-transition', message: `Unknown transition "${node.attrs.transition}".`, location: node.attributeLocations.transition ?? node.location })
     }
-    if (node.tag === 'scene' && node.attrs.camera && !['none', 'slowPush', 'parallaxDrift', 'handheld', 'kenBurns'].includes(node.attrs.camera)) {
+    if (node.tag === 'scene' && node.attrs.camera && !['none', 'slowPush', 'parallaxDrift', 'orbit', 'handheld', 'kenBurns'].includes(node.attrs.camera)) {
       push(issues, { level: 'error', code: 'invalid-camera', message: `Unknown camera "${node.attrs.camera}".`, location: node.attributeLocations.camera ?? node.location })
     }
     if (node.tag === 'scene' && node.attrs.mood && !['neutral', 'editorial', 'cinematic'].includes(node.attrs.mood)) {
@@ -330,7 +501,10 @@ function elementSize(el: VeloxVideoConfig['scenes'][number]['elements'][number])
     return { x: Math.min(maxWidth, Math.max(charWidth, lineMaxLength(el.content) * charWidth)), y: lines * fs * (el.lineHeight ?? 1.4) }
   }
   if (el.type === 'textList') return { x: el.maxWidth ?? 420, y: el.items.length * (el.fontSize ?? 24) * 1.4 }
-  if (el.type === 'shape') return { x: el.shape.width ?? 200, y: el.shape.height ?? el.shape.width ?? 200 }
+  if (el.type === 'shape') {
+    if (el.shape.shapeType === 'line') return { x: el.shape.width ?? 200, y: el.shape.thickness ?? 4 }
+    return { x: el.shape.width ?? 200, y: el.shape.height ?? el.shape.width ?? 200 }
+  }
   if (el.type === 'image' || el.type === 'logo') return { x: el.width ?? 256, y: el.height ?? el.width ?? 256 }
   if (el.type === 'group') {
     const bounds = groupBounds(el.children)

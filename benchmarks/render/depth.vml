@@ -1,0 +1,7 @@
+<video size="720p" fps="24" theme="obsidian" background="#101820">
+  <scene duration="2" camera="orbit" background="#101820">
+    <image src="assets/depth-planes.svg" width="1280" height="720" depth="-0.4" />
+    <image src="assets/depth-planes.svg" width="480" height="540" depth="0.8" tilt="12,-16" motion="zoomIn" />
+    <text value="One world, real depth" size="52" weight="800" align="left" color="#ffffff" x="430" y="610" motion="slideUp" />
+  </scene>
+</video>

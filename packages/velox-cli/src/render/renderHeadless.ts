@@ -2,8 +2,8 @@
  * Headless WebGL renderer — true all-WebGL export.
  *
  * Serves the built `@velox-video/core` ESM + a tiny capture page over
- * localhost, drives every frame with Playwright (Chromium, WebGL via
- * SwiftShader), reads each rendered PNG, encodes to MP4 with the bundled
+ * localhost, drives every frame with Playwright (Chromium, using hardware
+ * Canvas2D/WebGL when available and software rendering otherwise), reads each PNG, encodes to MP4 with the bundled
  * `ffmpeg-static`, then muxes audio with `muxAudioPlan` (shares the
  * `buildAudioMixArgs` graph with the Node path).
  *
@@ -190,7 +190,10 @@ export async function renderHeadless(
     const srv = await startServer(tmp, distDir, assetFiles)
     server = srv.server
     const { chromium } = playwright
-    const b = await chromium.launch({ headless: true, args: opts.chromiumArgs ?? ['--use-gl=swiftshader', '--no-sandbox'] })
+    const gpuArgs = process.platform === 'win32'
+      ? ['--enable-gpu', '--ignore-gpu-blocklist', '--enable-webgl', '--enable-accelerated-2d-canvas', '--use-angle=d3d11', '--no-sandbox']
+      : ['--enable-gpu', '--ignore-gpu-blocklist', '--enable-webgl', '--enable-accelerated-2d-canvas', '--no-sandbox']
+    const b = await chromium.launch({ headless: true, args: opts.chromiumArgs ?? gpuArgs })
     browser = b
 
     const page = await b.newPage()
@@ -200,6 +203,20 @@ export async function renderHeadless(
       check()
     }))
     await page.evaluate((c) => (window as unknown as { __velox: { setConfig(c: unknown): Promise<void> } }).__velox.setConfig(c), renderConfig)
+    const gpuRenderer = await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl')
+      if (!gl) return 'WebGL unavailable'
+      const extension = gl.getExtension('WEBGL_debug_renderer_info')
+      return extension
+        ? String(gl.getParameter(extension.UNMASKED_RENDERER_WEBGL))
+        : String(gl.getParameter(gl.RENDERER))
+    })
+    if (/swiftshader|llvmpipe|software/i.test(gpuRenderer)) {
+      console.warn(`[velox] Browser GPU unavailable; Chromium is using software rendering (${gpuRenderer}).`)
+    } else {
+      console.log(`[velox] Browser GPU renderer: ${gpuRenderer}`)
+    }
 
     const totalFrames = getTotalFrames(config)
     const fps = config.fps

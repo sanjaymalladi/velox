@@ -1,3 +1,4 @@
+import './symbolFallbacks.css'
 import type { VeloxVideoConfig } from '@velox-video/core'
 import { drawFrame, resolveSize, preloadImages, setImageCache } from '@velox-video/core'
 
@@ -7,6 +8,12 @@ export async function boot(config: VeloxVideoConfig): Promise<{
   width: number
   height: number
 }> {
+  if (typeof document !== 'undefined') {
+    await Promise.all([
+      document.fonts.load('400 16px "Noto Sans Symbols 2 Symbols"'),
+      document.fonts.load('400 16px "Noto Sans Math"'),
+    ])
+  }
   const [width, height] = resolveSize(config.size)
   const normalized = {
     ...config,

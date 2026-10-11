@@ -118,6 +118,7 @@ function motionAttr(el: ElementConfig): string {
 
 function baseAnimationAttrs(el: ElementConfig): string[] {
   const attrs: string[] = []
+  if (el.intent) attrs.push(attr('intent', el.intent))
   if (el.opacity !== undefined) attrs.push(attr('opacity', el.opacity))
   if (el.exit) {
     attrs.push(attr('exit', el.exit.animation), attr('exitDuration', el.exit.duration))
@@ -191,10 +192,61 @@ function serializeLeaf(el: ElementConfig, center: Pt): string {
       if (el.type === 'image' && el.blur !== undefined) attrs.push(attr('blur', el.blur))
       if (el.type === 'image' && el.brightness !== undefined) attrs.push(attr('brightness', el.brightness))
       if (el.type === 'image' && el.saturate !== undefined) attrs.push(attr('saturate', el.saturate))
+      if (el.type === 'image' && el.tilt) attrs.push(attr('tilt', `${el.tilt.x ?? 0},${el.tilt.y ?? 0}`))
+      if (el.type === 'image' && el.provenance) {
+        if (el.provenance.source) attrs.push(attr('source', el.provenance.source))
+        if (el.provenance.creator) attrs.push(attr('creator', el.provenance.creator))
+        if (el.provenance.rights) attrs.push(attr('rights', el.provenance.rights))
+        if (el.provenance.date) attrs.push(attr('sourceDate', el.provenance.date))
+        if (el.provenance.illustration !== undefined) attrs.push(attr('illustration', String(el.provenance.illustration)))
+      }
       return `<${el.type} ${[...attrs, pos, motion, depthAttr, ...baseAnimationAttrs(el)].filter(Boolean).join(' ')} />`
     }
     case 'shape': {
       const s = el.shape
+      const sourceAttrs = s.provenance ? [
+        ...(s.provenance.source ? [attr('source', s.provenance.source)] : []),
+        ...(s.provenance.date ? [attr('sourceDate', s.provenance.date)] : []),
+        ...(s.provenance.units ? [attr('units', s.provenance.units)] : []),
+        ...(s.provenance.kind ? [attr('dataType', s.provenance.kind)] : []),
+        ...(s.provenance.label ? [attr('label', s.provenance.label)] : []),
+      ] : []
+      if (s.shapeType === 'barChart') {
+        const attrs = [
+          ...(s.width ? [attr('width', Math.round(s.width))] : []),
+          ...(s.height ? [attr('height', Math.round(s.height))] : []),
+          ...(s.showLabels === false ? [attr('showLabels', 'false')] : []),
+          ...(s.showValues === false ? [attr('showValues', 'false')] : []),
+          ...(s.chartSurface ? [attr('surface', s.chartSurface)] : []),
+          ...sourceAttrs, pos.trim(), motion.trim(), depthAttr, ...baseAnimationAttrs(el),
+        ].filter(Boolean)
+        const bars = (s.data ?? []).map((point) => `      <bar ${[attr('label', point.label), attr('value', point.value), ...(point.color ? [attr('color', point.color)] : [])].join(' ')} />`)
+        return `    <barChart ${attrs.join(' ')}>` + (bars.length ? `\n${bars.join('\n')}\n    ` : '') + '</barChart>'
+      }
+      if (s.shapeType === 'lineChart') {
+        const attrs = [
+          ...(s.width ? [attr('width', Math.round(s.width))] : []),
+          ...(s.height ? [attr('height', Math.round(s.height))] : []),
+          ...(s.curve ? [attr('curve', s.curve)] : []),
+          ...(s.showLabels === false ? [attr('showLabels', 'false')] : []),
+          ...(s.showValues === false ? [attr('showValues', 'false')] : []),
+          ...(s.chartSurface ? [attr('surface', s.chartSurface)] : []),
+          ...sourceAttrs, pos.trim(), motion.trim(), depthAttr, ...baseAnimationAttrs(el),
+        ].filter(Boolean)
+        const series = (s.series ?? []).map((line) => `      <series ${[...(line.label ? [attr('label', line.label)] : []), attr('values', line.values.join(',')), ...(line.color ? [attr('color', line.color)] : [])].join(' ')} />`)
+        return `    <lineChart ${attrs.join(' ')}>` + (series.length ? `\n${series.join('\n')}\n    ` : '') + '</lineChart>'
+      }
+      if (s.shapeType === 'donutChart') {
+        const attrs = [
+          ...(s.width ? [attr('size', Math.round(s.width))] : []),
+          ...(s.innerRadius !== undefined ? [attr('innerRadius', s.innerRadius)] : []),
+          ...(s.showLabels === false ? [attr('showLabels', 'false')] : []),
+          ...(s.showValues === false ? [attr('showValues', 'false')] : []),
+          ...sourceAttrs, pos.trim(), motion.trim(), depthAttr, ...baseAnimationAttrs(el),
+        ].filter(Boolean)
+        const slices = (s.data ?? []).map((slice) => `      <slice ${[attr('label', slice.label), attr('value', slice.value), ...(slice.color ? [attr('color', slice.color)] : [])].join(' ')} />`)
+        return `    <donutChart ${attrs.join(' ')}>` + (slices.length ? `\n${slices.join('\n')}\n    ` : '') + '</donutChart>'
+      }
       if (s.shapeType === 'rect') {
         const attrs: string[] = []
         if (s.width) attrs.push(attr('width', Math.round(s.width)))
@@ -225,6 +277,13 @@ function serializeLeaf(el: ElementConfig, center: Pt): string {
 
 function serializeScene(scene: SceneConfig, w: number, h: number): string {
   const attrs: string[] = [`duration="${scene.duration}"`]
+  if (scene.chapter) attrs.push(attr('chapter', scene.chapter))
+  if (scene.focus) attrs.push(attr('focus', scene.focus))
+  if (scene.backgroundReason) attrs.push(attr('backgroundReason', scene.backgroundReason))
+  if (scene.accent) attrs.push(attr('accent', scene.accent))
+  if (scene.source) attrs.push(attr('source', scene.source))
+  if (scene.sourceLabel) attrs.push(attr('sourceLabel', scene.sourceLabel))
+  if (scene.sourceDate) attrs.push(attr('sourceDate', scene.sourceDate))
   if (scene.camera && scene.camera !== 'none') attrs.push(`camera="${scene.camera}"`)
   if (scene.mood && scene.mood !== 'neutral') attrs.push(`mood="${scene.mood}"`)
   if (scene.transition) {
@@ -274,6 +333,7 @@ export function configToMarkup(config: VeloxVideoConfig): string {
   const [w, h] = config.size
   const rootAttrs: string[] = [`size="${sizeStr(config.size)}"`, `fps="${config.fps}"`]
   if (config.motionQuality) rootAttrs.push(`motionQuality="${config.motionQuality}"`)
+  if (config.reducedMotion) rootAttrs.push(attr('reducedMotion', 'true'))
   if (typeof config.background === 'string' || config.background?.type === 'linear') {
     const rootBg = bgStr(config.background)
     if (rootBg) rootAttrs.push(attr('background', rootBg))
@@ -283,6 +343,20 @@ export function configToMarkup(config: VeloxVideoConfig): string {
   const lines: string[] = [
     `<video ${rootAttrs.join(' ')}>`,
   ]
+  if (config.visualWorld) {
+    const world = config.visualWorld
+    const attrs: string[] = []
+    for (const key of ['name', 'material', 'lighting', 'texture', 'motif', 'depth'] as const) {
+      if (world[key]) attrs.push(attr(key, world[key]!))
+    }
+    const worldBg = bgStr(world.background)
+    if (worldBg) attrs.push(attr('background', worldBg))
+    if (world.palette?.background) attrs.push(attr('bgColor', world.palette.background))
+    if (world.palette?.foreground) attrs.push(attr('foreground', world.palette.foreground))
+    if (world.palette?.accent) attrs.push(attr('accent', world.palette.accent))
+    if (world.palette?.muted) attrs.push(attr('muted', world.palette.muted))
+    lines.push(`  <visualWorld ${attrs.join(' ')} />`)
+  }
   const music = config.audioPlan?.music ?? config.audio
   if (music?.src) {
     const audioAttrs = [attr('src', music.src)]
