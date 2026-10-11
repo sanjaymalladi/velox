@@ -14,6 +14,7 @@ import type {
   ImageElementConfig,
   LogoElementConfig,
   MotionQuality,
+  SceneCamera,
 } from '../types'
 import { getAnimationState } from './animations'
 import type { AnimationState } from './animations'
@@ -307,6 +308,12 @@ function applySceneCamera(
       ctx.scale(s, s)
       break
     }
+    case 'orbit': {
+      const s = 1 + 0.035 * Math.sin(rawT * Math.PI)
+      ctx.rotate(Math.sin(rawT * Math.PI) * 0.006)
+      ctx.scale(s, s)
+      break
+    }
     case 'handheld': {
       const seed = sceneCameraSeed(scene.id)
       const hf = localFrame + (seed & 1023)
@@ -509,7 +516,9 @@ function drawImage(
   canvasHeight: number,
   localFrame: number,
   fps: number,
-  sceneTotalFrames?: number
+  sceneTotalFrames?: number,
+  camera: SceneCamera = 'none',
+  reducedMotion = false,
 ): void {
   const img = _imageCache.get(el.src)
   const boxW = el.width ?? 780
@@ -553,6 +562,7 @@ function drawImage(
   }
 
   const { objectFit = 'contain', blur, brightness, saturate, borderRadius = 0, kenBurns } = el
+  const hasPerspectiveTilt = Boolean((el.tilt?.x || el.tilt?.y) || (camera === 'orbit' && !reducedMotion))
 
   const natW: number = img.width ?? img.naturalWidth ?? canvasWidth
   const natH: number = img.height ?? img.naturalHeight ?? canvasHeight
@@ -610,7 +620,7 @@ function drawImage(
 
     // Border radius clip and Mask Reveal
     const clipRevealY = state.clipRevealY
-    if (borderRadius > 0 || state.clipReveal < 1 || clipRevealY !== undefined) {
+    if ((borderRadius > 0 && !hasPerspectiveTilt) || state.clipReveal < 1 || clipRevealY !== undefined) {
       c.beginPath()
       const r = borderRadius || 0
       if (clipRevealY !== undefined && clipRevealY < 1) {
@@ -627,7 +637,17 @@ function drawImage(
       c.clip()
     }
 
-    c.drawImage(img as unknown as CanvasImageSource, dx, dy, dw, dh)
+    if (hasPerspectiveTilt) {
+      const tilt = { ...el.tilt }
+      if (camera === 'orbit' && !reducedMotion) {
+        const progress = Math.min(Math.max(localFrame / Math.max(sceneTotalFrames ?? fps * 5, 1), 0), 1)
+        tilt.y = (tilt.y ?? 0) + Math.sin(progress * Math.PI) * 10
+        tilt.x = (tilt.x ?? 0) + Math.sin(progress * Math.PI * 2) * 3
+      }
+      drawTiltedImage(c, img as unknown as CanvasImageSource, dx, dy, dw, dh, canvasWidth, canvasHeight, tilt)
+    } else {
+      c.drawImage(img as unknown as CanvasImageSource, dx, dy, dw, dh)
+    }
     c.restore()
   }
 
@@ -654,6 +674,107 @@ function drawImage(
     }
     drawInto(ctx)
     if (supportsCanvasFilter && hasFilters) ctx.restore()
+  }
+}
+
+type ProjectedPoint = { x: number; y: number }
+
+/** Draws an image plane with perspective using a small affine mesh. It works in
+ * both Canvas2D renderers, so previews and MP4 frames use the same projection. */
+function drawTiltedImage(
+  ctx: Ctx,
+  image: CanvasImageSource,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  tilt: NonNullable<ImageElementConfig['tilt']>,
+): void {
+  const sourceWidth = Number((image as { width?: number }).width) || width
+  const sourceHeight = Number((image as { height?: number }).height) || height
+  const radians = Math.PI / 180
+  const rx = (tilt.x ?? 0) * radians
+  const ry = (tilt.y ?? 0) * radians
+  const focal = Math.max(1, tilt.perspective ?? Math.max(canvasWidth, canvasHeight) * 1.6)
+  const segments = Math.max(4, Math.min(8, Math.ceil(Math.max(Math.abs(tilt.x ?? 0), Math.abs(tilt.y ?? 0)) / 3)))
+
+  const project = (u: number, v: number): ProjectedPoint => {
+    let px = (u - 0.5) * width
+    let py = (v - 0.5) * height
+    const afterX = px * Math.cos(ry)
+    const zAfterY = -px * Math.sin(ry)
+    const afterY = py * Math.cos(rx)
+    const z = py * Math.sin(rx) + zAfterY
+    const safeDepth = Math.max(focal * 0.25, focal - z)
+    return {
+      x: x + width / 2 + afterX * focal / safeDepth,
+      y: y + height / 2 + afterY * focal / safeDepth,
+    }
+  }
+
+  // Lay a soft contact shadow under the projected image plane. The image is
+  // drawn over this path next, so only the cast shadow remains visible.
+  const corners = [project(0, 0), project(1, 0), project(1, 1), project(0, 1)]
+  ctx.save()
+  ctx.beginPath()
+  ctx.moveTo(corners[0].x, corners[0].y)
+  corners.slice(1).forEach((point) => ctx.lineTo(point.x, point.y))
+  ctx.closePath()
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = '#000'
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'
+  ctx.shadowBlur = Math.min(32, Math.max(12, width * 0.035))
+  ctx.shadowOffsetY = 14
+  ctx.fill()
+  ctx.restore()
+
+  const triangle = (
+    s0: ProjectedPoint, s1: ProjectedPoint, s2: ProjectedPoint,
+    d0: ProjectedPoint, d1: ProjectedPoint, d2: ProjectedPoint,
+  ) => {
+    const sx1 = s1.x - s0.x, sy1 = s1.y - s0.y
+    const sx2 = s2.x - s0.x, sy2 = s2.y - s0.y
+    const determinant = sx1 * sy2 - sx2 * sy1
+    if (Math.abs(determinant) < 1e-8) return
+    const a = ((d1.x - d0.x) * sy2 - (d2.x - d0.x) * sy1) / determinant
+    const c = ((d2.x - d0.x) * sx1 - (d1.x - d0.x) * sx2) / determinant
+    const b = ((d1.y - d0.y) * sy2 - (d2.y - d0.y) * sy1) / determinant
+    const d = ((d2.y - d0.y) * sx1 - (d1.y - d0.y) * sx2) / determinant
+    const e = d0.x - a * s0.x - c * s0.y
+    const f = d0.y - b * s0.x - d * s0.y
+    ctx.save()
+    ctx.beginPath()
+    const center = { x: (d0.x + d1.x + d2.x) / 3, y: (d0.y + d1.y + d2.y) / 3 }
+    const expand = (point: ProjectedPoint): ProjectedPoint => ({
+      x: center.x + (point.x - center.x) * 1.025,
+      y: center.y + (point.y - center.y) * 1.025,
+    })
+    const c0 = expand(d0), c1 = expand(d1), c2 = expand(d2)
+    ctx.moveTo(c0.x, c0.y)
+    ctx.lineTo(c1.x, c1.y)
+    ctx.lineTo(c2.x, c2.y)
+    ctx.closePath()
+    ctx.clip()
+    ctx.transform(a, b, c, d, e, f)
+    ctx.drawImage(image, 0, 0)
+    ctx.restore()
+  }
+
+  for (let row = 0; row < segments; row++) {
+    const v0 = row / segments, v1 = (row + 1) / segments
+    for (let col = 0; col < segments; col++) {
+      const u0 = col / segments, u1 = (col + 1) / segments
+      const p00 = project(u0, v0), p10 = project(u1, v0)
+      const p01 = project(u0, v1), p11 = project(u1, v1)
+      const s00 = { x: sourceWidth * u0, y: sourceHeight * v0 }
+      const s10 = { x: sourceWidth * u1, y: sourceHeight * v0 }
+      const s01 = { x: sourceWidth * u0, y: sourceHeight * v1 }
+      const s11 = { x: sourceWidth * u1, y: sourceHeight * v1 }
+      triangle(s00, s10, s01, p00, p10, p01)
+      triangle(s10, s11, s01, p10, p11, p01)
+    }
   }
 }
 
@@ -702,7 +823,6 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
     const path = data.paths[i]
     if (!path.d) continue
     const p2d = new Path2D(path.d)
-    const fill = usablePaint(path.fill) ?? usablePaint(path.stroke) ?? (el.theme === 'dark' ? '#ffffff' : '#111111')
     
     // Stagger paths slightly based on index
     const delay = (i / data.paths.length) * 0.5
@@ -711,7 +831,7 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
     const pathProgress = Math.min(Math.max(rawProgress, 0), 1)
 
     if (state.animationPhase === 'entrance' && p < 1) {
-       ctx.strokeStyle = fill
+       ctx.strokeStyle = path.fill || path.stroke || '#ffffff'
        ctx.lineWidth = 3 / scale // thin line independent of scale
        if (path.length) {
          ctx.setLineDash([path.length])
@@ -721,18 +841,20 @@ function drawPaths(ctx: Ctx, el: RuntimeLogoElement, x: number, y: number, state
        
        // Fade in fill at the very end of the stroke
        if (pathProgress > 0.8) {
-          ctx.fillStyle = fill
+          ctx.fillStyle = path.fill || path.stroke || '#ffffff'
           const fillP = (pathProgress - 0.8) / 0.2
           ctx.globalAlpha = fillP * (el.opacity ?? 1)
           ctx.fill(p2d)
           ctx.globalAlpha = el.opacity ?? 1
        }
     } else {
-       ctx.fillStyle = fill
-       ctx.fill(p2d)
-       const stroke = usablePaint(path.stroke)
-       if (stroke) {
-         ctx.strokeStyle = stroke
+       // Loop or Exit phase: just draw the filled path
+       if (path.fill) {
+         ctx.fillStyle = path.fill
+         ctx.fill(p2d)
+       }
+       if (path.stroke) {
+         ctx.strokeStyle = path.stroke
          ctx.stroke(p2d)
        }
     }
@@ -754,13 +876,14 @@ function drawElement(
   originY: number = 0,
   sceneTotalFrames?: number,
   scene?: SceneConfig,
-  inheritedDepth: number = 0
+  inheritedDepth: number = 0,
+  reducedMotion = false,
 ): void {
-  const state = getAnimationState(el, localFrame, fps)
+  const state = getAnimationState(reducedMotion ? { ...el, entrance: undefined, exit: undefined, loop: undefined } : el, localFrame, fps)
   if (state.opacity <= 0) return
 
   const effectiveDepth = el.depth ?? inheritedDepth
-  const off = scene ? parallaxOffsetFor(scene, localFrame, fps, effectiveDepth) : null
+  const off = scene && !reducedMotion ? parallaxOffsetFor(scene, localFrame, fps, effectiveDepth) : null
 
   const { x, y } = resolvePosition(el.position, width, height, originX, originY)
 
@@ -778,7 +901,7 @@ function drawElement(
       drawShape(ctx, el, x, y, state, localFrame)
       break
     case 'image':
-      drawImage(ctx, el as ImageElementConfig, x, y, state, width, height, localFrame, fps, sceneTotalFrames)
+      drawImage(ctx, el as ImageElementConfig, x, y, state, width, height, localFrame, fps, sceneTotalFrames, scene?.camera, reducedMotion)
       break
     case 'logo': {
       const logoEl = el as RuntimeLogoElement
@@ -791,7 +914,7 @@ function drawElement(
     }
     case 'group':
       for (const child of el.children) {
-        drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames, scene, effectiveDepth)
+        drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames, scene, effectiveDepth, reducedMotion)
       }
       break
   }
@@ -811,19 +934,20 @@ function drawScene(
   motionQuality: MotionQuality | undefined,
   absoluteFrame: number,
   alpha: number = 1,
-  suppressOverlays = false
+  suppressOverlays = false,
+  reducedMotion = false,
 ): void {
   ctx.save()
   ctx.globalAlpha = alpha
 
   ctx.save()
-  applySceneCamera(ctx, scene, localFrame, fps, width, height)
+  if (!reducedMotion) applySceneCamera(ctx, scene, localFrame, fps, width, height)
   drawBackground(ctx, scene.background, width, height, false)
 
   const sceneFrames = Math.round(scene.duration * fps)
   for (const el of scene.elements) {
     ctx.save()
-    drawElement(ctx, el, localFrame, fps, width, height, 0, 0, sceneFrames, scene, 0)
+    drawElement(ctx, el, localFrame, fps, width, height, 0, 0, sceneFrames, scene, 0, reducedMotion)
     ctx.restore()
   }
   ctx.restore()
@@ -858,7 +982,8 @@ function drawFrameInternal(
   frame: number,
   width: number,
   height: number,
-  opts?: { cpuFx?: boolean }
+  opts?: { cpuFx?: boolean; reducedMotion?: boolean },
+  sceneTimeline: ActiveScene[] = buildSceneTimeline(config),
 ): void {
   // Clear
   ctx.clearRect(0, 0, width, height)
@@ -869,15 +994,13 @@ function drawFrameInternal(
   drawBackground(ctx, config.background, width, height, true)
 
   // Build the scene timeline
-  const timeline = buildSceneTimeline(config)
-
-  for (let i = 0; i < timeline.length; i++) {
-    const { scene, startFrame, endFrame } = timeline[i]
-    const sceneFrames = Math.round(scene.duration * config.fps)
-    const transFrames = scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
+  for (let i = 0; i < sceneTimeline.length; i++) {
+    const { scene, startFrame, endFrame } = sceneTimeline[i]
+    const reducedMotion = opts?.reducedMotion ?? config.reducedMotion ?? false
+    const transFrames = !reducedMotion && scene.transition ? Math.round(scene.transition.duration * config.fps) : 0
 
     const isActive = frame >= startFrame && frame < endFrame
-    const nextScene = timeline[i + 1]
+    const nextScene = sceneTimeline[i + 1]
     const isTransitioning = nextScene && frame >= (endFrame - transFrames) && frame < endFrame
 
     if (!isActive && !isTransitioning) continue
@@ -1043,7 +1166,7 @@ function drawFrameInternal(
         drawScene(ctx, nextScene.scene, frame - nextScene.startFrame, config.fps, width, height, mq, frame, tp)
       }
     } else if (isActive) {
-      drawScene(ctx, scene, localFrame, config.fps, width, height, config.motionQuality, frame)
+      drawScene(ctx, scene, localFrame, config.fps, width, height, config.motionQuality, frame, 1, false, reducedMotion)
     }
   }
 
@@ -1061,11 +1184,32 @@ export function drawFrame(
   frame: number,
   width: number,
   height: number,
-  opts?: { cpuFx?: boolean },
+  opts?: { cpuFx?: boolean; reducedMotion?: boolean },
 ): void {
   try {
     drawFrameInternal(ctx, config, frame, width, height, opts)
   } finally {
     globalFxActive = false
+  }
+}
+
+/**
+ * Build a renderer for an immutable video config. Export loops should reuse
+ * this closure so the transition-aware scene timeline is not rebuilt per frame.
+ * Create a new renderer when the config changes.
+ */
+export function createFrameRenderer(
+  config: VeloxVideoConfig,
+  width: number,
+  height: number,
+  opts?: { cpuFx?: boolean; reducedMotion?: boolean },
+): (ctx: Ctx, frame: number) => void {
+  const sceneTimeline = buildSceneTimeline(config)
+  return (ctx, frame) => {
+    try {
+      drawFrameInternal(ctx, config, frame, width, height, opts, sceneTimeline)
+    } finally {
+      globalFxActive = false
+    }
   }
 }

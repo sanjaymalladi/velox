@@ -39,6 +39,7 @@ program
   .option('--draft', 'fast preview export: 50% resolution, max 15fps')
   .option('--scale <number>', 'output resolution scale 0.25–1 (e.g. 0.5 for half res)')
   .option('--fps <number>', 'cap export fps (skips frames, keeps duration)')
+  .option('--profile', 'write render stage timings and memory to <output>.profile.json')
   .option('--headless', 'all-WebGL export via headless Chromium + ffmpeg (requires Playwright)')
   .action((file: string, opts) => renderCommand(file, {
     output: opts.output,
@@ -47,6 +48,7 @@ program
     draft: Boolean(opts.draft),
     scale: opts.scale !== undefined ? parseFloat(opts.scale) : undefined,
     fps: opts.fps !== undefined ? parseInt(opts.fps, 10) : undefined,
+    profile: Boolean(opts.profile),
     headless: Boolean(opts.headless),
   }))
 

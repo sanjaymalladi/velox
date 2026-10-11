@@ -1,10 +1,18 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { createVideoFromMarkup, isVeloxMarkup } from './markupCompiler'
+import { configToMarkup } from './markupSerializer'
 import { preloadAesthetics } from './aesthetics/registry'
 
 beforeAll(async () => { await preloadAesthetics() })
 
 describe('velox markup', () => {
+  it('compiles and round-trips the simple perspective tilt for image planes', () => {
+    const video = createVideoFromMarkup(`<video><scene duration="4"><image src="map.jpg" width="800" height="450" tilt="8,-12" depth="0.8" /></scene></video>`)
+    const image = video.config.scenes[0]?.elements[0]
+    expect(image?.type === 'image' ? image.tilt : undefined).toEqual({ x: 8, y: -12 })
+    expect(configToMarkup(video.config)).toContain('tilt="8,-12"')
+  })
+
   it('compiles nested markup into a video', () => {
     const video = createVideoFromMarkup(`
       <video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">
@@ -42,6 +50,17 @@ describe('velox markup', () => {
     expect(video.config.background).toBe('grid(rgba(255,255,255,0.04), 44)')
     expect(video.config.scenes[0].background).toBe('#050505')
     expect(video.config.scenes[1].background).toEqual(expect.objectContaining({ type: 'linear' }))
+  })
+
+  it('compiles a shared visual world, story metadata, motion intent, and reduced motion', () => {
+    const video = createVideoFromMarkup(`<video reducedMotion="true"><visualWorld name="Paper atlas" background="warmPaper" material="paper" bgColor="#f4ecdf" /><scene duration="3" chapter="Opening" focus="a route" source="https://example.com" sourceDate="2026"><text value="Follow the route" intent="trace" motion="drawIn" /></scene></video>`)
+    expect(video.config.visualWorld?.name).toBe('Paper atlas')
+    expect(video.config.visualWorld?.material).toBe('paper')
+    expect(video.config.reducedMotion).toBe(true)
+    expect(video.config.scenes[0]?.chapter).toBe('Opening')
+    expect(video.config.scenes[0]?.sourceDate).toBe('2026')
+    const text = video.config.scenes[0]?.elements[0]
+    expect(text?.type === 'text' ? text.intent : undefined).toBe('trace')
   })
 
   it('supports cream grid video backgrounds with the cream theme', () => {
@@ -289,6 +308,18 @@ describe('velox markup', () => {
     expect(imgs.some((i) => i.src.startsWith('velox-web:'))).toBe(true)
   })
 
+  it('accepts Openverse as a B-roll image provider', () => {
+    const video = createVideoFromMarkup('<video><scene duration="4"><stock provider="openverse" query="historic Delhi" /></scene></video>')
+    const image = video.config.scenes[0].elements.find((element) => element.type === 'image') as { src?: string } | undefined
+    expect(image?.src).toContain('velox-stock:openverse:')
+  })
+
+  it('accepts Quarry as a key-free B-roll image provider', () => {
+    const video = createVideoFromMarkup('<video><scene duration="4"><stock provider="quarry" query="historic Delhi" /></scene></video>')
+    const image = video.config.scenes[0].elements.find((element) => element.type === 'image') as { src?: string } | undefined
+    expect(image?.src).toContain('velox-stock:quarry:')
+  })
+
   it('adds fade outs between delayed top-level sections in a long scene', () => {
     const video = createVideoFromMarkup(`
       <video>
@@ -363,4 +394,3 @@ describe('velox markup', () => {
     expect(video.config.scenes[0].overlay).toEqual({ vignetteOpacity: 0, grainOpacity: 0 })
   })
 })
-

@@ -170,6 +170,12 @@ importers:
       '@fontsource/inter':
         specifier: ^5.2.5
         version: 5.2.8
+      '@fontsource/noto-sans-math':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/noto-sans-symbols-2':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@napi-rs/canvas':
         specifier: ^0.1.97
         version: 0.1.97
@@ -758,6 +764,12 @@ packages:
 
   '@fontsource/inter@5.2.8':
     resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
+
+  '@fontsource/noto-sans-math@5.3.0':
+    resolution: {integrity: sha512-CzodkZ4R2VC73rqbNbVpiI94fXZJLFEMNBTAM3DFadjAKrjLQ2Fr+s2yM2c5uS+frBZ2IM+LyMo6COhAzV7hCA==}
+
+  '@fontsource/noto-sans-symbols-2@5.3.0':
+    resolution: {integrity: sha512-hFnEnIXOIgLLJ61SO9icRXKoS+LSWoq7ZqKJQ/NaQR7ptdC6+7yW4ci6EuXgsS1S9JmWpciX6w0AFZkU1DKn1A==}
 
   '@formatjs/fast-memoize@3.1.1':
     resolution: {integrity: sha512-CbNbf+tlJn1baRnPkNePnBqTLxGliG6DDgNa/UtV66abwIjwsliPMOt0172tzxABYzSuxZBZfcp//qI8AvBWPg==}
@@ -4600,6 +4612,10 @@ snapshots:
   '@floating-ui/utils@0.2.11': {}
 
   '@fontsource/inter@5.2.8': {}
+
+  '@fontsource/noto-sans-math@5.3.0': {}
+
+  '@fontsource/noto-sans-symbols-2@5.3.0': {}
 
   '@formatjs/fast-memoize@3.1.1': {}
 

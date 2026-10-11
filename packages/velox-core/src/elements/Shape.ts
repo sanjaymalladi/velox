@@ -1,5 +1,5 @@
 import { Element } from '../core/Element'
-import type { ShapeElementConfig, ShapeConfig, VeloxColor, VeloxGradient, ChartDataPoint, LineChartSeries } from '../types'
+import type { ShapeElementConfig, ShapeConfig, VeloxColor, VeloxGradient, ChartDataPoint, LineChartSeries, ChartProvenance } from '../types'
 
 class ShapeElement extends Element<ShapeElementConfig> {
   constructor(shapeConfig: ShapeConfig) {
@@ -26,6 +26,7 @@ class ShapeElement extends Element<ShapeElementConfig> {
     this.config.shape.gradient = { type: 'linear', angle, stops }
     return this
   }
+  provenance(value: ChartProvenance): this { this.config.shape.provenance = { ...value }; return this }
 }
 
 /**

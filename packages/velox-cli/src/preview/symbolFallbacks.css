@@ -1,0 +1,15 @@
+@font-face {
+  font-family: 'Noto Sans Symbols 2 Symbols';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@fontsource/noto-sans-symbols-2/files/noto-sans-symbols-2-symbols-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Noto Sans Math';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@fontsource/noto-sans-math/files/noto-sans-math-latin-400-normal.woff2') format('woff2');
+}

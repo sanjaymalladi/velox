@@ -1,0 +1,14 @@
+<video size="720p" fps="24" theme="obsidian">
+  <scene duration="1.8" layout="column" gap="24" align="center" background="mesh:ember" transition="wipe" transitionDuration="0.4">
+    <text value="Transition one" size="56" weight="800" align="center" color="#ffffff" />
+    <circle diameter="220" color="#fbbf24" />
+  </scene>
+  <scene duration="1.8" layout="column" gap="24" align="center" background="mesh:ocean" transition="wipe" transitionDuration="0.4">
+    <text value="Transition two" size="56" weight="800" align="center" color="#ffffff" />
+    <circle diameter="220" color="#38bdf8" />
+  </scene>
+  <scene duration="1.8" layout="column" gap="24" align="center" background="mesh:violet">
+    <text value="Transition three" size="56" weight="800" align="center" color="#ffffff" />
+    <circle diameter="220" color="#c4b5fd" />
+  </scene>
+</video>

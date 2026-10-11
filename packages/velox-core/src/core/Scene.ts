@@ -1,6 +1,7 @@
 import type {
   SceneConfig, ElementConfig, TransitionType, TransitionOptions,
   VeloxColor, VeloxGradient, SceneCamera, SceneMood, SceneOverlay, CaptionTrack,
+  VisualWorldConfig,
 } from '../types'
 import { Element } from './Element'
 
@@ -16,6 +17,12 @@ export class SceneBuilder {
   /** Set scene background — CSS color string or gradient */
   background(colorOrGradient: VeloxColor | VeloxGradient): this {
     this._config.background = colorOrGradient
+    return this
+  }
+
+  /** Add chapter, focus, and intentional background-change metadata. */
+  story(options: { chapter?: string; focus?: string; backgroundReason?: string; accent?: string; source?: string; sourceLabel?: string; sourceDate?: string }): this {
+    Object.assign(this._config, options)
     return this
   }
 
@@ -82,4 +89,8 @@ export class SceneBuilder {
  */
 export function scene(durationInSeconds: number): SceneBuilder {
   return new SceneBuilder(durationInSeconds)
+}
+
+export function visualWorld(config: VisualWorldConfig): VisualWorldConfig {
+  return { ...config, palette: config.palette ? { ...config.palette } : undefined }
 }

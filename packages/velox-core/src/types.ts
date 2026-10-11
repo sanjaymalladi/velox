@@ -85,12 +85,42 @@ export interface TransitionOptions {
 
 /** Global motion polish — vignette/grain defaults scale with premium */
 export type MotionQuality = 'standard' | 'premium'
+export type MotionIntent = 'reveal' | 'trace' | 'compare' | 'transform' | 'emphasize' | 'settle' | 'exit' | 'atmosphere'
+
+export interface VisualWorldConfig {
+  name?: string
+  /** Default scene surface. Scene backgrounds can still override this. */
+  background?: VeloxColor | VeloxGradient
+  material?: string
+  lighting?: string
+  texture?: string
+  motif?: string
+  depth?: 'flat' | 'layered'
+  palette?: { background?: string; foreground?: string; accent?: string; muted?: string }
+}
+
+export interface AssetProvenance {
+  source?: string
+  creator?: string
+  rights?: string
+  date?: string
+  illustration?: boolean
+}
+
+export interface ChartProvenance {
+  source?: string
+  date?: string
+  units?: string
+  kind?: 'quantitative' | 'conceptual'
+  label?: string
+}
 
 /** Semantic scene camera moves (applied in the renderer) */
 export type SceneCamera =
   | 'none'
   | 'slowPush'
   | 'parallaxDrift'
+  | 'orbit'
   | 'handheld'
   | 'kenBurns'
 
@@ -108,6 +138,8 @@ export interface SceneOverlay {
 export interface BaseElementConfig {
   id: string
   type: string
+  /** Why this element moves. This is retained for review and lint. */
+  intent?: MotionIntent
   position?: VeloxPosition
   opacity?: number
   /**
@@ -189,6 +221,9 @@ export interface ImageElementConfig extends BaseElementConfig {
   saturate?: number
   borderRadius?: number
   kenBurns?: boolean | { direction?: 'in' | 'out'; intensity?: number }
+  /** Perspective rotation of the image plane in degrees. Use small angles (under 20°). */
+  tilt?: { x?: number; y?: number; perspective?: number }
+  provenance?: AssetProvenance
 }
 
 export interface LogoElementConfig extends BaseElementConfig {
@@ -247,6 +282,7 @@ export interface ShapeConfig {
   // progressBar
   value?: number
   trackColor?: string
+  provenance?: ChartProvenance
 }
 
 export interface ShapeElementConfig extends BaseElementConfig {
@@ -290,6 +326,13 @@ export interface VeloxAudioPlan {
 export interface SceneConfig {
   id: string
   duration: number        // seconds
+  source?: string
+  sourceLabel?: string
+  sourceDate?: string
+  chapter?: string
+  focus?: string
+  backgroundReason?: string
+  accent?: string
   background?: VeloxColor | VeloxGradient
   /** Subtle canvas camera: push, drift, handheld, ken burns */
   camera?: SceneCamera
@@ -338,6 +381,9 @@ export interface VeloxVideoConfig {
   background?: VeloxColor | VeloxGradient
   font?: string
   theme?: VeloxTheme
+  visualWorld?: VisualWorldConfig
+  /** Render a static, reduced-motion version while keeping all information visible. */
+  reducedMotion?: boolean
   /** Original named aesthetic, retained for round-tripping VML. */
   themeId?: string
   /** Stronger vignette/grain defaults for scenes without explicit overlay */

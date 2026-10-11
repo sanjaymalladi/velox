@@ -16,6 +16,8 @@ Thumbs.db
 # Velox output
 *.mp4
 *.gif
+*.profile.json
+videos/
 
 # Env
 .env

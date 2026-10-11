@@ -2,9 +2,9 @@ import { createVideo, type RawVideoInput, type VeloxVideo } from './core/Video'
 import { scene, type SceneBuilder } from './core/Scene'
 import { text } from './elements/Text'
 import { shape } from './elements/Shape'
-import { image } from './elements/Image'
+import { image, type ImageElement } from './elements/Image'
 import { resolveTheme } from './themes'
-import type { VeloxSize, VeloxTheme } from './types'
+import type { VeloxSize, VeloxTheme, VisualWorldConfig, SceneCamera } from './types'
 import type { Element } from './core/Element'
 
 type AnyElement = Element<any>
@@ -84,6 +84,14 @@ export interface VideoSection {
   overlayImagePosition?: 'center' | 'left' | 'right' | 'topRight' | 'bottomRight'
   /** Per-section style overrides (font, colors, background) */
   style?: SectionStyle
+  /** Simple story and source notes. These help preserve context and image credits. */
+  chapter?: string
+  focus?: string
+  source?: string
+  sourceLabel?: string
+  sourceDate?: string
+  /** Semantic camera preset. `parallaxDrift` also separates image planes. */
+  camera?: SceneCamera
 }
 
 export interface LlmVideoSpec {
@@ -97,6 +105,10 @@ export interface LlmVideoSpec {
   sections: VideoSection[]
   /** Style overrides applied to every section (section-level style takes priority) */
   globalStyle?: SectionStyle
+  /** One shared visual system for every scene. */
+  visualWorld?: VisualWorldConfig
+  /** Reduce or remove motion for accessibility and faster previews. */
+  reducedMotion?: boolean
 }
 
 export interface HeroTitleProps {
@@ -269,7 +281,7 @@ function foregroundMuted(theme: VeloxTheme, style?: SectionStyle): string {
       : theme.muted
 }
 
-export function heroTitle(props: HeroTitleProps, options?: { size?: [number, number]; theme?: LlmThemeName | VeloxTheme }): AnyElement[] {
+export function heroTitle(props: HeroTitleProps, options?: { size?: [number, number]; theme?: LlmThemeName | VeloxTheme; style?: SectionStyle }): AnyElement[] {
   const size = options?.size ?? [1920, 1080]
   const theme = aliasTheme(options?.theme)
   const portrait = isPortrait(size)
@@ -277,6 +289,7 @@ export function heroTitle(props: HeroTitleProps, options?: { size?: [number, num
   const anchorX = safeX(size)
   const yBase = portrait ? Math.round(size[1] * 0.22) : Math.round(size[1] * 0.38)
   const maxTitleWidth = portrait ? Math.round(size[0] * 0.78) : Math.round(size[0] * 0.74)
+  const textColor = options?.style?.textColor ?? theme?.text ?? '#ffffff'
 
   const elements: AnyElement[] = []
 
@@ -297,9 +310,9 @@ export function heroTitle(props: HeroTitleProps, options?: { size?: [number, num
   }
 
   const titleEl = text(props.title)
-    .size(titleSize(size))
+    .size(options?.style?.titleSize ?? titleSize(size))
     .weight(850)
-    .gradient('#ffffff', theme?.primary ?? '#a78bfa')
+    .color(textColor)
     .lineHeight(1.05)
     .align(align)
     .wrap(maxTitleWidth)
@@ -314,7 +327,8 @@ export function heroTitle(props: HeroTitleProps, options?: { size?: [number, num
     const subtitle = text(props.subtitle)
       .size(subtitleSize(size))
       .lineHeight(1.35)
-      .color(theme?.background === '#ffffff' ? 'rgba(248,250,252,0.74)' : theme?.muted ?? 'rgba(255,255,255,0.72)')
+      .size(options?.style?.bodySize ?? subtitleSize(size))
+      .color(options?.style?.textColor ? `${options.style.textColor}` : theme?.muted ?? 'rgba(255,255,255,0.72)')
       .align(align)
       .wrap(maxTitleWidth)
       .maxHeight(Math.round(size[1] * 0.16))
@@ -479,12 +493,12 @@ export function flowchart(props: FlowchartProps, options?: { size?: [number, num
     elements.push(
       shape.rect(cardW, cardH).pos(x, y).color(cardBackground(theme!)).radius(20).in('zoomIn', 0.35, { delay: index * 0.08 }),
       text(step)
-        .pos(x - Math.round(cardW / 2) + 34, y + 4)
+        .pos(x, y)
         .size(isPortrait(size) ? 30 : 24)
         .weight(760)
         .color(cardText(theme!))
-        .align('left')
-        .wrap(cardW - 68)
+        .align('center')
+        .wrap(cardW - 32)
         .in('fadeIn', 0.3, { delay: 0.12 + index * 0.08 })
     )
 
@@ -513,6 +527,13 @@ export const diagrams = {
 
 // ─── Overlay image helper ─────────────────────────────────────────────────────
 
+function backgroundBroll(section: VideoSection, brightness: number, blur = 0): ImageElement {
+  const layer = image(section.backgroundImage ?? '').fill().brightness(brightness)
+  if (section.camera === 'parallaxDrift' || section.camera === 'orbit') layer.depth(-0.4)
+  if (blur > 0) layer.blur(blur)
+  return layer.in('fadeIn', 0.6)
+}
+
 function buildOverlay(section: VideoSection, ctx: ShotContext): AnyElement[] {
   if (!section.overlayImage) return []
   const [imgW, imgH] = section.overlayImageSize ?? [
@@ -529,7 +550,9 @@ function buildOverlay(section: VideoSection, ctx: ShotContext): AnyElement[] {
     case 'bottomRight': x = ctx.size[0] - pad - imgW / 2;      y = ctx.size[1] - pad - imgH / 2; break
     default:            x = Math.round(ctx.size[0] / 2);       y = Math.round(ctx.size[1] / 2); break
   }
-  return [image(section.overlayImage).size(imgW, imgH).pos(x, y).radius(16).in('zoomIn', 0.4)]
+  const overlay = image(section.overlayImage).size(imgW, imgH).pos(x, y).radius(16).in('zoomIn', 0.4)
+  if (section.camera === 'parallaxDrift' || section.camera === 'orbit') overlay.depth(0.8).tilt(7, -10)
+  return [overlay]
 }
 
 export const shots = {
@@ -538,7 +561,7 @@ export const shots = {
     const textColor = style?.textColor ?? ctx.theme.text
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, style))
-    if (section.backgroundImage) sc.add(image(section.backgroundImage).fill().brightness(0.45).in('fadeIn', 0.6))
+    if (section.backgroundImage) sc.add(backgroundBroll(section, 0.45))
     sc.add(...heroTitle({ eyebrow: section.type.toUpperCase(), title: section.heading ?? ctx.title, subtitle: section.subheading ?? ctx.subtitle }, ctx))
     if (section.overlayImage) sc.add(...buildOverlay(section, ctx))
     return sc
@@ -548,7 +571,7 @@ export const shots = {
     const style = ctx.style
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, style))
-    if (section.backgroundImage) sc.add(image(section.backgroundImage).fill().brightness(0.35).in('fadeIn', 0.6))
+    if (section.backgroundImage) sc.add(backgroundBroll(section, 0.35))
     sc.add(
       ...heroTitle({ title: section.heading ?? 'Key Points', subtitle: section.subheading, align: 'left' }, ctx),
       ...bulletList({ points: (section.points ?? []).slice(0, 6) }, ctx),
@@ -568,7 +591,7 @@ export const shots = {
     const cardH = Math.round(ctx.size[1] * (isPortrait(ctx.size) ? 0.16 : 0.2))
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, ctx.style))
-    if (section.backgroundImage) sc.add(image(section.backgroundImage).fill().brightness(0.3).in('fadeIn', 0.6))
+    if (section.backgroundImage) sc.add(backgroundBroll(section, 0.3))
     sc.add(
       ...heroTitle({ title: section.heading ?? 'Metrics', subtitle: section.subheading }, ctx),
       ...stats.flatMap((item, index) => {
@@ -583,7 +606,7 @@ export const shots = {
   processDiagram(section: VideoSection, ctx: ShotContext): SceneBuilder {
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, ctx.style))
-    if (section.backgroundImage) sc.add(image(section.backgroundImage).fill().brightness(0.3).in('fadeIn', 0.6))
+    if (section.backgroundImage) sc.add(backgroundBroll(section, 0.3))
     sc.add(...flowchart({ title: section.heading ?? 'Process', steps: section.steps ?? [] }, ctx))
     return sc
   },
@@ -591,7 +614,7 @@ export const shots = {
   quoteBreak(section: VideoSection, ctx: ShotContext): SceneBuilder {
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, ctx.style))
-    if (section.backgroundImage) sc.add(image(section.backgroundImage).fill().brightness(0.35).blur(8).in('fadeIn', 0.6))
+    if (section.backgroundImage) sc.add(backgroundBroll(section, 0.35, 8))
     sc.add(...quoteCard(section.quote ?? section.heading ?? '', section.speaker, ctx))
     return sc
   },
@@ -624,7 +647,11 @@ export const shots = {
     const textColor = ctx.style?.textColor ?? ctx.theme.text
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, ctx.style))
-    if (src) sc.add(image(src).fill().in('fadeIn', 0.7))
+    if (src) {
+      const heroImage = image(src).fill().kenBurns({ intensity: 0.07 })
+      if (section.camera === 'parallaxDrift' || section.camera === 'orbit') heroImage.depth(-0.4).tilt(3, -4)
+      sc.add(heroImage.in('fadeIn', 0.7))
+    }
     if (section.heading) {
       sc.add(
         shape.rect(ctx.size[0], Math.round(ctx.size[1] * 0.28))
@@ -632,7 +659,7 @@ export const shots = {
           .color('rgba(0,0,0,0.55)')
           .in('fadeIn', 0.4),
         text(section.heading)
-          .pos(safeX(ctx.size), Math.round(ctx.size[1] * 0.82))
+          .pos(Math.round(ctx.size[0] / 2), Math.round(ctx.size[1] * 0.82))
           .size(ctx.style?.titleSize ?? titleSize(ctx.size))
           .weight(700)
           .color(textColor)
@@ -643,7 +670,7 @@ export const shots = {
     if (section.subheading) {
       sc.add(
         text(section.subheading)
-          .pos(safeX(ctx.size), Math.round(ctx.size[1] * 0.9))
+          .pos(Math.round(ctx.size[0] / 2), Math.round(ctx.size[1] * 0.9))
           .size(ctx.style?.bodySize ?? subtitleSize(ctx.size))
           .color('rgba(255,255,255,0.8)')
           .wrap(Math.round(ctx.size[0] * 0.85))
@@ -657,15 +684,17 @@ export const shots = {
   featureSection(section: VideoSection, ctx: ShotContext): SceneBuilder {
     const portrait = isPortrait(ctx.size)
     const imgSrc = section.overlayImage ?? section.backgroundImage
+    const hasImage = Boolean(imgSrc)
     const textColor = ctx.style?.textColor ?? ctx.theme.text
     const accentColor = ctx.style?.accentColor ?? ctx.theme.accent ?? ctx.theme.secondary
     const imgW = portrait ? Math.round(ctx.size[0] * 0.85) : Math.round(ctx.size[0] * 0.44)
     const imgH = portrait ? Math.round(ctx.size[1] * 0.38) : Math.round(ctx.size[1] * 0.62)
     const imgX = portrait ? Math.round(ctx.size[0] / 2) : Math.round(ctx.size[0] * 0.27)
     const imgY = portrait ? Math.round(ctx.size[1] * 0.28) : Math.round(ctx.size[1] / 2)
-    const textX = portrait ? safeX(ctx.size) : Math.round(ctx.size[0] * 0.55)
-    const textY = portrait ? Math.round(ctx.size[1] * 0.56) : Math.round(ctx.size[1] * 0.34)
-    const listMaxW = portrait ? Math.round(ctx.size[0] * 0.85) : Math.round(ctx.size[0] * 0.4)
+    const textX = portrait ? safeX(ctx.size) : hasImage ? Math.round(ctx.size[0] * 0.55) : Math.round(ctx.size[0] / 2)
+    const textY = portrait ? Math.round(ctx.size[1] * 0.56) : hasImage ? Math.round(ctx.size[1] * 0.34) : Math.round(ctx.size[1] * 0.36)
+    const listX = portrait ? safeX(ctx.size) : hasImage ? textX : safeX(ctx.size)
+    const listMaxW = portrait ? Math.round(ctx.size[0] * 0.85) : hasImage ? Math.round(ctx.size[0] * 0.4) : Math.round(ctx.size[0] * 0.84)
 
     const sc = scene(ctx.duration)
       .background(sceneBackground(ctx.theme, section.type, ctx.style))
@@ -686,7 +715,7 @@ export const shots = {
     if (section.points?.length) {
       sc.add(
         text.list(section.points.slice(0, 5))
-          .pos(textX, textY + (section.heading ? Math.round(ctx.size[1] * 0.1) : 0))
+          .pos(listX, textY + (section.heading ? Math.round(ctx.size[1] * 0.1) : 0))
           .size(ctx.style?.bodySize ?? (portrait ? 26 : 28))
           .color(textColor)
           .wrap(listMaxW)
@@ -707,29 +736,41 @@ interface ShotContext {
 }
 
 function sceneFromSection(section: VideoSection, ctx: ShotContext): SceneBuilder {
+  let result: SceneBuilder
   switch (section.type) {
     case 'hook':
     case 'solution':
     case 'cta':
-      return shots.titleReveal(section, ctx)
+      result = shots.titleReveal(section, ctx); break
     case 'problem':
-      return shots.bulletSection(section, ctx)
+      result = shots.bulletSection(section, ctx); break
     case 'stats':
-      return shots.statsSection(section, ctx)
+      result = shots.statsSection(section, ctx); break
     case 'process':
     case 'timeline':
-      return shots.processDiagram(section, ctx)
+      result = shots.processDiagram(section, ctx); break
     case 'quote':
-      return shots.quoteBreak(section, ctx)
+      result = shots.quoteBreak(section, ctx); break
     case 'comparison':
-      return shots.comparison(section, ctx)
+      result = shots.comparison(section, ctx); break
     case 'image':
-      return shots.imageScene(section, ctx)
+      result = shots.imageScene(section, ctx); break
     case 'feature':
-      return shots.featureSection(section, ctx)
+      result = shots.featureSection(section, ctx); break
     default:
-      return shots.bulletSection(section, ctx)
+      result = shots.bulletSection(section, ctx)
   }
+  if (section.chapter || section.focus || section.source || section.sourceLabel || section.sourceDate) {
+    result.story({
+      chapter: section.chapter ?? section.heading,
+      focus: section.focus,
+      source: section.source,
+      sourceLabel: section.sourceLabel,
+      sourceDate: section.sourceDate,
+    })
+  }
+  if (section.camera) result.camera(section.camera)
+  return result
 }
 
 export function createExplainerVideo(spec: LlmVideoSpec): VeloxVideo {
@@ -752,6 +793,8 @@ export function createExplainerVideo(spec: LlmVideoSpec): VeloxVideo {
     background: theme?.background,
     font: theme?.font,
     scenes,
+    visualWorld: spec.visualWorld,
+    reducedMotion: spec.reducedMotion,
   }
 
   return createVideo(input)

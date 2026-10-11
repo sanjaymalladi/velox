@@ -44,7 +44,7 @@ const allowedTags = new Set([
   'captions', 'caption',
   'website', 'githubRepo', 'npmPackage', 'brandCard',
   'audio', 'sfx', 'beat',
-  'fx',
+  'fx', 'visualWorld',
 ])
 
 const voidTags = new Set([
@@ -55,7 +55,7 @@ const voidTags = new Set([
   'asset', 'assetPack', 'icon',
   'caption',
   'website', 'githubRepo', 'npmPackage', 'brandCard',
-  'audio', 'sfx', 'beat',
+  'audio', 'sfx', 'beat', 'visualWorld',
 ])
 
 function fail(message: string): never {

@@ -5,6 +5,8 @@ export type StockProvider =
   | 'generated'
   | 'local'
   | 'wikipedia'
+  | 'openverse'
+  | 'quarry'
   | 'flickr'
   | 'unsplashSource'
   | 'openbrand'

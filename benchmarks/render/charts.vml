@@ -1,0 +1,10 @@
+<video size="720p" fps="24" theme="obsidian" background="#111827">
+  <scene duration="2" layout="column" gap="20" align="center">
+    <kicker color="#67e8f9">CHART BASELINE</kicker>
+    <text value="Two series, one comparison" size="48" weight="800" align="center" color="#ffffff" />
+    <lineChart width="900" height="360" surface="dark" curve="smooth" motion="fade">
+      <series label="A" values="12,28,38,61,72,91" color="#38bdf8" />
+      <series label="B" values="18,22,46,52,68,82" color="#fbbf24" />
+    </lineChart>
+  </scene>
+</video>

@@ -16,6 +16,7 @@ export async function renderCommand(inputFile: string, options: {
   scale?: number
   fps?: number
   draft?: boolean
+  profile?: boolean
   /** Use the all-WebGL headless-Chromium export path (replaces native CPU render). */
   headless?: boolean
 }) {
@@ -55,6 +56,9 @@ export async function renderCommand(inputFile: string, options: {
     }
     if (options.headless && format !== 'mp4') {
       throw new Error('Headless export only supports MP4; remove --format or choose --format mp4.')
+    }
+    if (options.profile && (format !== 'mp4' || options.headless)) {
+      throw new Error('--profile currently supports native MP4 renders only.')
     }
     const normalizedQuality = Number.isFinite(options.quality)
       ? Math.min(100, Math.max(0, options.quality as number))
@@ -99,6 +103,7 @@ export async function renderCommand(inputFile: string, options: {
       scale: tuning.scale,
       exportFps: tuning.exportFps,
       draft: options.draft,
+      profile: options.profile,
       onPhase: (phase) => {
         if (phase === 'render') {
           preloadSpinner?.stop()

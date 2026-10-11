@@ -31,9 +31,33 @@ function roundTextHighlight(ctx: Ctx, x: number, y: number, w: number, h: number
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const GENERIC_FONT_FAMILIES = new Set([
+  'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
+  'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'emoji',
+  'math', 'fangsong',
+])
+
 function primaryFontFamily(family: string): string {
-  const first = family.split(',')[0]?.trim() ?? family
-  return first.replace(/^['"]|['"]$/g, '')
+  let token = ''
+  let quote = ''
+
+  for (const char of family) {
+    if (quote) {
+      token += char
+      if (char === quote) quote = ''
+    } else if (char === '"' || char === "'") {
+      quote = char
+      token += char
+    } else if (char === ',') {
+      break
+    } else {
+      token += char
+    }
+  }
+  const name = token.trim().replace(/^(['"])(.*)\1$/, '$2').trim()
+  if (!name) return 'sans-serif'
+  if (GENERIC_FONT_FAMILIES.has(name.toLowerCase())) return name.toLowerCase()
+  return `"${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
 }
 
 function buildFont(
@@ -42,8 +66,47 @@ function buildFont(
   family: string = 'Inter',
   italic: boolean = false
 ): string {
-  const primary = primaryFontFamily(family)
-  return `${italic ? 'italic ' : ''}${weight} ${size}px "${primary}"`
+  // Native Canvas parsers can treat unsupported intermediate weights (for
+  // example 760) as a font size. Snap to CSS's 100-step weights before drawing.
+  const safeWeight = Math.round(Math.min(900, Math.max(100, weight)) / 100) * 100
+  return `${italic ? 'italic ' : ''}${safeWeight} ${size}px ${primaryFontFamily(family)}`
+}
+
+const SYMBOL_GLYPH = /[\p{Sm}\p{Sk}\p{So}\p{Extended_Pictographic}]/u
+const MATH_GLYPH = /\p{Sm}/u
+
+function fallbackSymbolFamily(character: string): string {
+  return MATH_GLYPH.test(character) ? 'Noto Sans Math' : 'Noto Sans Symbols 2 Symbols'
+}
+
+function fillTextWithSymbolFallback(
+  ctx: Ctx,
+  line: string,
+  anchorX: number,
+  y: number,
+  align: CanvasTextAlign,
+  size: number,
+  weight: number,
+  family: string,
+  letterSpacing = 0,
+): void {
+  const glyphs = Array.from(line).map((character) => {
+    const symbol = SYMBOL_GLYPH.test(character)
+    ctx.font = buildFont(size, symbol ? 400 : weight, symbol ? fallbackSymbolFamily(character) : family)
+    return { character, symbol, width: ctx.measureText(character).width }
+  })
+  const totalWidth = glyphs.reduce((sum, glyph) => sum + glyph.width, 0)
+    + letterSpacing * Math.max(0, glyphs.length - 1)
+  const previousAlign = ctx.textAlign
+  let cursorX = anchorX + (align === 'center' ? -totalWidth / 2 : align === 'right' ? -totalWidth : 0)
+  ctx.textAlign = 'left'
+  for (const glyph of glyphs) {
+    ctx.font = buildFont(size, glyph.symbol ? 400 : weight, glyph.symbol ? fallbackSymbolFamily(glyph.character) : family)
+    ctx.fillText(glyph.character, cursorX, y)
+    cursorX += glyph.width + letterSpacing
+  }
+  ctx.textAlign = previousAlign
+  ctx.font = buildFont(size, weight, family)
 }
 
 function applyGradientFill(
@@ -241,6 +304,7 @@ export function drawText(
     lines.forEach((line, li) => {
       // Centre the block of lines vertically around the draw point
       const lineY = (li - (lines.length - 1) / 2) * lineH
+      const hasSymbolGlyph = Array.from(line).some((character) => SYMBOL_GLYPH.test(character))
 
       // Karaoke active-word pill behind text
       if (el.caption && localFrame !== undefined && fps) {
@@ -293,21 +357,32 @@ export function drawText(
 
       // Draw with letter spacing
       if (letterSpacing !== 0) {
-        let cx = 0
-        c.save()
-        if (textAlign === 'center') {
-          const total = line.split('').reduce((acc, ch) => acc + c.measureText(ch).width + letterSpacing, 0)
-          // Subtract the extra trailing letterSpacing
-          cx = -(total - letterSpacing) / 2
-          c.textAlign = 'left'
+        if (hasSymbolGlyph) {
+          fillTextWithSymbolFallback(c, line, anchorX, lineY, textAlign, fontSize, fontWeight, fontFamily, letterSpacing)
+        } else {
+          let cx = 0
+          c.save()
+          if (textAlign === 'center') {
+            const total = line.split('').reduce((acc, ch) => acc + c.measureText(ch).width + letterSpacing, 0)
+            cx = -(total - letterSpacing) / 2
+            c.textAlign = 'left'
+          }
+          for (const ch of line) {
+            c.fillText(ch, cx + anchorX, lineY)
+            cx += c.measureText(ch).width + letterSpacing
+          }
+          c.restore()
         }
-        for (const ch of line) {
-          c.fillText(ch, cx + anchorX, lineY)
-          cx += c.measureText(ch).width + letterSpacing
-        }
-        c.restore()
       } else {
-        if (neonGlow) {
+        if (hasSymbolGlyph) {
+          if (neonGlow) {
+            c.save()
+            c.shadowColor = '#67e8f9'
+            c.shadowBlur = Math.max(8, fontSize * 0.5)
+          }
+          fillTextWithSymbolFallback(c, line, anchorX, lineY, textAlign, fontSize, fontWeight, fontFamily)
+          if (neonGlow) c.restore()
+        } else if (neonGlow) {
           c.save()
           c.shadowColor = '#67e8f9'
           c.shadowBlur = Math.max(8, fontSize * 0.5)

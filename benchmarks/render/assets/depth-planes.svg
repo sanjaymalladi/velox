@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#102c3b" />
+      <stop offset="1" stop-color="#090d18" />
+    </linearGradient>
+    <linearGradient id="tower" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#db9f62" />
+      <stop offset="1" stop-color="#784d3d" />
+    </linearGradient>
+    <radialGradient id="moon"><stop stop-color="#ffe8bc" /><stop offset="1" stop-color="#f4b76e" stop-opacity="0" /></radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#sky)" />
+  <circle cx="960" cy="168" r="130" fill="url(#moon)" />
+  <circle cx="960" cy="168" r="36" fill="#ffe8bc" />
+  <path d="M0 570 160 410l78 74 150-212 113 141 149-88 170 245z" fill="#152e3a" />
+  <path d="M0 600 165 500l96 55 170-182 110 147 154-86 150 166z" fill="#1e4148" />
+  <g fill="url(#tower)">
+    <path d="M190 720V390h140v330z" /><path d="M360 720V300h164v420z" />
+    <path d="M575 720V445h116v275z" /><path d="M760 720V350h180v370z" />
+    <path d="M992 720V470h130v250z" /><path d="M1138 720V385h142v335z" />
+  </g>
+  <g fill="#ffd698" opacity=".8">
+    <path d="M215 430h24v38h-24zm50 0h24v38h-24zm118-89h24v42h-24zm55 0h24v42h-24zm87 0h24v42h-24z" />
+    <path d="M605 478h22v42h-22zm48 0h22v42h-22zm150-99h26v45h-26zm58 0h26v45h-26zm58 0h26v45h-26z" />
+    <path d="M1018 501h24v39h-24zm52 0h24v39h-24zm91-91h25v42h-25zm54 0h25v42h-25z" />
+  </g>
+</svg>

@@ -18,7 +18,8 @@
     "site:build": "pnpm --filter @velox-video/site build",
     "velox": "node packages/velox-cli/dist/index.js",
     "sync:aesthetics": "pnpm --filter @velox-video/core sync:aesthetics",
-    "generate:theme-previews": "node scripts/generate-theme-previews.cjs"
+    "generate:theme-previews": "node scripts/generate-theme-previews.cjs",
+    "benchmark:render": "pnpm --filter @velox-video/core build && pnpm --filter velox-video build && node scripts/benchmark-render.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",

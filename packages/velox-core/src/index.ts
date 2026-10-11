@@ -3,6 +3,7 @@ export { createVideo } from './core/Video'
 export type { VeloxVideo, RawVideoInput } from './core/Video'
 
 export { scene } from './core/Scene'
+export { visualWorld } from './core/Scene'
 export type { SceneBuilder } from './core/Scene'
 
 export { text } from './elements/Text'
@@ -65,6 +66,7 @@ export type {
 // ─── Native Rendering Engine ──────────────────────────────────────────────────
 export {
   drawFrame,
+  createFrameRenderer,
   getTotalFrames,
   buildSceneTimeline,
   buildSceneStartsSeconds,
@@ -130,6 +132,7 @@ export type {
   BaseElementConfig, TextElementConfig, TextListElementConfig,
   ImageElementConfig, ShapeElementConfig, ShapeConfig, ElementConfig,
   GroupElementConfig, ChartDataPoint, SceneConfig, VeloxTheme, VeloxVideoConfig,
-  MotionQuality, SceneCamera, SceneMood, SceneOverlay,
+  MotionQuality, SceneCamera, SceneMood, SceneOverlay, MotionIntent, VisualWorldConfig,
+  AssetProvenance, ChartProvenance,
   SfxCue, VeloxAudioPlan,
 } from './types'
