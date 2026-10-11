@@ -9,6 +9,12 @@ const MINI = `<video size="portrait" fps="30" theme="apple">
 </video>`
 
 describe('lintVeloxMarkup', () => {
+  it('accepts a product UI demo and warns when its scene is too short', () => {
+    const result = lintVeloxMarkup(`<video><scene duration="3"><uiDemo prompt="Render this idea" /></scene></video>`)
+    expect(result.ok).toBe(true)
+    expect(result.issues.some((issue) => issue.code === 'short-ui-demo')).toBe(true)
+  })
+
   it('passes valid reel VML', () => {
     const r = lintVeloxMarkup(MINI)
     expect(r.ok).toBe(true)

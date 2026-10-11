@@ -1,0 +1,5 @@
+<scene duration="6" camera="slowPush" mood="cinematic">
+  <uiDemo app="Velox Studio" title="Create a launch video"
+    prompt="Make a premium launch video with confident motion."
+    action="Render video" result="Your video is ready" uiTheme="dark" />
+</scene>

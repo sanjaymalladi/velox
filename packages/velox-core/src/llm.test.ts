@@ -23,6 +23,22 @@ describe('createVideoFromSchema', () => {
     expect(images?.find((el) => el.type === 'image' && el.tilt)?.type).toBe('image')
   })
 
+  it('builds a product UI interaction from a small scene description', () => {
+    const video = createVideoFromSchema({
+      title: 'Velox launch',
+      sections: [{
+        type: 'uiDemo',
+        prompt: 'Make a product demo with a cursor.',
+        action: 'Render video',
+        result: 'Video ready',
+      }],
+    })
+    const scene = video.config.scenes[0]
+    expect(scene?.duration).toBeGreaterThanOrEqual(5)
+    expect(scene?.camera).toBe('slowPush')
+    expect(scene?.elements.some((element) => element.type === 'uiDemo')).toBe(true)
+  })
+
   it('applies one shared visual world and keeps simple scene notes', () => {
     const video = createVideoFromSchema({
       title: 'A short story',

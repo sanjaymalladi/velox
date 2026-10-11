@@ -13,6 +13,7 @@ import type {
   VeloxGradient,
   ImageElementConfig,
   LogoElementConfig,
+  UiDemoElementConfig,
   MotionQuality,
   SceneCamera,
 } from '../types'
@@ -21,6 +22,7 @@ import type { AnimationState } from './animations'
 import { drawText, drawTextList, drawCaptionTrack } from './drawText'
 import { drawStockPlaceholder } from './drawStockPlaceholder'
 import { drawShape } from './drawShape'
+import { drawUiDemo } from './drawUiDemo'
 import { lerp, easeOut } from './easing'
 import { supportsCanvasFilter, setCanvasFilter, setNodeElementBlur, applyElementBlur } from './canvasFilter'
 import { drawLayerWithBlur as browserDrawLayerWithBlur } from './cpuBlur'
@@ -912,6 +914,9 @@ function drawElement(
       }
       break
     }
+    case 'uiDemo':
+      drawUiDemo(ctx, el as UiDemoElementConfig, x, y, width, height, localFrame / fps, (sceneTotalFrames ?? 1) / fps, state)
+      break
     case 'group':
       for (const child of el.children) {
         drawElement(ctx, child, localFrame, fps, width, height, x, y, sceneTotalFrames, scene, effectiveDepth, reducedMotion)

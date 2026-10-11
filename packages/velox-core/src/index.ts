@@ -11,6 +11,8 @@ export { image } from './elements/Image'
 export { shape } from './elements/Shape'
 export { logo } from './elements/Logo'
 export { group } from './elements/Group'
+export { uiDemo } from './elements/UIDemo'
+export type { UiDemoOptions } from './elements/UIDemo'
 export { layout } from './layout'
 export { backdrops } from './backdrops'
 export { typography, cards as creativeCards, motion } from './presets'
@@ -130,7 +132,7 @@ export type {
   AnimationOptions, LoopOptions,
   TransitionType, TransitionOptions,
   BaseElementConfig, TextElementConfig, TextListElementConfig,
-  ImageElementConfig, ShapeElementConfig, ShapeConfig, ElementConfig,
+  ImageElementConfig, ShapeElementConfig, ShapeConfig, UiDemoElementConfig, ElementConfig,
   GroupElementConfig, ChartDataPoint, SceneConfig, VeloxTheme, VeloxVideoConfig,
   MotionQuality, SceneCamera, SceneMood, SceneOverlay, MotionIntent, VisualWorldConfig,
   AssetProvenance, ChartProvenance,

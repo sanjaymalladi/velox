@@ -1,0 +1,12 @@
+<video size="720p" fps="30" theme="obsidian" motionQuality="premium">
+  <scene duration="6" camera="slowPush" mood="cinematic" background="mesh:midnight">
+    <uiDemo
+      app="Velox Studio"
+      title="Create a launch video"
+      prompt="Make a premium product launch video with a moving camera."
+      action="Render video"
+      result="Your video is ready"
+      uiTheme="dark"
+      accent="#927bff" />
+  </scene>
+</video>

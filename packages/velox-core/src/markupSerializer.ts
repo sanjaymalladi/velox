@@ -181,6 +181,21 @@ function serializeLeaf(el: ElementConfig, center: Pt): string {
       }
       return `<text ${[...attrs, pos, motion, depthAttr, ...baseAnimationAttrs(el)].filter(Boolean).join(' ')} />`
     }
+    case 'uiDemo': {
+      const attrs = [
+        attr('app', el.app),
+        attr('title', el.title),
+        attr('prompt', el.prompt),
+        attr('action', el.action),
+        attr('result', el.result),
+        attr('uiTheme', el.theme),
+        ...(el.width ? [attr('width', Math.round(el.width))] : []),
+        ...(el.height ? [attr('height', Math.round(el.height))] : []),
+        ...(el.accent ? [attr('accent', el.accent)] : []),
+        pos, motion, depthAttr, ...baseAnimationAttrs(el),
+      ].filter(Boolean)
+      return `<uiDemo ${attrs.join(' ')} />`
+    }
     case 'image':
     case 'logo': {
       const attrs: string[] = []

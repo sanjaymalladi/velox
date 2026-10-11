@@ -358,6 +358,7 @@ const attrSchemas: Record<string, Set<string>> = {
   githubRepo: new Set(['owner', 'repo', ...commonAttrs]),
   npmPackage: new Set(['name', ...commonAttrs]),
   brandCard: new Set(['name', 'provider', ...commonAttrs]),
+  uiDemo: new Set(['app', 'title', 'prompt', 'action', 'result', 'uiTheme', 'width', 'height', 'accent', ...commonAttrs]),
   captions: new Set(['text', 'style', 'start', 'dur', 'src', 'track', 'maxWidth', 'bottomOffset', 'accent', ...commonAttrs]),
   caption: new Set(['at', 'dur', 'text']),
   audio: new Set(['src', 'volume', 'startFrom']),
@@ -421,6 +422,15 @@ function checkMarkupTypes(root: MarkupNode, issues: LintIssue[]): void {
     }
     if (node.tag === 'image' && node.attrs.tilt && !/^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(node.attrs.tilt)) {
       push(issues, { level: 'error', code: 'invalid-image-tilt', message: '<image> tilt must contain two angles, for example tilt="8,-12".', location: node.attributeLocations.tilt ?? node.location })
+    }
+    if (node.tag === 'uiDemo' && node.attrs.uiTheme && !['light', 'dark'].includes(node.attrs.uiTheme)) {
+      push(issues, { level: 'error', code: 'invalid-ui-demo-theme', message: '<uiDemo> uiTheme must be light or dark.', location: node.attributeLocations.uiTheme ?? node.location })
+    }
+    if (node.tag === 'uiDemo' && node.attrs.prompt?.trim().length === 0) {
+      push(issues, { level: 'error', code: 'empty-ui-demo-prompt', message: '<uiDemo> prompt must contain text.', location: node.attributeLocations.prompt ?? node.location })
+    }
+    if (node.tag === 'scene' && node.children.some((child) => child.tag === 'uiDemo') && Number(node.attrs.duration ?? 4) < 4) {
+      push(issues, { level: 'warn', code: 'short-ui-demo', message: 'Give <uiDemo> at least 4 seconds so viewers can read the prompt, follow the cursor, and see the result.', location: node.location })
     }
     if ((node.tag === 'barChart' || node.tag === 'lineChart' || node.tag === 'donutChart') && node.attrs.dataType && !['quantitative', 'conceptual'].includes(node.attrs.dataType)) {
       push(issues, { level: 'error', code: 'invalid-chart-type', message: `${node.tag} dataType must be quantitative or conceptual.`, location: node.attributeLocations.dataType ?? node.location })
@@ -506,6 +516,7 @@ function elementSize(el: VeloxVideoConfig['scenes'][number]['elements'][number])
     return { x: el.shape.width ?? 200, y: el.shape.height ?? el.shape.width ?? 200 }
   }
   if (el.type === 'image' || el.type === 'logo') return { x: el.width ?? 256, y: el.height ?? el.width ?? 256 }
+  if (el.type === 'uiDemo') return { x: el.width ?? 960, y: el.height ?? 596 }
   if (el.type === 'group') {
     const bounds = groupBounds(el.children)
     return { x: bounds.right - bounds.left, y: bounds.bottom - bounds.top }
