@@ -2,6 +2,7 @@ import { createVideo, type VeloxVideo } from './core/Video'
 import { scene, type SceneBuilder } from './core/Scene'
 import { text } from './elements/Text'
 import { image } from './elements/Image'
+import { uiDemo } from './elements/UIDemo'
 import { shape } from './elements/Shape'
 import { logo } from './elements/Logo'
 import { group } from './elements/Group'
@@ -637,6 +638,18 @@ function compileNode(node: MarkupNode, ctx: CompileContext, reelTemplate?: ReelT
       }
       return finish(img, node, reelTemplate)
     }
+    case 'uiDemo':
+      return finish(uiDemo({
+        app: attr(node, 'app'),
+        title: attr(node, 'title'),
+        prompt: requiredAttr(node, 'prompt'),
+        action: attr(node, 'action'),
+        result: attr(node, 'result'),
+        theme: (attr(node, 'uiTheme') as 'dark' | 'light' | undefined),
+        width: attr(node, 'width') ? num(attr(node, 'width'), 0, 'uiDemo.width') : undefined,
+        height: attr(node, 'height') ? num(attr(node, 'height'), 0, 'uiDemo.height') : undefined,
+        accent: attr(node, 'accent') ? color(attr(node, 'accent'), ctx, ctx.theme.accent ?? ctx.theme.primary) : undefined,
+      }), node, reelTemplate)
     case 'stock': {
       const provider = (attr(node, 'provider') ?? 'generated').toLowerCase()
       const q = requiredAttr(node, 'query')

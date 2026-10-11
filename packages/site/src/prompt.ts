@@ -18,16 +18,18 @@ Use this shape:
     { "type": "hook", "heading": "A short opening", "subheading": "One clear idea", "duration": 4, "focus": "A map route" },
     { "type": "image", "heading": "A real visual", "backgroundImage": "velox-stock:quarry:old Delhi street", "sourceLabel": "Open image", "camera": "parallaxDrift", "duration": 5 },
     { "type": "timeline", "heading": "Three changes", "steps": ["First", "Then", "Now"], "duration": 8 },
+    { "type": "uiDemo", "heading": "Create a video", "prompt": "Make a launch video with confident motion.", "action": "Render video", "result": "Video ready", "duration": 7 },
     { "type": "cta", "heading": "The final idea", "subheading": "End with one memorable line", "duration": 4 }
   ]
 }
 
 RULES
-- Use only these scene types: hook, problem, solution, process, stats, quote, timeline, comparison, cta, image, feature.
+- Use only these scene types: hook, problem, solution, process, stats, quote, timeline, comparison, cta, image, feature, uiDemo.
 - Keep each scene focused on one point. Use short headings and no more than 5 points or steps.
 - Use one visualWorld for the whole video. Keep its palette and material consistent across scenes.
 - Make the video feel like moving images, not a set of slides. Use image scenes and image overlays to show the subject. Let the subject or one visual motif carry across nearby scenes.
 - Use camera="parallaxDrift" when a scene has both a background image and an overlay image. Velox sets the image depths and a small perspective tilt for you. Use camera="orbit" for a gentle moving perspective. Other choices are slowPush, kenBurns, handheld, and none.
+- For a product interaction, use one uiDemo scene. Set prompt, action, and result. Velox animates typing, cursor clicks, render progress, and completion. Give this scene at least 5 seconds.
 - Prefer image scenes for B-roll. To request a real image, set backgroundImage to velox-stock:quarry:SEARCH WORDS. The CLI searches Quarry and stores a local copy. Use a short, specific query. Network access is needed on the first render.
 - Do not invent image URLs. If no real image is needed, omit image fields.
 - Add focus to describe the main visual idea. Add source, sourceLabel, and sourceDate when the scene uses factual claims.

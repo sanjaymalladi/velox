@@ -295,6 +295,20 @@ export interface GroupElementConfig extends BaseElementConfig {
   children: ElementConfig[]
 }
 
+/** A prebuilt, seek-safe product UI demo with a library-owned cursor timeline. */
+export interface UiDemoElementConfig extends BaseElementConfig {
+  type: 'uiDemo'
+  app: string
+  title: string
+  prompt: string
+  action: string
+  result: string
+  theme: 'dark' | 'light'
+  width?: number
+  height?: number
+  accent?: string
+}
+
 export type ElementConfig =
   | TextElementConfig
   | TextListElementConfig
@@ -302,6 +316,7 @@ export type ElementConfig =
   | LogoElementConfig
   | ShapeElementConfig
   | GroupElementConfig
+  | UiDemoElementConfig
 
 export interface SfxCue {
   /** Preset sfx id (CLI maps to bundled/user assets) */

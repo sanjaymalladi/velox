@@ -238,6 +238,30 @@ For portrait videos, keep main text around `48` to `76`, subtitles around `28` t
 <stock query="developer coding at night" width="520" height="320" radius="24" />
 ```
 
+### Product UI Demos
+
+Use one `<uiDemo>` element to show a prompt being typed, a cursor clicking the action, render progress, and a visible completion state. Velox supplies the UI layout and seek-safe pointer path.
+
+```xml
+<scene duration="6" background="mesh:midnight" camera="slowPush">
+  <uiDemo app="Velox Studio" title="Create a launch video"
+    prompt="Make a premium product launch video with a moving camera."
+    action="Render video" result="Your video is ready" uiTheme="dark" />
+</scene>
+```
+
+Use `prompt`, `action`, and `result` to change the story. `app`, `title`, `uiTheme`, and `accent` style the mock interface. Keep the scene at least four seconds so viewers can follow the cursor and read the result.
+
+In TypeScript, use the same one-call helper:
+
+```ts
+scene(6).add(uiDemo({
+  prompt: 'Make a premium product launch video.',
+  action: 'Render video',
+  result: 'Your video is ready',
+}).center())
+```
+
 Use `logoLockup` when text should align with the brand mark. Do not try to call methods on logo lockups; VML uses attributes only.
 
 ### Shapes And Cards

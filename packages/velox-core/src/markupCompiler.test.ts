@@ -13,6 +13,16 @@ describe('velox markup', () => {
     expect(configToMarkup(video.config)).toContain('tilt="8,-12"')
   })
 
+  it('compiles and round-trips a semantic product UI demo', () => {
+    const vml = `<video><scene duration="6"><uiDemo app="Velox Studio" title="Create a launch video" prompt="Make a product video." action="Render video" result="Your video is ready" uiTheme="dark" accent="#8b7bff" /></scene></video>`
+    const video = createVideoFromMarkup(vml)
+    const demo = video.config.scenes[0]?.elements[0]
+    expect(demo?.type).toBe('uiDemo')
+    expect(demo?.type === 'uiDemo' ? demo.prompt : undefined).toBe('Make a product video.')
+    expect(configToMarkup(video.config)).toContain('<uiDemo')
+    expect(configToMarkup(video.config)).toContain('uiTheme="dark"')
+  })
+
   it('compiles nested markup into a video', () => {
     const video = createVideoFromMarkup(`
       <video size="portrait" fps="60" theme="obsidian" background="grid(rgba(255,255,255,0.04), 44)">

@@ -28,6 +28,12 @@ function validateElement(el: ElementConfig, sceneId: string): void {
   if (el.type === 'logo') {
     assert(typeof el.logo === 'string' && el.logo.trim().length > 0, `Logo element "${el.id}" logo is required.`)
   }
+  if (el.type === 'uiDemo') {
+    assert(typeof el.prompt === 'string' && el.prompt.trim().length > 0, `UI demo "${el.id}" prompt is required.`)
+    assert(el.theme === 'dark' || el.theme === 'light', `UI demo "${el.id}" theme must be dark or light.`)
+    if (el.width !== undefined) assert(Number.isFinite(el.width) && el.width > 0, `UI demo "${el.id}" width must be positive.`)
+    if (el.height !== undefined) assert(Number.isFinite(el.height) && el.height > 0, `UI demo "${el.id}" height must be positive.`)
+  }
   if (el.type === 'shape') {
     if (el.shape.shapeType === 'barChart' && el.shape.data) {
       for (const point of el.shape.data) {

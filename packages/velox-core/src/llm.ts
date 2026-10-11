@@ -3,6 +3,7 @@ import { scene, type SceneBuilder } from './core/Scene'
 import { text } from './elements/Text'
 import { shape } from './elements/Shape'
 import { image, type ImageElement } from './elements/Image'
+import { uiDemo } from './elements/UIDemo'
 import { resolveTheme } from './themes'
 import type { VeloxSize, VeloxTheme, VisualWorldConfig, SceneCamera } from './types'
 import type { Element } from './core/Element'
@@ -36,6 +37,7 @@ export type NarrativeSectionType =
   | 'cta'
   | 'image'
   | 'feature'
+  | 'uiDemo'
 
 /**
  * Per-section (or global) style overrides.
@@ -92,6 +94,14 @@ export interface VideoSection {
   sourceDate?: string
   /** Semantic camera preset. `parallaxDrift` also separates image planes. */
   camera?: SceneCamera
+  /** The text to type into a generated product UI demo. */
+  prompt?: string
+  /** The primary action shown in the generated UI demo. */
+  action?: string
+  /** Completion text shown after the demo's render progress. */
+  result?: string
+  /** App name shown in the window chrome. */
+  app?: string
 }
 
 export interface LlmVideoSpec {
@@ -207,6 +217,8 @@ function sectionDuration(section: VideoSection, pace: LlmVideoSpec['pace']): num
     case 'timeline':
     case 'comparison':
       return 6 * multiplier
+    case 'uiDemo':
+      return 7 * multiplier
     default:
       return 5 * multiplier
   }
@@ -680,6 +692,23 @@ export const shots = {
     return sc
   },
 
+  /** A complete, self-animating app walkthrough for product moments. */
+  uiDemo(section: VideoSection, ctx: ShotContext): SceneBuilder {
+    return scene(ctx.duration)
+      .background(sceneBackground(ctx.theme, 'feature', ctx.style))
+      .camera(section.camera ?? 'slowPush')
+      .mood('cinematic')
+      .add(uiDemo({
+        app: section.app ?? 'Velox Studio',
+        title: section.heading ?? 'Create a video',
+        prompt: section.prompt ?? section.subheading ?? 'Make a premium product launch video.',
+        action: section.action ?? 'Render video',
+        result: section.result ?? 'Your video is ready',
+        theme: 'dark',
+        accent: ctx.style?.accentColor ?? ctx.theme.accent ?? '#8b7bff',
+      }).center())
+  },
+
   /** Side-by-side: image on one half, bullet list on the other */
   featureSection(section: VideoSection, ctx: ShotContext): SceneBuilder {
     const portrait = isPortrait(ctx.size)
@@ -757,6 +786,8 @@ function sceneFromSection(section: VideoSection, ctx: ShotContext): SceneBuilder
       result = shots.imageScene(section, ctx); break
     case 'feature':
       result = shots.featureSection(section, ctx); break
+    case 'uiDemo':
+      result = shots.uiDemo(section, ctx); break
     default:
       result = shots.bulletSection(section, ctx)
   }

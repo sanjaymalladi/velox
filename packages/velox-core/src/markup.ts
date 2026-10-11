@@ -42,7 +42,7 @@ const allowedTags = new Set([
   'beforeAfter', 'quoteCard', 'ranking', 'countdown', 'finalCTA',
   'asset', 'assetPack', 'icon',
   'captions', 'caption',
-  'website', 'githubRepo', 'npmPackage', 'brandCard',
+  'website', 'githubRepo', 'npmPackage', 'brandCard', 'uiDemo',
   'audio', 'sfx', 'beat',
   'fx', 'visualWorld',
 ])
@@ -55,7 +55,7 @@ const voidTags = new Set([
   'asset', 'assetPack', 'icon',
   'caption',
   'website', 'githubRepo', 'npmPackage', 'brandCard',
-  'audio', 'sfx', 'beat', 'visualWorld',
+  'audio', 'sfx', 'beat', 'visualWorld', 'uiDemo',
 ])
 
 function fail(message: string): never {
@@ -151,4 +151,3 @@ export function parseVeloxMarkup(markup: string): MarkupNode {
 export function isVeloxMarkup(value: string): boolean {
   return normalizeMarkup(value).startsWith('<video')
 }
-
