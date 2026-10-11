@@ -1,0 +1,36 @@
+<video size="portrait" fps="30" theme="obsidian" motionQuality="premium">
+  <scene duration="4.5" template="topTextBottomVisual" camera="slowPush" mood="cinematic" transition="blurDissolve" transitionDuration="0.4">
+    <announcement slot="top" title="This Week in AI" subtitle="The global AI race is accelerating." badge="BRIEF" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="300" height="520" motion="driftIn" />
+    <captions slot="caption" text="This week in AI was dominated by one theme: the global AI race is accelerating." style="karaoke" />
+  </scene>
+
+  <scene duration="5.5" template="headlineThenProof" camera="slowPush" mood="editorial" transition="wipe" transitionDuration="0.35">
+    <breakingNews slot="top" headline="China to unveil major AI strategy" ticker="World AI Conference, Shanghai — Xi to outline global AI governance." tone="warning" />
+    <asset slot="visual" name="star-burst" width="320" height="320" motion="magneticPop" />
+    <captions slot="caption" text="China is preparing to unveil a major AI strategy at the World AI Conference in Shanghai, where President Xi is expected to outline the country's vision for global AI governance." style="karaoke" />
+  </scene>
+
+  <scene duration="5" template="topTextBottomVisual" camera="kenBurns" mood="cinematic" transition="blurDissolve" transitionDuration="0.4">
+    <announcement slot="top" title="Huawei Atlas 950 SuperPoD" subtitle="A new AI cluster, built on domestic tech." badge="HARDWARE" motion="pop" />
+    <asset slot="visual" name="highlight-ring" width="360" height="360" motion="driftIn" />
+    <captions slot="caption" text="Huawei will introduce its Atlas 950 SuperPoD — a powerful new AI computing system built with domestic technology, reducing dependence on U.S. chips." style="karaoke" />
+  </scene>
+
+  <scene duration="5" template="headlineThenProof" camera="slowPush" mood="editorial" transition="wipe" transitionDuration="0.35">
+    <breakingNews slot="top" headline="AI is now a geopolitical race" ticker="Whoever controls the compute shapes the next generation of AI." tone="warning" />
+    <asset slot="visual" name="star-burst" width="320" height="320" motion="magneticPop" />
+    <captions slot="caption" text="AI is no longer just about building bigger models. It is becoming a geopolitical competition over computing power and infrastructure." style="karaoke" />
+  </scene>
+
+  <scene duration="4.5" template="centerCard" background="mesh:violet" transition="wipe" transitionDuration="0.35">
+    <announcement slot="center" title="AI Appreciation Day" subtitle="Safety, transparency, responsible AI." badge="TODAY" motion="softReveal" />
+    <captions slot="caption" text="Today marks AI Appreciation Day — with a sharper focus on safety, transparency, and ensuring AI benefits society." style="karaoke" />
+  </scene>
+
+  <scene duration="4" template="topTextBottomVisual" camera="slowPush" mood="cinematic" transition="blurDissolve" transitionDuration="0.4">
+    <announcement slot="top" title="The AI race enters its next phase" subtitle="And it's moving faster than ever." badge="WRAP" motion="heroCinematic" />
+    <asset slot="visual" name="phone-frame" width="300" height="520" motion="driftIn" />
+    <captions slot="caption" text="AI is becoming the foundation of economic growth and national security. The race is entering its next phase — and moving faster than ever." style="karaoke" />
+  </scene>
+</video>

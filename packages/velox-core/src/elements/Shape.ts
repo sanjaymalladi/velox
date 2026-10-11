@@ -88,12 +88,14 @@ export const shape = {
     data: ChartDataPoint[]
     showLabels?: boolean
     showValues?: boolean
+    surface?: 'light' | 'dark'
   }): ShapeElement {
     return new ShapeElement({
       shapeType: 'barChart',
       data: config.data,
       showLabels: config.showLabels ?? true,
       showValues: config.showValues ?? true,
+      chartSurface: config.surface,
     })
   },
 
@@ -103,6 +105,7 @@ export const shape = {
     showLabels?: boolean
     showValues?: boolean
     curve?: 'linear' | 'smooth' | 'step'
+    surface?: 'light' | 'dark'
   }): ShapeElement {
     return new ShapeElement({
       shapeType: 'lineChart',
@@ -110,6 +113,7 @@ export const shape = {
       showLabels: config.showLabels ?? true,
       showValues: config.showValues ?? true,
       curve: config.curve ?? 'smooth',
+      chartSurface: config.surface,
     })
   },
 

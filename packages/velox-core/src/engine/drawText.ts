@@ -7,7 +7,9 @@
  */
 import type { TextElementConfig, TextListElementConfig, VeloxGradient } from '../types'
 import type { AnimationState } from './animations'
-import { setCanvasFilter, supportsCanvasFilter } from './canvasFilter'
+import { buildCaptionWordSpans } from '../captions'
+import type { CaptionTrack } from '../types'
+import { setCanvasFilter, supportsCanvasFilter, applyElementBlur } from './canvasFilter'
 import { colors as colorUtils } from '../color'
 
 type Ctx = CanvasRenderingContext2D
@@ -50,7 +52,7 @@ function applyGradientFill(
   x: number, y: number,
   width: number, height: number
 ): void {
-  const angle = (parseFloat(gradient.angle) * Math.PI) / 180
+  const angle = (parseFloat(gradient.angle ?? '0') * Math.PI) / 180
   const len = Math.sqrt(width * width + height * height)
   const cx = x + width / 2
   const cy = y + height / 2
@@ -58,9 +60,18 @@ function applyGradientFill(
   const gy1 = cy - (Math.sin(angle) * len) / 2
 
   const grad = ctx.createLinearGradient(gx1, gy1, cx + (Math.cos(angle) * len) / 2, cy + (Math.sin(angle) * len) / 2)
-  gradient.stops.forEach((stop, i) => {
-    grad.addColorStop(i / (gradient.stops.length - 1), stop)
-  })
+  if (gradient.stops.length === 0) {
+    ctx.fillStyle = 'transparent'
+    return
+  }
+  if (gradient.stops.length === 1) {
+    grad.addColorStop(0, gradient.stops[0])
+    grad.addColorStop(1, gradient.stops[0])
+  } else {
+    gradient.stops.forEach((stop, i) => {
+      grad.addColorStop(i / (gradient.stops.length - 1), stop)
+    })
+  }
   ctx.fillStyle = grad
 }
 
@@ -151,33 +162,18 @@ export function drawText(
     }
   }
 
-  ctx.save()
-
-  // Apply animation transform
-  ctx.globalAlpha = Math.max(0, Math.min(1, state.opacity))
-  setCanvasFilter(ctx, state.blur > 0 ? `blur(${state.blur}px)` : 'none')
-
-  // Position transform
-  ctx.translate(drawX + state.x, drawY + state.y)
-  if (state.scaleX !== 1 || state.scaleY !== 1) {
-    ctx.scale(state.scaleX, state.scaleY)
-  }
-  if (state.rotation !== 0) {
-    ctx.rotate((state.rotation * Math.PI) / 180)
-  }
-
-  // Dynamic Font Scaler to prevent massive overflow
+  // Dynamic Font Scaler to prevent massive overflow (measured against the real ctx)
   let lines: string[] = []
   let lineH = 0
   let totalHeight = 0
   const maxAllowedHeight = maxHeight ?? (canvasHeight * 0.88)
-  
+
   while (fontSize >= 18) { // Don't shrink below 18 to avoid cramped illegible text
     ctx.font = buildFont(fontSize, fontWeight, fontFamily, fontStyle === 'italic')
     lines = wrapLines(ctx, displayText, maxWidth)
     lineH = fontSize * lineHeight
     totalHeight = lines.length * lineH
-    
+
     if (totalHeight <= maxAllowedHeight) {
       break
     }
@@ -199,105 +195,253 @@ export function drawText(
 
   const clipLeft = -maxWidth / 2
 
-  ctx.textAlign = textAlign as CanvasTextAlign
-  ctx.textBaseline = 'middle'
+  const drawInto = (c: Ctx) => {
+    c.save()
+    c.globalAlpha = Math.max(0, Math.min(1, state.opacity))
 
-  // Clip to maxHeight if specified
-  if (maxHeight) {
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(clipLeft, -maxHeight / 2, maxWidth, maxHeight)
-    ctx.clip()
-  }
+    // Position transform
+    c.translate(drawX + state.x, drawY + state.y)
+    if (state.scaleX !== 1 || state.scaleY !== 1) {
+      c.scale(state.scaleX, state.scaleY)
+    }
+    if (state.rotation !== 0) {
+      c.rotate((state.rotation * Math.PI) / 180)
+    }
 
-  // Vertical mask reveal (heroCinematic / maskRevealUp)
-  if (state.clipRevealY !== undefined && state.clipRevealY < 1) {
-    ctx.save()
-    ctx.beginPath()
-    const blockTop = -totalHeight / 2
-    const revealH = totalHeight * state.clipRevealY
-    ctx.rect(clipLeft, blockTop + totalHeight - revealH, maxWidth, revealH)
-    ctx.clip()
-  }
+    c.textAlign = textAlign as CanvasTextAlign
+    c.textBaseline = 'middle'
 
-  lines.forEach((line, li) => {
-    // Centre the block of lines vertically around the draw point
-    const lineY = (li - (lines.length - 1) / 2) * lineH
+    // Clip to maxHeight if specified
+    if (maxHeight) {
+      c.save()
+      c.beginPath()
+      c.rect(clipLeft, -maxHeight / 2, maxWidth, maxHeight)
+      c.clip()
+    }
 
-    // Karaoke active-word pill behind text
-    if (el.caption && localFrame !== undefined && fps) {
-      const t = localFrame / fps
-      const { cueStartSec, wordStepSec, wordIndex, style } = el.caption
-      const relativeT = Math.max(0, t - cueStartSec)
-      const activeIndex = Math.min(
-        el.caption.totalWords - 1,
-        Math.max(0, Math.floor(relativeT / Math.max(wordStepSec, 0.08))),
-      )
-      if ((style === 'karaoke' || style === 'highlightKeywords') && wordIndex === activeIndex && relativeT >= 0) {
-        const measured = ctx.measureText(line)
+    // Vertical mask reveal (heroCinematic / maskRevealUp)
+    if (state.clipRevealY !== undefined && state.clipRevealY < 1) {
+      c.save()
+      c.beginPath()
+      const blockTop = -totalHeight / 2
+      const revealH = totalHeight * state.clipRevealY
+      c.rect(clipLeft, blockTop + totalHeight - revealH, maxWidth, revealH)
+      c.clip()
+    }
+
+    const capStyle = el.caption?.style
+    const neonGlow = capStyle === 'neon'
+    const outlineText = capStyle === 'outline'
+    const effectiveGradient =
+      gradient ??
+      (capStyle === 'gradient'
+        ? ({ angle: '90', stops: [color, '#ffffff'] } as VeloxGradient)
+        : undefined)
+
+    lines.forEach((line, li) => {
+      // Centre the block of lines vertically around the draw point
+      const lineY = (li - (lines.length - 1) / 2) * lineH
+
+      // Karaoke active-word pill behind text
+      if (el.caption && localFrame !== undefined && fps) {
+        const t = localFrame / fps
+        const { cueStartSec, wordStepSec, wordIndex, style } = el.caption
+        const relativeT = Math.max(0, t - cueStartSec)
+        const activeIndex = Math.min(
+          el.caption.totalWords - 1,
+          Math.max(0, Math.floor(relativeT / Math.max(wordStepSec, 0.08))),
+        )
+        if ((style === 'karaoke' || style === 'highlightKeywords') && wordIndex === activeIndex && relativeT >= 0) {
+          const measured = c.measureText(line)
+          const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
+          const padX = 14
+          const padY = 8
+          const bx = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0) - padX
+          const by = lineY - fontSize / 2 - padY
+          c.save()
+        c.fillStyle = el.caption.accent
+            ? colorUtils.alpha(el.caption.accent, 0.26)
+            : style === 'highlightKeywords'
+              ? colorUtils.alpha(color, 0.22)
+              : colorUtils.dimCaption(color, 0.14)
+          roundTextHighlight(c, bx, by, w + padX * 2, fontSize + padY * 2, 10)
+          c.fill()
+          c.restore()
+        }
+      }
+
+      // Clip reveal (typewriter / revealLeft)
+      if (state.clipReveal < 1) {
+        const measured = c.measureText(line)
         const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
-        const padX = 14
-        const padY = 8
-        const bx = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0) - padX
-        const by = lineY - fontSize / 2 - padY
-        ctx.save()
-        ctx.fillStyle =
-          style === 'highlightKeywords'
-            ? colorUtils.alpha(color, 0.22)
-            : colorUtils.dimCaption(color, 0.14)
-        roundTextHighlight(ctx, bx, by, w + padX * 2, fontSize + padY * 2, 10)
-        ctx.fill()
-        ctx.restore()
-      }
-    }
-
-    // Clip reveal (typewriter / revealLeft)
-    if (state.clipReveal < 1) {
-      const measured = ctx.measureText(line)
-      const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
-      const clipW = w * state.clipReveal
-      ctx.save()
-      ctx.beginPath()
+        const clipW = w * state.clipReveal
+        c.save()
+        c.beginPath()
         const clipX = anchorX + (textAlign === 'right' ? -w : textAlign === 'center' ? -w / 2 : 0)
-        ctx.rect(clipX, lineY - fontSize, clipW, fontSize * 2)
-      ctx.clip()
-    }
+        c.rect(clipX, lineY - fontSize, clipW, fontSize * 2)
+        c.clip()
+      }
 
-    // Gradient fill on text
-    if (gradient) {
-      const measured = ctx.measureText(line)
-      const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
-      applyGradientFill(ctx, gradient, -w / 2, lineY - fontSize / 2, w, fontSize)
-    } else {
-      ctx.fillStyle = color
-    }
+      // Gradient fill on text
+      if (effectiveGradient) {
+        const measured = c.measureText(line)
+        const w = measured.width + letterSpacing * Math.max(0, line.length - 1)
+        applyGradientFill(c, effectiveGradient, -w / 2, lineY - fontSize / 2, w, fontSize)
+      } else {
+        c.fillStyle = color
+      }
 
-    // Draw with letter spacing
-    if (letterSpacing !== 0) {
-      let cx = 0
+      // Draw with letter spacing
+      if (letterSpacing !== 0) {
+        let cx = 0
+        c.save()
+        if (textAlign === 'center') {
+          const total = line.split('').reduce((acc, ch) => acc + c.measureText(ch).width + letterSpacing, 0)
+          // Subtract the extra trailing letterSpacing
+          cx = -(total - letterSpacing) / 2
+          c.textAlign = 'left'
+        }
+        for (const ch of line) {
+          c.fillText(ch, cx + anchorX, lineY)
+          cx += c.measureText(ch).width + letterSpacing
+        }
+        c.restore()
+      } else {
+        if (neonGlow) {
+          c.save()
+          c.shadowColor = '#67e8f9'
+          c.shadowBlur = Math.max(8, fontSize * 0.5)
+          c.fillText(line, anchorX, lineY)
+          c.restore()
+        } else {
+          c.fillText(line, anchorX, lineY)
+        }
+        if (outlineText) {
+          c.save()
+          c.lineWidth = Math.max(2, fontSize * 0.08)
+          c.strokeStyle = 'rgba(8,8,16,0.85)'
+          c.strokeText(line, anchorX, lineY)
+          c.restore()
+        }
+      }
+
+      if (state.clipReveal < 1) c.restore()
+    })
+
+    if (maxHeight) c.restore()
+    if (state.clipRevealY !== undefined && state.clipRevealY < 1) c.restore()
+
+    c.restore()
+  }
+
+  if (state.blur > 0 && !supportsCanvasFilter) {
+    applyElementBlur(ctx, drawX + state.x, drawY + state.y, maxWidth / 2, totalHeight / 2, state.blur, drawInto)
+  } else {
+    if (supportsCanvasFilter && state.blur > 0) {
       ctx.save()
-      if (textAlign === 'center') {
-        const total = line.split('').reduce((acc, ch) => acc + ctx.measureText(ch).width + letterSpacing, 0)
-        // Subtract the extra trailing letterSpacing
-        cx = -(total - letterSpacing) / 2
-        ctx.textAlign = 'left' 
-      }
-      for (const ch of line) {
-        ctx.fillText(ch, cx + anchorX, lineY)
-        cx += ctx.measureText(ch).width + letterSpacing
-      }
-      ctx.restore()
-    } else {
-      ctx.fillText(line, anchorX, lineY)
+      setCanvasFilter(ctx, `blur(${state.blur}px)`)
     }
+    drawInto(ctx)
+    if (supportsCanvasFilter && state.blur > 0) ctx.restore()
+  }
+}
 
-    if (state.clipReveal < 1) ctx.restore()
+// ─── Caption Track (imported SRT/ASS) ────────────────────────────────────────
+
+/**
+ * Render a scene-level caption track (imported from SRT/ASS) as styled,
+ * frame-accurate captions. Each word is drawn as its own element with a
+ * `wordIndex` so the existing karaoke / highlight / dim logic applies.
+ */
+export function drawCaptionTrack(
+  ctx: Ctx,
+  track: CaptionTrack,
+  localFrame: number,
+  fps: number,
+  canvasWidth: number,
+  canvasHeight: number,
+): void {
+  const t = localFrame / fps
+  const style = track.style ?? 'karaoke'
+  const cue = track.cues.find((c) => t >= c.start && t < (c.end ?? c.start + 4))
+  if (!cue || !cue.text.trim()) return
+
+  const duration = (cue.end ?? cue.start + 4) - cue.start
+  const spans = buildCaptionWordSpans(cue.text, duration, style)
+  if (spans.length === 0) return
+
+  const wordStep = Math.max(0.08, duration / spans.length)
+  const fontFamily = 'Inter, system-ui, sans-serif'
+  const bottomOffset = track.bottomOffset ?? Math.round(canvasHeight * 0.08)
+  const centerX = canvasWidth / 2
+  const baseY = canvasHeight - bottomOffset
+  const gap = (fs: number) => Math.round(fs * 0.32)
+
+  // Shrink font until the single-row layout fits the safe zone.
+  let fontSize = Math.max(18, Math.round(canvasWidth * 0.045))
+  const maxRow = Math.min(canvasWidth * 0.92, Math.max(80, track.maxWidth ?? canvasWidth * 0.88))
+  const measureRow = (fs: number): number => {
+    ctx.font = buildFont(fs, 700, fontFamily)
+    const g = gap(fs)
+    return spans.reduce((acc, s) => acc + ctx.measureText(s.word).width, 0) + g * Math.max(0, spans.length - 1)
+  }
+  while (fontSize > 18 && measureRow(fontSize) > maxRow) fontSize -= 2
+
+  ctx.font = buildFont(fontSize, 700, fontFamily)
+  const g = gap(fontSize)
+  const widths = spans.map((s) => ctx.measureText(s.word).width)
+  const rows: Array<Array<{ index: number; width: number }>> = [[]]
+  let rowWidth = 0
+  widths.forEach((width, index) => {
+    const nextWidth = rowWidth + (rows[rows.length - 1].length ? g : 0) + width
+    if (rows[rows.length - 1].length && nextWidth > maxRow) {
+      rows.push([])
+      rowWidth = 0
+    }
+    const row = rows[rows.length - 1]
+    row.push({ index, width })
+    rowWidth += (row.length > 1 ? g : 0) + width
+  })
+  const rowOf = new Map<number, { row: number; x: number }>()
+  rows.forEach((row, rowIndex) => {
+    const rowW = row.reduce((sum, word) => sum + word.width, 0) + g * Math.max(0, row.length - 1)
+    let x = centerX - rowW / 2
+    for (const word of row) {
+      rowOf.set(word.index, { row: rowIndex, x: x + word.width / 2 })
+      x += word.width + g
+    }
   })
 
-  if (maxHeight) ctx.restore()
-  if (state.clipRevealY !== undefined && state.clipRevealY < 1) ctx.restore()
+  const state: AnimationState = {
+    opacity: 1, x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, blur: 0, skewX: 0, clipReveal: 1,
+  }
 
-  ctx.restore()
+  spans.forEach((s, i) => {
+    const w = widths[i]
+    const placement = rowOf.get(i)!
+    const drawX = placement.x
+    const drawY = baseY - (rows.length - 1 - placement.row) * fontSize * 1.25
+    const el: TextElementConfig = {
+      type: 'text',
+      id: `cap-${i}`,
+      content: s.word,
+      fontSize,
+      fontWeight: 700,
+      fontFamily,
+      color: '#ffffff',
+      textAlign: 'center',
+      maxWidth: canvasWidth,
+      caption: {
+        style,
+        wordIndex: i,
+        cueStartSec: cue.start,
+        wordStepSec: wordStep,
+        totalWords: spans.length,
+        accent: track.accent,
+      },
+    }
+    drawText(ctx, el, drawX, drawY, state, canvasWidth, canvasHeight, localFrame, fps)
+  })
 }
 
 // ─── Text List Draw ───────────────────────────────────────────────────────────
@@ -324,8 +468,8 @@ export function drawTextList(
     staggerInterval = 0.15,
   } = el
 
-  // Default max width: from drawX position to 6% right margin
-  const maxWidth = el.maxWidth ?? Math.round(canvasWidth * 0.88) - drawX
+  // Default max width: remaining space from this element's center to the right safe margin.
+  const maxWidth = el.maxWidth ?? Math.max(120, Math.round(canvasWidth * 0.94) - drawX)
 
   ctx.font = buildFont(fontSize, fontWeight, fontFamily)
   ctx.textBaseline = 'middle'

@@ -44,4 +44,12 @@ export const backdrops = {
   editorialCream(angle = '150deg'): VeloxGradient {
     return shape.gradient(angle, ...colors.ramp(['#fffaf1', '#f1dfbd', '#d7b980'], 4))
   },
+
+  /**
+   * Procedural crumpled-paper backdrop (cream / white / kraft). Rendered by the
+   * engine as a textured surface — pairs with the `paperFold` scene transition.
+   */
+  paper(tone: 'cream' | 'white' | 'kraft' = 'cream'): string {
+    return `paper(${tone})`
+  },
 }

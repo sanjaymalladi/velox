@@ -31,14 +31,13 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external @napi-rs/canvas && tsup src/node-render.ts --format esm --dts --no-clean --external @napi-rs/canvas --tsconfig tsconfig.node-render.json",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --splitting --external @napi-rs/canvas && tsup src/node-render.ts --format esm --dts --no-clean --external @napi-rs/canvas --tsconfig tsconfig.node-render.json",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch --external @napi-rs/canvas",
     "test": "vitest run",
     "lint": "tsc --noEmit",
     "sync:aesthetics": "tsx ../../scripts/sync-aesthetics.ts"
   },
   "devDependencies": {
-    "@napi-rs/canvas": "^0.1.97",
     "@types/chroma-js": "^3.1.2",
     "@types/culori": "^4.0.1",
     "@types/d3": "^7.4.3",
@@ -66,6 +65,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.97",
     "@velox-video/svgl": "workspace:^",
     "chroma-js": "^3.2.0",
     "culori": "^4.0.2",

@@ -20,7 +20,9 @@ export function resolveRenderTuning(
 
   if (opts.draft) {
     scale = Math.min(scale, 0.5)
-    exportFps = Math.min(exportFps, 30)
+    // 30fps does not reduce frames for the common 30fps source case.
+    // Draft previews need fewer frames as well as fewer pixels.
+    exportFps = Math.min(exportFps, 15)
   }
 
   exportFps = Math.min(exportFps, configFps)

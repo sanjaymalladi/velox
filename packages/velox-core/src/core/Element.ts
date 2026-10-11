@@ -36,6 +36,15 @@ export abstract class Element<TConfig extends BaseElementConfig> {
   }
 
   /**
+   * Parallax depth for the `parallaxDrift` scene camera.
+   * @param value - 0 = baseline drift; positive = nearer (more motion); negative = farther (less)
+   */
+  depth(value: number): this {
+    this.config.depth = value
+    return this
+  }
+
+  /**
    * Entrance animation.
    * @param animation - animation name e.g. 'slideUp', 'fadeIn', 'typewriter'
    * @param duration  - duration in SECONDS

@@ -107,7 +107,7 @@ function applyExit(
     case 'slideLeftOut':  return { ...state, opacity: clamp(ip * 2), x: lerp(0, -80, p) }
     case 'slideRightOut': return { ...state, opacity: clamp(ip * 2), x: lerp(0, 80, p) }
     case 'zoomOut':       return { ...state, opacity: ip, scaleX: lerp(1, 0.3, p), scaleY: lerp(1, 0.3, p) }
-    case 'zoomOutBlur':   return { ...state, opacity: ip, scaleX: lerp(1, 1.4, p), blur: lerp(0, 16, p) }
+    case 'zoomOutBlur':   return { ...state, opacity: ip, scaleX: lerp(1, 0.3, p), scaleY: lerp(1, 0.3, p), blur: lerp(0, 16, p) }
     case 'flipOut':       return { ...state, opacity: ip, rotation: lerp(0, 90, p) }
     case 'shrinkX':       return { ...state, scaleX: ip, opacity: clamp(ip * 3) }
     case 'glitchOut': {
@@ -128,10 +128,11 @@ function applyLoop(
   opts: { duration?: number; scale?: number; distance?: number; speed?: number } = {}
 ): Partial<AnimationState> {
   const dur = (opts.duration ?? 2) * fps
+  if (dur <= 0) return {}
   const t = (frame % dur) / dur
   const sin = Math.sin(t * Math.PI * 2)
   const cos = Math.cos(t * Math.PI * 2)
-  
+
   switch (anim) {
     case 'pulse':   return { scaleX: 1 + sin * (opts.scale ?? 0.05), scaleY: 1 + sin * (opts.scale ?? 0.05) }
     case 'breathing': return { scaleX: 1 + sin * 0.015, scaleY: 1 + sin * 0.015, y: cos * 2 } // Subtle low-freq oscillation
@@ -161,7 +162,7 @@ export function getAnimationState(
   const exitEndFrame = element.exit ? exitStartFrame + exitDuration : -1
 
   if (localFrame < enterStartFrame) return { ...DEFAULT_STATE, opacity: 0, animationPhase: 'hidden' }
-  if (exitEndFrame > 0 && localFrame > exitEndFrame) return { ...DEFAULT_STATE, opacity: 0, animationPhase: 'done' }
+  if (exitEndFrame >= 0 && localFrame > exitEndFrame) return { ...DEFAULT_STATE, opacity: 0, animationPhase: 'done' }
 
   // Entrance
   if (element.entrance) {

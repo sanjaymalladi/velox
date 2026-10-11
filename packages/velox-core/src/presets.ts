@@ -1,4 +1,4 @@
-import { group } from './elements/Group'
+import { group, measure } from './elements/Group'
 import { shape } from './elements/Shape'
 import { text } from './elements/Text'
 import { layout } from './layout'
@@ -66,8 +66,23 @@ export function themedCards(aesthetic: VeloxAesthetic) {
     children: AnyElement[],
     options: { width?: number; height?: number; radius?: number } = {},
   ): AnyElement {
-    const width = options.width ?? 620
-    const height = options.height ?? 300
+    // Auto-fit the card to its content so children never overflow the surface.
+    // Explicit width/height act as a floor (content always wins) and are clamped
+    // to canvas-safe bounds for the portrait 1080×1920 frame.
+    const PAD_X = 56
+    const PAD_Y = 48
+    const MAX_W = 1000
+    const MAX_H = 1640
+    const contentCfg = children.map((c) => c.toConfig())
+    const content = measure(contentCfg)
+    const autoW = Math.max(content.width, 1) + PAD_X * 2
+    const autoH = Math.max(content.height, 1) + PAD_Y * 2
+
+    let width = options.width ?? autoW
+    let height = options.height ?? autoH
+    width = Math.min(Math.max(width, autoW), MAX_W)
+    height = Math.min(Math.max(height, autoH), MAX_H)
+
     const radius = options.radius ?? card.radius
 
     if (card.style === 'none') {
